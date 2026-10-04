@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "btc-atelier": {
+      "command": "python",
+      "args": [
+        "/chemin/absolu/vers/bot/agent_bridge.py"
+      ]
+    }
+  }
+}
