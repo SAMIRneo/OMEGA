@@ -104,7 +104,7 @@ def run(port):
                     candles=[dict(b) for b in engine.bars.get(tf,[])[-limit:]]
                     status=dict(engine.candle_status.get(tf,{}))
                 self.send(200,{'timeframe':tf,'candles':candles,'status':status})
-            elif path in ('/','/style.css','/ui.js','/pilot.js','/risk-core.js','/local-adapter.js','/icon.svg'):
+            elif path in ('/','/style.css','/ui.js','/pilot.js','/risk-core.js','/decision-viz.js','/local-adapter.js','/icon.svg'):
                 file = ROOT/'web'/('index.html' if path=='/' else path[1:])
                 mime = {'html':'text/html; charset=utf-8','css':'text/css; charset=utf-8','js':'text/javascript; charset=utf-8','svg':'image/svg+xml'}[file.suffix[1:]]
                 self.send(200,file.read_bytes(),mime)
