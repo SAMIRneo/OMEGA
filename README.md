@@ -1,6 +1,6 @@
 # ETH Atelier
 
-**Terminal ETH / Hyperliquid, portefeuille réel en lecture seule et bot de simulation pilotable.** Interface encre / bordeaux / cuivre / ivoire, navigation mobile, graphique et journal. Noyau de calcul du risque en Rust, compilé en WebAssembly et utilisé pour les entrées navigateur et la taille du bot. Aucune clé privée, signature, transaction ou exécution réelle.
+**Terminal ETH / Hyperliquid, portefeuille réel en lecture seule et bot de simulation pilotable.** Interface de terminal noir / magenta / vert, onglets compacts, visualisation centrale des horizons et instrumentation de marché. Noyau de calcul du risque en Rust, compilé en WebAssembly et utilisé pour les entrées navigateur et la taille du bot. Aucune clé privée, signature, transaction ou exécution réelle.
 
 - **Site public : https://btc-atelier.kairos-labspro.chatgpt.site** — le lien existant reste inchangé ; l’application concerne désormais ETH.
 - **Source : https://github.com/SAMIRneo/bot**
@@ -92,3 +92,9 @@ node scripts/build-rust.mjs
 ```
 
 Le build génère `public/risk-core.js` et `web/risk-core.js`, qui embarquent le binaire WebAssembly. Aucun secret ni accès exchange dans le module. Le fichier généré est versionné pour ouvrir le site sans installer Rust.
+
+## Interface v5 — référence decision terminal
+
+Terminal dense avec compte fictif, graphique ETH, carnet, carte tridimensionnelle des RSI par horizon, gates d’entrée et événements du contrôleur. La topologie du tore est illustrative : ses couleurs sont les RSI calculés ; ce n’est ni un réseau neuronal ni un score de confiance. Glisser pour tourner, toucher un horizon pour le sélectionner, bouton Pause et respect du mouvement réduit. Le dessin est suspendu hors écran et quand le document est masqué.
+
+Le panneau de volume signe le volume de bougie selon la variation open/close : approximation explicitement séparée du delta des transactions WebSocket. La courbe RSI Wilder utilise les bougies clôturées. Aucun P&L, taux de réussite, latence, score IA ou flux macro fictif n’est affiché. Les gates sont des vérifications observées, pas une probabilité ou une assurance de passage d’ordre.
