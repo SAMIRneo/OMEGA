@@ -12,3 +12,5 @@ docs/official/
 venv/
 Thumbs.db
 .DS_Store
+
+rust-core/target/

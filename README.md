@@ -1,6 +1,6 @@
 # ETH Atelier
 
-**Terminal ETH / Hyperliquid, portefeuille réel en lecture seule et bot de simulation pilotable.** Interface sombre responsive, navigation mobile, graphique en chandeliers et journal. Aucune clé privée, signature, transaction ou exécution réelle.
+**Terminal ETH / Hyperliquid, portefeuille réel en lecture seule et bot de simulation pilotable.** Interface encre / bordeaux / cuivre / ivoire, navigation mobile, graphique et journal. Noyau de calcul du risque en Rust, compilé en WebAssembly et utilisé pour les entrées navigateur et la taille du bot. Aucune clé privée, signature, transaction ou exécution réelle.
 
 - **Site public : https://btc-atelier.kairos-labspro.chatgpt.site** — le lien existant reste inchangé ; l’application concerne désormais ETH.
 - **Source : https://github.com/SAMIRneo/bot**
@@ -80,3 +80,15 @@ node --check public/browser-engine.js
 ```
 
 Le rendu visuel sur Safari/iPhone reste à vérifier sur appareil réel. L’interface prévoit des champs 16 px sur mobile, zones tactiles, safe areas, défilement horizontal des tableaux et réduction des animations selon les préférences système.
+
+## Rust / WebAssembly
+
+`rust-core/` contient un module Rust sans dépendance : perte planifiée après frais/slippage et taille de marge sous les plafonds. Le navigateur bloque les entrées si le module ne charge pas. Le contrôleur automatique utilise sa taille calculée dans les deux éditions. Le transport et l’interface restent en JavaScript ; le serveur local et sa validation finale restent en Python. Le projet n’est pas entièrement migré en Rust.
+
+```sh
+rustup target add wasm32-unknown-unknown
+cargo test --manifest-path rust-core/Cargo.toml
+node scripts/build-rust.mjs
+```
+
+Le build génère `public/risk-core.js` et `web/risk-core.js`, qui embarquent le binaire WebAssembly. Aucun secret ni accès exchange dans le module. Le fichier généré est versionné pour ouvrir le site sans installer Rust.

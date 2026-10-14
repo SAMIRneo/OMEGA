@@ -13,9 +13,8 @@ function signal(s){const a=s.indicators['5m'],h=s.indicators['1h'];if(!a?.ready|
  if(!(a.atr>0))return {blocked:'ATR indisponible.'};
  const d=up?1:-1,L=s.limits,best=+s.market.book.levels[up?1:0][0].px,entry=best*(1+d*L.slippage_bps/10000),stop=entry-d*a.atr*1.5,target=entry+d*a.atr*3;
  if(!(stop>0&&target>0))return {blocked:'Niveaux non valides.'};
- const riskPerUnit=a.atr*1.5+entry*L.fee_bps/10000+stop*(L.fee_bps+L.slippage_bps)/10000;
- const maxMargin=L.max_risk*.9/riskPerUnit*best/L.leverage,available=Math.max(0,s.paper.cash)/(1+L.leverage*L.fee_bps/10000);
- const margin=Math.floor(Math.min(L.max_margin,maxMargin,available)*100)/100;
+ const core=window.RiskCore?.exports;if(!core)return {blocked:'Calcul du risque indisponible.'};
+ const margin=core.size_margin(d,best,a.atr,L.leverage,L.max_margin,L.max_risk,s.paper.cash,L.fee_bps,L.slippage_bps);
  if(margin<.01)return {blocked:'Capital ou budget de risque insuffisant.'};
  return {args:{side,margin,stop,target}};
 }
