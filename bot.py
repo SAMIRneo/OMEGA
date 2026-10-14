@@ -20,7 +20,7 @@ class Hyperliquid:
             return json.load(response)
 
     def market(self):
-        book = self.info({"type": "l2Book", "coin": "BTC"})
+        book = self.info({"type": "l2Book", "coin": "ETH"})
         bids, asks = book["levels"]
         bid_size = sum(float(x["sz"]) for x in bids)
         ask_size = sum(float(x["sz"]) for x in asks)
@@ -34,13 +34,14 @@ class Hyperliquid:
         if interval not in durations:
             raise ValueError("Intervalle non pris en charge")
         now = int(time.time()*1000)
-        return self.info({"type": "candleSnapshot", "req": {"coin": "BTC", "interval": interval, "startTime": now-count*durations[interval], "endTime": now}})
+        return self.info({"type": "candleSnapshot", "req": {"coin": "ETH", "interval": interval, "startTime": now-count*durations[interval], "endTime": now}})
 
     def account(self, address):
         if not re.fullmatch(r"0x[0-9a-fA-F]{40}", address):
             raise ValueError("Adresse publique invalide")
         return {"perpetuals": self.info({"type": "clearinghouseState", "user": address}),
-                "openOrders": self.info({"type": "openOrders", "user": address})}
+                "openOrders": self.info({"type": "openOrders", "user": address}),
+                "fills": self.info({"type": "userFills", "user": address})}
 
 
 def serve(client, port):

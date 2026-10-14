@@ -1,3 +1,5 @@
+> Note : documentation technique antérieure à la refonte ETH v2. Pour l’interface actuelle et ses limites, consulter README.md et docs/ETH_V2.md.
+
 # Outils gratuits examinés le 3 octobre 2026
 
 ## Intégré : TA-Lib

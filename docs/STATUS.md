@@ -1,6 +1,8 @@
+> Note : documentation technique antérieure à la refonte ETH v2. Pour l’interface actuelle et ses limites, consulter README.md et docs/ETH_V2.md.
+
 # État au 3 octobre 2026
 
-Version fonctionnelle locale : Python, interface responsive sans CDN, collecte BTC WebSocket, historique REST, indicateurs, profils approximés, portefeuille public, simulation 50 $ / ×40, test historique exploratoire et passerelle HTTP/MCP stdio.
+Version fonctionnelle locale : Python, interface responsive sans CDN, collecte ETH WebSocket, historique REST, indicateurs, profils approximés, portefeuille public, simulation 50 $ / ×40, test historique exploratoire et passerelle HTTP/MCP stdio.
 
 Vérifications réalisées : huit tests unitaires (coûts/persistance, fraîcheur locale et source, NaN/risque, stop, limite quotidienne, indicateurs sur bougies closes, marché plat), syntaxe JavaScript, connexion mainnet et lecture de compte, protocole MCP initialisation/liste/lecture, refus origine externe et mutation non authentifiée, refus d'un ordre incohérent depuis l'interface. Aucun ordre réel ni trade paper n'a été ouvert lors des essais de l'application finale ; les tests de transactions ont utilisé des fichiers temporaires isolés.
 

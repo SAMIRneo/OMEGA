@@ -32,7 +32,7 @@ class MultiFrameTests(unittest.TestCase):
         f=features(bars(300),300*300000)
         f.update(close=200,resistance=150,histogram=1,relativeVolume=2,cmf=.2,lastClosedTime=now*1000-1000,trend='bearish')
         indicators={tf:copy.deepcopy(f) for tf in TIMEFRAMES}
-        flow={'completeWindow':True,'buyBtc':10,'sellBtc':1,'deltaBtc':9}
+        flow={'completeWindow':True,'buyEth':10,'sellEth':1,'deltaEth':9}
         output=confluence(indicators,flow,{'fresh':True},now)
         candidate=next(x for x in output['active'] if x['id']=='breakout')
         self.assertEqual(candidate['status'],'blocked')
@@ -42,13 +42,13 @@ class MultiFrameTests(unittest.TestCase):
         now=time.time()
         f=features(bars(300),300*300000)
         f.update(close=200,resistance=150,histogram=1,relativeVolume=2,cmf=.2,lastClosedTime=now*1000-1000,trend='bullish')
-        output=confluence({tf:f for tf in TIMEFRAMES},{'completeWindow':False,'buyBtc':10,'sellBtc':1,'deltaBtc':9},{'fresh':True},now)
+        output=confluence({tf:f for tf in TIMEFRAMES},{'completeWindow':False,'buyEth':10,'sellEth':1,'deltaEth':9},{'fresh':True},now)
         candidate=next(x for x in output['active'] if x['id']=='breakout')
         self.assertIn('Fenêtre order flow incomplète',candidate['blockers'])
 
     def test_reserved_period_cannot_change_development(self):
         raw=bars()
-        config=json.loads((ROOT/'config.json').read_text())
+        config=json.loads((ROOT/'config.example.json').read_text())
         result=compare_strategies(raw,config,601*300000)
         split=250+(len(raw)-250)//2
         altered=copy.deepcopy(raw)

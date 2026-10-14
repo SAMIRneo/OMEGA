@@ -50,8 +50,8 @@ def confluence(indicators, flow, market, now):
                 if not market.get('fresh'):reasons.append('Carnet périmé')
                 if not flow.get('completeWindow'):reasons.append('Fenêtre order flow incomplète')
                 if candidate['family']=='trend' and (not direction or direction!=candidate['direction']):reasons.append('Désaccord avec les horizons supérieurs')
-                total=flow.get('buyBtc',0)+flow.get('sellBtc',0)
-                normalized=flow.get('deltaBtc',0)/total if total else 0
+                total=flow.get('buyEth',0)+flow.get('sellEth',0)
+                normalized=flow.get('deltaEth',0)/total if total else 0
                 if total==0 or normalized*candidate['direction']<=.1:reasons.append('Delta 60 s non concordant ou faible')
                 if candidate['family']=='range' and by_tf['1h'].get('regime')!='range':reasons.append('Range non confirmé en 1 h')
                 if candidate['family']=='reversal' and direction and direction!=candidate['direction']:reasons.append('Rejet contre la tendance des horizons supérieurs')

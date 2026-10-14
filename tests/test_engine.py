@@ -12,7 +12,7 @@ class PaperTests(unittest.TestCase):
     def setUp(self):
         self.directory=tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
-        self.config=json.loads((ROOT/'config.json').read_text())
+        self.config=json.loads((ROOT/'config.example.json').read_text())
         self.engine=Engine(self.config,pathlib.Path(self.directory.name)/'paper.json')
         self.engine.market={'connected':True,'lastEvent':time.time(),'book':{'time':time.time()*1000,'levels':[[{'px':'85000','sz':'2'}],[{'px':'85001','sz':'2'}]]},'error':None}
         self.engine.context={'maxLeverage':40,'updatedAt':time.time()}
@@ -49,7 +49,7 @@ class PaperTests(unittest.TestCase):
 
     def test_nan_and_risk_rejected(self):
         with self.assertRaises(ValueError):self.engine.open({'side':'long','margin':math.nan,'stop':84700,'target':85600})
-        with self.assertRaises(ValueError):self.engine.open({'side':'long','margin':5,'stop':84000,'target':85600})
+        with self.assertRaises(ValueError):self.engine.open({'side':'long','margin':5,'stop':82000,'target':85600})
 
     def test_stop_closes(self):
         self.open()
@@ -66,3 +66,18 @@ class PaperTests(unittest.TestCase):
         self.assertEqual(output['atr'],0)
 
 if __name__=='__main__':unittest.main()
+
+class EthMigrationTests(unittest.TestCase):
+    def test_default_storage_does_not_reuse_btc_paper(self):
+        config=json.loads((ROOT/'config.example.json').read_text())
+        engine=Engine(config)
+        self.assertEqual(engine.path.name,'paper-eth.json')
+        self.assertEqual(config['leverage'],10)
+
+    def test_public_market_requests_use_eth(self):
+        from bot import Hyperliquid
+        from unittest.mock import Mock
+        client=Hyperliquid()
+        client.info=Mock(return_value=[])
+        client.candles('5m')
+        self.assertEqual(client.info.call_args.args[0]['req']['coin'],'ETH')

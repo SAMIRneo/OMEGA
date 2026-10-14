@@ -1,8 +1,47 @@
-# BTC Atelier
+# ETH Atelier
 
-Terminal local BTC / Hyperliquid, portefeuille réel en lecture seule et simulation indépendante de 50 $. Python + interface web sans CDN. Rust n'est pas installé sur ce poste ; ce projet n'est pas écrit en Rust et n'est pas une infrastructure HFT.
+**Terminal ETH / Hyperliquid, portefeuille réel en lecture seule et bot de simulation pilotable.** Interface sombre responsive, navigation mobile, graphique en chandeliers et journal. Aucune clé privée, signature, transaction ou exécution réelle.
 
-## Lancement
+- **Site public : https://btc-atelier.kairos-labspro.chatgpt.site** — le lien existant reste inchangé ; l’application concerne désormais ETH.
+- **Source : https://github.com/SAMIRneo/bot**
+
+## Deux éditions, une interface
+
+| | Web public (`public/`) | Serveur local (`web/` + Python) |
+|---|---|---|
+| Marché | ETH mainnet, REST + WebSocket directs | ETH, réseau de `config.json` |
+| Indicateurs | JavaScript, bougies clôturées | TA-Lib, bougies clôturées |
+| Wallet | Adresse saisie, mémorisation locale facultative | Adresse de `config.json`, changement en mémoire via interface |
+| Compte fictif | localStorage `eth-atelier-web-paper-v2` | `data/paper-eth.json` |
+| Stops simulés | Page visible + flux frais | Processus Python actif + flux frais |
+| Bot automatique | Contrôleur dans l’onglet | Même contrôleur dans l’onglet |
+| Funding / liquidation | Non modélisés | Funding estimé, liquidation approximative |
+| MCP / recherche avancée | Non disponibles | Passerelle MCP, recherche et backtests exploratoires |
+
+Les anciens fichiers BTC et leur localStorage ne sont pas réutilisés pour ETH. **Ne pas copier une position BTC dans `paper-eth.json`.** Les éditions ne synchronisent pas leur compte fictif.
+
+## Interface
+
+1. **Terminal** : ETH/USDC perp, variation 24 h, funding horaire, volume, carnet L2, graphique 7 horizons, EMA20/50, RSI, ATR, MACD et flux observé 60 s. Horizons périmés signalés.
+2. **Pilotage** : démarrer/arrêter les entrées automatiques simulées, voir les règles, les limites et la position ; ouvrir/fermer une simulation manuelle.
+3. **Portefeuille** : valeur du compte perp, marge, disponible au retrait, positions réelles tous actifs, ordres et dernières exécutions ETH. Adresse réelle du compte ou sous-compte, pas celle d’un agent API. Pas de wallet personnel embarqué dans le site public.
+4. **Journal** : historique fictif, P&L net, statistiques descriptives, export CSV et événements du contrôleur.
+
+## Bot simulé : règles exactes
+
+Désactivé à chaque chargement. Le bouton Démarrer arme l’observation des **nouvelles** bougies 5 min clôturées, sans exécuter le signal présent au démarrage. Un croisement EMA20/50 doit être confirmé par la tendance 1 h concordante. Stop à 1,5 ATR ; objectif à 3 ATR. La marge est calculée sous les limites de capital, marge et risque (budget automatique à 90 % du plafond pour une réserve de coûts), puis le moteur revalide l’exécution sur la profondeur visible.
+
+Une seule position, une évaluation par bougie et par navigateur, via Web Locks. Historique 5 min et 1 h récent et carnet frais requis. Pas de rattrapage après suspension ou déconnexion prolongée. Arrêter le bot arrête les entrées ; la position existante reste surveillée selon le moteur. Fermer la page arrête le contrôleur ; iOS peut la suspendre en arrière-plan. L’activation n’est jamais persistée.
+
+**Ce n’est pas une stratégie validée.** Aucun rendement, taux de réussite futur ou probabilité n’est promis. Les règles ne constituent pas un conseil d’investissement.
+
+## Paramètres par défaut
+
+50 USDC fictifs, levier **×10**, marge maximale 5 USDC, risque prévu au stop maximal 1 USDC, limite quotidienne de perte 5 USDC (UTC). Frais hypothétiques 4,5 bps et slippage 2 bps par côté. Le moteur contrôle le plafond de levier renvoyé par Hyperliquid ; ETH était à ×25 lors de la vérification du 14 octobre 2026. Le plafond de l’exchange peut évoluer.
+
+Les stops s’exécutent au prochain prix observé : un saut de prix peut dépasser le risque prévu. Les mouvements pendant l’arrêt ne sont pas reconstitués. Le navigateur ne simule ni funding ni liquidation. Une source ouverte ne prouve pas sa fraîcheur : âge des données contrôlé avant les actions.
+
+## Lancer le moteur Python
 
 ```powershell
 git clone https://github.com/SAMIRneo/bot.git
@@ -12,81 +51,32 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
-Ouvrir http://127.0.0.1:8765. `start.ps1` propose le même lancement. Aucun dépôt, transfert ou ordre réel. L'application doit rester active pour surveiller les positions simulées.
+Ouvrir http://127.0.0.1:8765. Remplacer l’adresse d’exemple par le compte public Hyperliquid à consulter dans `config.json`. Ce fichier reste ignoré par Git. Pour une installation BTC existante, conserver l’adresse et remplacer le levier 40 par **10** ; le nouveau stockage ETH est indépendant. `start.ps1` lance également le serveur.
 
-## Fonctionnalités
+Le serveur écoute seulement sur 127.0.0.1 et contrôle Host/Origin. Mutations authentifiées avec un jeton local renouvelé à chaque lancement dans `data/agent-token.txt` (ignoré par Git). Aucun accès de la version publique au serveur local.
 
-- WebSocket carnet et transactions BTC : reconnexion, heartbeat, déduplication.
-- Bougies 5 min / 4 h / 30 min actualisées chaque minute.
-- RSI Wilder 14, MACD 12/26/9, ATR Wilder 14, EMA 20/50, VWAP glissante (40 bougies), niveaux récents sur bougies clôturées.
-- Delta signé des transactions observées sur 60 s, incomplet au démarrage/après interruption.
-- TPO sur 48 bougies de 30 min ; volume réparti uniformément dans leur amplitude : approximation explicitement affichée, pas un footprint.
-- Portefeuille public : positions/ordres dans l'API, résumé de valeur dans l'interface.
-- Simulation persistante : une position ×40, stop/objectif, frais hypothétiques, exécution sur profondeur visible + slippage, funding estimé et historique.
-- Limites par défaut : marge 5 $, risque 1 $ au stop, perte quotidienne 5 $ (jour UTC). Un gap peut dépasser la perte prévue.
+## Agent local / MCP
 
-## Brancher un agent
+`mcp-config.example.json` décrit la passerelle stdio. Outils : `eth_state`, `eth_candles`, `paper_open`, `paper_close`. Les anciens noms `btc_state` / `btc_candles` ont été remplacés : mettre à jour les clients. Aucun fournisseur de modèle ni agent externe n’est connecté automatiquement.
 
-Lancer d'abord l'application. Pour un client MCP local, reprendre `mcp-config.example.json` dans sa configuration. Outils : `btc_state`, `paper_open`, `paper_close`. MCP stdio JSON-RPC, protocole 2024-11-05. La compatibilité Hermes dépend de sa version/configuration ; aucun fichier Hermes existant n'a été modifié.
+HTTP : `GET /api/state`, `/api/health`, `/api/candles`, `/api/session`. `POST /api/paper/open`, `/api/paper/close`, `/api/account` requièrent le jeton local. `/api/account` modifie l’adresse en mémoire sans écraser le fichier personnel.
 
-L'agent peut aussi consulter `GET /api/state` et `/api/health`. Les mutations `/api/paper/open` (side, margin, stop, target) et `/api/paper/close` requièrent `Authorization: Bearer <jeton local>`. Le jeton change à chaque lancement et se trouve dans `data/agent-token.txt`, ignoré par Git. Ne pas publier ce fichier.
+Les backtests Python sont exploratoires et séparés du nouveau contrôleur navigateur. Ils ne constituent pas une validation de ses performances. Documentation technique antérieure conservée dans `docs/` ; ce README et `docs/ETH_V2.md` décrivent l’interface actuelle.
 
-Depuis Codex, la passerelle peut être consultée avec les outils locaux du chat. L'agent n'est pas branché automatiquement : un modèle doit disposer d'un client d'outils local. Un agent cloud ne peut pas consulter directement localhost. Aucun fournisseur IA ou clé de modèle n'est configuré.
+## Héberger l’édition publique
 
-## Configuration / persistance
+Servir le contenu de `public/` sur un hébergement HTTPS statique (Sites, GitHub Pages, etc.). Pas de build, CDN, compte fictif partagé ou secret serveur. L’adresse publique peut être mémorisée uniquement si l’utilisateur coche l’option sur son appareil. Les requêtes de compte vont à Hyperliquid ; déconnexion efface cette préférence.
 
-`config.json` contient votre adresse publique et les paramètres paper. Copier `config.example.json` en `config.json`, puis remplacer l’adresse d’exemple par celle du portefeuille à consulter. Le fichier personnel `config.json` est ignoré par Git. `data/paper.json` contient résultats, position et événements. Aucune clé privée Hyperliquid.
+Sources API : https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint et https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions
 
-Le serveur écoute uniquement sur 127.0.0.1, contrôle Host/Origin et authentifie les mutations. Les processus de la même session peuvent accéder aux lectures : ce n'est pas une isolation entre applications.
+## Vérification
 
-Fraîcheur : réception carnet <5 s et âge source absolu <15 s. L'âge affiché inclut un éventuel décalage d'horloge ; une connexion active ne prouve pas une latence HFT. Les nouvelles positions sont refusées si flux ou métadonnées périmés.
-
-## Limites
-
-Lecture du contexte descriptive : pas de stratégie validée, probabilité de gain ou auto-entrée. Source macroéconomique non connectée. Liquidation estimée pour une petite position isolée : ne reproduit pas le compte cross ni les paliers réels. Funding proratisé au taux connu, pas un règlement horaire exact. Frais hypothétiques de 4,5 bps par côté et slippage de 2 bps, à calibrer.
-
-La surveillance reprend au redémarrage ; les stops ne peuvent pas s'exécuter pendant l'arrêt, les mouvements et le funding hors ligne ne sont pas reconstitués. Le journal le signale.
-
-## Tests et documentation
-
-```powershell
+```sh
 python -m unittest discover -s tests -v
-node --check web/ui.js
+node --test tests/browser.test.cjs
+node --check public/ui.js
+node --check public/pilot.js
+node --check public/browser-engine.js
 ```
 
-149 pages officielles archivées dans `docs/official`. Mise à jour : `python sync_docs.py`. Périmètre de la revue initiale : `docs/REVIEW.md`.
-
-## Test historique exploratoire
-
-Un croisement EMA20/50 est testé sur les ~200 dernières bougies 5 min clôturées. Signal à la clôture précédente, entrée à l’ouverture suivante, stop 1,5 ATR / objectif 3 ATR, sortie après 12 bougies, stop prioritaire si les deux niveaux sont atteints. Coûts fixes inclus ; funding, liquidation, carnet et limites journalières exclus. Baisse maximale sur l’équité réalisée uniquement. Cette fenêtre courte sans validation hors échantillon ne prouve aucune rentabilité.
-
-
-## Analyse multi-horizon (version du 3 octobre)
-
-Horizons : 5 min, 15 min, 30 min, 1 h, 4 h, 1 jour, 1 semaine. Jusqu'à 1 000 bougies par horizon ; si la source dispose de moins d'historique, le nombre réel est affiché. Graphique et panneau d'indicateurs sélectionnables. Actualisation adaptée : 60 / 60 / 120 / 180 / 300 / 900 / 1 800 secondes ; récupération après échec avec attente 30 s. Les métadonnées/compte sont consultés environ chaque minute.
-
-TA-Lib calcule RSI, EMA20/50/200, MACD, ATR, ADX, Bollinger et OBV. Régime conventionnel : ADX <20 range, 20–25 transition, ≥25 tendance. EMA200 n'entre dans la tendance qu'après 250 bougies. RSI plat rendu neutre à 50. Volume relatif : dernière bougie / moyenne des 20 précédentes. CMF20 mesure la position des clôtures pondérée par le volume ; ne remplace pas le delta des transactions.
-
-Quatre règles de recherche : reprise de tendance, cassure avec volume, retour à la moyenne et rejet d'extrême. Confirmation sur contexte 1 h / 4 h / 1 j pour les tendances ; range 1 h pour retour à la moyenne ; rejet contraire à un contexte aligné bloqué. Delta 60 s concordant, fenêtre continue d'au moins 75 s et carnet frais requis. Les signaux restent des hypothèses : aucune auto-entrée ni probabilité calculée.
-
-Comparaison des familles sur 5 min / 15 min / 1 h : 250 bougies d'échauffement puis deux moitiés chronologiques, capital de départ fictif indépendant pour chaque famille/période, paramètres fixes. L'entrée utilise uniquement les bougies antérieures. La période réservée est une vérification exploratoire et pas une validation définitive. Les filtres multi-horizon et l'order flow ne sont pas rejoués. Le résultat d'une famille isolée ne mesure pas la confluence complète.
-
-Les mêmes données sont accessibles à l'agent via `multiTimeframe`, `candlesByTimeframe`, `candleStatus` et `strategyResearch` dans `btc_state`. Rapport des outils gratuits/open source : `docs/OPEN_SOURCE.md`.
-
-
-## Interface et connexion (version 0.3)
-
-Quatre vues dédiées : Terminal, Stratégies, Simulation, Connexions. Le bouton d'état ouvre les diagnostics. La prévisualisation du formulaire est indicative ; le moteur vérifie à nouveau chaque ordre simulé. Le bouton « Exemple ATR » remplit des niveaux mécaniques à vérifier, sans recommandation.
-
-Dans Connexions, afficher/copier la configuration MCP générée pour ce poste puis l'ajouter à son client. Le témoin de client indique uniquement une consultation récente. Après redémarrage du serveur, l'interface récupère une nouvelle session. Aucun jeton local n'est inclus dans la configuration copiée.
-
-`btc_state` est désormais une synthèse sans les historiques de bougies. Utiliser `btc_candles` avec `timeframe` (5m, 15m, 30m, 1h, 4h, 1d, 1w) et `limit` (10–300, défaut 100) pour les obtenir. `GET /api/state` garde le format complet ; l'interface utilise `?view=ui&timeframe=...` et l'agent `?view=agent`. Le pont accepte la variable locale `ATELIER_URL` pour changer de port.
-
-Détails et mesures : `docs/UI_UX.md`. La compression et les caches améliorent le transfert et l'affichage, sans résoudre le décalage de source observé ni créer une infrastructure HFT.
-
-
-## Publication GitHub
-
-Code source : https://github.com/SAMIRneo/bot
-
-Cette application nécessite un serveur Python actif. GitHub Pages ne peut pas exécuter son API, ses flux ni la simulation. Les données personnelles, jetons locaux, sorties de travail, archives tierces et le projet MONO-prime imbriqué sont exclus du dépôt.
+Le rendu visuel sur Safari/iPhone reste à vérifier sur appareil réel. L’interface prévoit des champs 16 px sur mobile, zones tactiles, safe areas, défilement horizontal des tableaux et réduction des animations selon les préférences système.

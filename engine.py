@@ -21,7 +21,7 @@ class Engine:
         self.client = Hyperliquid(config['network'])
         self.lock = threading.RLock()
         self.stop = threading.Event()
-        self.path = pathlib.Path(storage) if storage else ROOT/'data'/'paper.json'
+        self.path = pathlib.Path(storage) if storage else ROOT/'data'/'paper-eth.json'
         self.market = {"connected": False, "book": None, "lastEvent": 0, "error": None}
         self.bars = {}
         self.candle_status = {}
@@ -63,7 +63,7 @@ class Engine:
                 with self.lock:
                     self.flow_started = time.time()
                 for kind in ('l2Book','trades'):
-                    socket.send(json.dumps({"method":"subscribe","subscription":{"type":kind,"coin":"BTC"}}))
+                    socket.send(json.dumps({"method":"subscribe","subscription":{"type":kind,"coin":"ETH"}}))
                 delay = 1
                 ping = time.monotonic()
                 while not self.stop.is_set():
@@ -129,17 +129,19 @@ class Engine:
             try:
                 if time.time()>=due.get('context',0):
                     meta, contexts = self.client.info({"type":"metaAndAssetCtxs"})
-                    index = next(i for i,a in enumerate(meta['universe']) if a['name']=='BTC')
+                    index = next(i for i,a in enumerate(meta['universe']) if a['name']=='ETH')
                     with self.lock:
                         self.context = {**contexts[index], "maxLeverage":meta['universe'][index]['maxLeverage'], "updatedAt":time.time()}
                     due['context']=time.time()+60
             except Exception:
                 pass
             try:
-                if time.time()>=due.get('account',0):
-                    account = self.client.account(self.config['account'])
+                if time.time()>=due.get('account',0) and self.config['account'] != '0x'+'0'*40:
+                    address = self.config['account']
+                    account = self.client.account(address)
                     with self.lock:
-                        self.account, self.account_time, self.account_error = account, time.time(), None
+                        if address == self.config['account']:
+                            self.account, self.account_time, self.account_error = account, time.time(), None
                     due['account']=time.time()+60
             except Exception as error:
                 with self.lock:
@@ -189,7 +191,7 @@ class Engine:
             if not self.context or time.time()-self.context['updatedAt']>120:
                 raise ValueError('Métadonnées indisponibles ou périmées')
             if leverage > self.context['maxLeverage']:
-                raise ValueError('Levier supérieur au maximum BTC actuel')
+                raise ValueError('Levier supérieur au maximum ETH actuel')
             if margin>self.config['max_margin']:
                 raise ValueError('Marge maximale simulée : '+str(self.config['max_margin'])+' $')
             best = float(self.market['book']['levels'][1 if side=='long' else 0][0]['px'])
@@ -273,7 +275,7 @@ class Engine:
             buy = sum(float(t['sz']) for t in recent if t['side']=='B')
             sell = sum(float(t['sz']) for t in recent if t['side']=='A')
             complete = bool(self.flow_started and now-self.flow_started>=75 and self.market['connected'] and (len(self.trades)<self.trades.maxlen or self.trades[0]['time']<=now*1000-60000))
-            flow = {"buyBtc":buy,"sellBtc":sell,"deltaBtc":buy-sell,"count":len(recent),"windowSeconds":60,"completeWindow":complete,"coverage":"Fenêtre continue observée" if complete else "Depuis la connexion ; incomplet après une interruption"}
+            flow = {"buyEth":buy,"sellEth":sell,"deltaEth":buy-sell,"count":len(recent),"windowSeconds":60,"completeWindow":complete,"coverage":"Fenêtre continue observée" if complete else "Depuis la connexion ; incomplet après une interruption"}
             indicators = copy.deepcopy(self.feature_cache)
             for interval,f in indicators.items():
                 status=self.candle_status.get(interval,{})
@@ -288,4 +290,4 @@ class Engine:
             p = paper['position']
             paper['unrealized']= (mid-p['entry'])*p['quantity']*(1 if p['side']=='long' else -1) if p and mid else 0
             paper['equity']=paper['cash']+paper['unrealized']
-            return {"time":now,"mode":"paper","accountAddress":self.config['account'],"market":{**self.market,"fresh":self.fresh(),"mid":mid,"sourceAgeSeconds":now-book["time"]/1000 if book else None},"context":copy.deepcopy(self.context),"flow":flow,"indicators":indicators,"profiles":profiles(self.bars.get('30m',[]),now*1000),"candles":copy.deepcopy(self.bars.get('5m',[])),"scenario":alignment,"multiTimeframe":alignment,"candleStatus":copy.deepcopy(self.candle_status),"candlesByTimeframe":copy.deepcopy(self.bars),"account":copy.deepcopy(self.account),"accountTime":self.account_time,"accountError":self.account_error,"paper":paper,"research":copy.deepcopy(self.research),"strategyResearch":copy.deepcopy(self.comparisons),"limits":self.config,"macro":{"connected":False},"model":{"connected":False}}
+            return {"time":now,"mode":"paper","runtime":"local","accountAddress":self.config['account'],"market":{**self.market,"fresh":self.fresh(),"mid":mid,"sourceAgeSeconds":now-book["time"]/1000 if book else None},"context":copy.deepcopy(self.context),"flow":flow,"indicators":indicators,"profiles":profiles(self.bars.get('30m',[]),now*1000),"candles":copy.deepcopy(self.bars.get('5m',[])),"scenario":alignment,"multiTimeframe":alignment,"candleStatus":copy.deepcopy(self.candle_status),"candlesByTimeframe":copy.deepcopy(self.bars),"account":copy.deepcopy(self.account),"accountTime":self.account_time,"accountError":self.account_error,"paper":paper,"research":copy.deepcopy(self.research),"strategyResearch":copy.deepcopy(self.comparisons),"limits":self.config,"macro":{"connected":False},"model":{"connected":False}}

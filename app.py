@@ -71,7 +71,6 @@ def run(port):
                         return
                     data['candlesByTimeframe']={tf:data['candlesByTimeframe'].get(tf,[])[-300:]}
                     data.pop('candles',None)
-                    data['paper']['history']=data['paper']['history'][-30:]
                     data['paper']['events']=data['paper']['events'][-20:]
                     data['research']['tradeCount']=len(data['research'].get('trades',[]))
                     data['research'].pop('trades',None)
@@ -81,7 +80,6 @@ def run(port):
                     data.pop('candlesByTimeframe',None)
                     data['research']['tradeCount']=len(data['research'].get('trades',[]))
                     data['research'].pop('trades',None)
-                    data['paper']['history']=data['paper']['history'][-30:]
                     data['paper']['events']=data['paper']['events'][-20:]
                 with connection_lock:
                     data['agentConnection']=dict(agent_connection)
@@ -91,7 +89,7 @@ def run(port):
             elif path == '/api/health':
                 self.send(200,{'mode':'paper','exchangeActions':False})
             elif path == '/api/agent-config':
-                self.send(200,{'mcpServers':{'btc-atelier':{'command':sys.executable,'args':[str(ROOT/'agent_bridge.py')],'env':{'ATELIER_URL':f'http://127.0.0.1:{port}'}}}})
+                self.send(200,{'mcpServers':{'eth-atelier':{'command':sys.executable,'args':[str(ROOT/'agent_bridge.py')],'env':{'ATELIER_URL':f'http://127.0.0.1:{port}'}}}})
             elif path == '/api/candles':
                 query=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
                 tf=query.get('timeframe',['5m'])[0]
@@ -106,9 +104,9 @@ def run(port):
                     candles=[dict(b) for b in engine.bars.get(tf,[])[-limit:]]
                     status=dict(engine.candle_status.get(tf,{}))
                 self.send(200,{'timeframe':tf,'candles':candles,'status':status})
-            elif path in ('/','/style.css','/ui.js'):
+            elif path in ('/','/style.css','/ui.js','/pilot.js','/local-adapter.js','/icon.svg'):
                 file = ROOT/'web'/('index.html' if path=='/' else path[1:])
-                mime = {'html':'text/html; charset=utf-8','css':'text/css; charset=utf-8','js':'text/javascript; charset=utf-8'}[file.suffix[1:]]
+                mime = {'html':'text/html; charset=utf-8','css':'text/css; charset=utf-8','js':'text/javascript; charset=utf-8','svg':'image/svg+xml'}[file.suffix[1:]]
                 self.send(200,file.read_bytes(),mime)
             else:
                 self.send(404,{'error':'Route inconnue'})
@@ -128,12 +126,26 @@ def run(port):
                     result = engine.open(args)
                 elif self.path == '/api/paper/close':
                     result = engine.close()
+                elif self.path == '/api/account':
+                    address = args.get('address','')
+                    if address:
+                        account = engine.client.account(address)
+                    else:
+                        account = None
+                    with engine.lock:
+                        engine.config['account'] = address or '0x'+'0'*40
+                        engine.account = account
+                        engine.account_time = time.time() if account else 0
+                        engine.account_error = None
+                    result = {'ok':True}
                 else:
                     self.send(404,{'error':'Route inconnue'})
                     return
                 self.send(200,result)
             except (ValueError,KeyError,TypeError) as error:
                 self.send(400,{'error':str(error)})
+            except Exception:
+                self.send(502,{'error':'Service Hyperliquid indisponible. Réessayez.'})
 
         def log_message(self, *args):
             pass
@@ -145,7 +157,7 @@ def run(port):
             super().server_bind()
     server = LocalServer(('127.0.0.1',port),Handler)
     (ROOT/'data'/'agent-token.txt').write_text(token,encoding='utf-8')
-    print(f'BTC Atelier : http://127.0.0.1:{port}',flush=True)
+    print(f'ETH Atelier : http://127.0.0.1:{port}',flush=True)
     engine.start()
     try:
         server.serve_forever()

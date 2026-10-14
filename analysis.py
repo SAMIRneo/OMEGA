@@ -43,7 +43,7 @@ def features(raw, now):
     return {'ready':value(e50) is not None, 'backend':'TA-Lib', 'longTrendReady':long_ready,
             'rsi':50 if np.all(close[-15:]==close[-1]) else value(rsi),
             'macd':value(macd),'histogram':value(hist),'atr':value(atr),'adx':adx_last,
-            'ema20':value(e20),'ema50':value(e50),'ema200':value(e200),'previousEma20':value(e20,-2),
+            'ema20':value(e20),'ema50':value(e50),'ema200':value(e200),'previousEma20':value(e20,-2),'previousEma50':value(e50,-2),
             'rollingVwap':vwap,'bbUpper':value(upper),'bbLower':value(lower),'bbMiddle':value(middle),
             'previousBbUpper':value(upper,-2),'previousBbLower':value(lower,-2),'cmf':cmf,
             'relativeVolume':float(volume[-1]/volume_base) if volume_base else 0,
@@ -83,6 +83,6 @@ def scenarios(indicators, flow):
     elif short['rsi'] < 30:
         reasons.append("RSI 5 min bas ; aucun rebond confirmé par cette mesure seule")
     reasons.append("Momentum 5 min positif" if short['histogram'] > 0 else "Momentum 5 min négatif")
-    reasons.append("Delta des transactions observées : " + str(round(flow.get('deltaBtc',0),4)) + " BTC")
+    reasons.append("Delta des transactions observées : " + str(round(flow.get('deltaEth',0),4)) + " ETH")
     return {"action": "OBSERVE", "context": "Haussier" if bullish else "Baissier", "reasons": reasons,
             "validated": False, "note": "Lecture descriptive, pas une stratégie validée ni un score de probabilité."}

@@ -2,7 +2,7 @@
   "account": "0x0000000000000000000000000000000000000000",
   "network": "mainnet",
   "paper_capital": 50.0,
-  "leverage": 40,
+  "leverage": 10,
   "fee_bps": 4.5,
   "slippage_bps": 2,
   "max_margin": 5,

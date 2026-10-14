@@ -1,3 +1,5 @@
+> Note : documentation technique antérieure à la refonte ETH v2. Pour l’interface actuelle et ses limites, consulter README.md et docs/ETH_V2.md.
+
 # Version multi-horizon — 3 octobre 2026
 
 Sept horizons réels Hyperliquid : 5 min, 15 min, 30 min, 1 h, 4 h, 1 j, 1 semaine ; jusqu’à 1 000 bougies demandées. Moteur d’indicateurs TA-Lib, graphique sélectionnable, matrice de régime et confirmations/contradictions, quatre familles de stratégies et comparaison chronologique sur 5 min / 15 min / 1 h.
