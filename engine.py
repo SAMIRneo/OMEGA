@@ -21,7 +21,7 @@ class Engine:
         self.client = Hyperliquid(config['network'])
         self.lock = threading.RLock()
         self.stop = threading.Event()
-        self.path = pathlib.Path(storage) if storage else ROOT/'data'/'paper-eth.json'
+        self.path = pathlib.Path(storage) if storage else ROOT/'data'/'axiom-daily-paper.json'
         self.market = {"connected": False, "book": None, "lastEvent": 0, "error": None}
         self.bars = {}
         self.candle_status = {}
@@ -37,7 +37,7 @@ class Engine:
         self.trades = collections.deque(maxlen=10000)
         self.seen = collections.deque(maxlen=20000)
         self.seen_set = set()
-        self.paper = {"initial": config['paper_capital'], "cash": config['paper_capital'], "position": None, "history": [], "events": [], "day": "", "dailyPnl": 0}
+        self.paper = {"initial": config['paper_capital'], "cash": config['paper_capital'], "position": None, "history": [], "events": [], "day": "", "dailyPnl": 0,"entriesToday":0,"lastEntryDay":""}
         if self.path.exists():
             self.paper = json.loads(self.path.read_text(encoding='utf-8'))
             if self.paper['position']:
@@ -170,7 +170,7 @@ class Engine:
     def rollover(self):
         day = datetime.now(timezone.utc).date().isoformat()
         if self.paper['day']!=day:
-            self.paper.update(day=day,dailyPnl=0)
+            self.paper.update(day=day,dailyPnl=0,entriesToday=0)
 
     def open(self, args):
         with self.lock:
@@ -181,18 +181,26 @@ class Engine:
                 raise ValueError('Une seule position simulée à la fois')
             if self.paper['dailyPnl'] <= -self.config['daily_loss_limit']:
                 raise ValueError('Limite de perte quotidienne atteinte')
+            if self.config.get('daily_mode') and self.paper.get('entriesToday',0)>=1:
+                raise ValueError('Entrée quotidienne déjà consommée')
+            if self.config.get('daily_mode') and datetime.now(timezone.utc).hour==23 and datetime.now(timezone.utc).minute>=30:
+                raise ValueError('Fenêtre Daily fermée à 23:30 UTC')
             side = args.get('side')
             if side not in ('long','short'):
                 raise ValueError('Sens invalide')
             margin, stop, target = (float(args[k]) for k in ('margin','stop','target'))
             if not all(math.isfinite(v) and v>0 for v in (margin,stop,target)):
                 raise ValueError('Valeurs positives et finies requises')
-            leverage = self.config['leverage']
+            leverage = args.get('leverage',self.config['leverage'])
+            if not isinstance(leverage,(int,float)) or not math.isfinite(leverage) or int(leverage)!=leverage or leverage>self.config['leverage']:
+                raise ValueError('Levier entier sous le plafond configuré requis')
             if not self.context or time.time()-self.context['updatedAt']>120:
                 raise ValueError('Métadonnées indisponibles ou périmées')
-            if leverage > self.context['maxLeverage']:
+            if leverage<1 or leverage>min(15,self.context['maxLeverage']):
                 raise ValueError('Levier supérieur au maximum ETH actuel')
-            if margin>self.config['max_margin']:
+            if self.config.get('daily_mode') and abs(margin-math.floor(self.paper['cash']*.5*100)/100)>.01:
+                raise ValueError('Daily exige 50 % du capital disponible en marge')
+            if not self.config.get('daily_mode') and margin>self.config['max_margin']:
                 raise ValueError('Marge maximale simulée : '+str(self.config['max_margin'])+' $')
             best = float(self.market['book']['levels'][1 if side=='long' else 0][0]['px'])
             quantity = margin*leverage/best
@@ -211,7 +219,9 @@ class Engine:
                 raise ValueError('Solde simulé insuffisant')
             self.paper['cash']-=fee
             self.paper['dailyPnl']-=fee
-            self.paper['position']={"id":uuid.uuid4().hex,"side":side,"entry":entry,"quantity":quantity,"margin":margin,"leverage":leverage,"stop":stop,"target":target,"liquidationEstimate":liquidation,"openedAt":time.time(),"entryFee":fee,"funding":0,"lastFunding":time.time(),"risk":risk}
+            self.paper['entriesToday']=self.paper.get('entriesToday',0)+1
+            self.paper['lastEntryDay']=datetime.now(timezone.utc).date().isoformat()
+            self.paper['position']={"strategy":args.get("strategy","manual"),"id":uuid.uuid4().hex,"side":side,"entry":entry,"quantity":quantity,"margin":margin,"leverage":leverage,"stop":stop,"target":target,"liquidationEstimate":liquidation,"openedAt":time.time(),"entryFee":fee,"funding":0,"lastFunding":time.time(),"risk":risk}
             self.paper['events'].append({"at":time.time(),"action":"open","side":side})
             self.persist()
             return copy.deepcopy(self.paper['position'])
@@ -259,6 +269,11 @@ class Engine:
         px = float((bid if p['side']=='long' else ask)[0]['px'])
         direction = 1 if p['side']=='long' else -1
         reason = 'liquidation-estimate' if direction*(px-p['liquidationEstimate'])<=0 else 'stop' if direction*(px-p['stop'])<=0 else 'target' if direction*(px-p['target'])>=0 else None
+        if not reason and self.config.get('daily_mode'):
+            now_utc=datetime.now(timezone.utc)
+            entry_day=datetime.fromtimestamp(p['openedAt'],timezone.utc).date()
+            if now_utc.date()!=entry_day or (now_utc.hour==23 and now_utc.minute>=55):
+                reason='end-of-day-observed'
         if reason:
             try:
                 self.close(reason)

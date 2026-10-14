@@ -14,7 +14,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from engine import Engine, ROOT
 
 def run(port):
-    config = json.loads((ROOT/'config.json').read_text(encoding='utf-8'))
+    personal = json.loads((ROOT/'config.json').read_text(encoding='utf-8'))
+    defaults = json.loads((ROOT/'config.example.json').read_text(encoding='utf-8'))
+    config = {**defaults, **personal} if personal.get('profile')=='axiom-daily-v1' else {**defaults, **{k:v for k,v in personal.items() if k in ('account','network','fee_bps','slippage_bps','source_max_age_seconds')}}
+    if not (1 <= config['leverage'] <= 15) or config['allocation_fraction'] != .5:
+        raise ValueError('Profil Daily : levier 1–15 et allocation 50 % requis')
+    if not (ROOT/'dist'/'index.html').exists():
+        raise ValueError('Interface manquante : exécuter npm ci puis npm run build')
     engine = Engine(config)
     token = secrets.token_urlsafe(32)
     instance_id = secrets.token_hex(8)
@@ -104,10 +110,20 @@ def run(port):
                     candles=[dict(b) for b in engine.bars.get(tf,[])[-limit:]]
                     status=dict(engine.candle_status.get(tf,{}))
                 self.send(200,{'timeframe':tf,'candles':candles,'status':status})
-            elif path in ('/','/style.css','/ui.js','/pilot.js','/risk-core.js','/decision-viz.js','/local-adapter.js','/icon.svg'):
-                file = ROOT/'web'/('index.html' if path=='/' else path[1:])
-                mime = {'html':'text/html; charset=utf-8','css':'text/css; charset=utf-8','js':'text/javascript; charset=utf-8','svg':'image/svg+xml'}[file.suffix[1:]]
-                self.send(200,file.read_bytes(),mime)
+            elif path == '/' or path.startswith('/assets/'):
+                base = (ROOT/'dist').resolve()
+                file = (base/('index.html' if path=='/' else path.lstrip('/'))).resolve()
+                if not file.is_relative_to(base) or not file.is_file():
+                    self.send(404,{'error':'Ressource inconnue'})
+                    return
+                mime = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'}.get(file.suffix)
+                if not mime:
+                    self.send(404,{'error':'Type de ressource inconnu'})
+                    return
+                payload = file.read_bytes()
+                if path=='/':
+                    payload = payload.replace(b'data-runtime="browser"',b'data-runtime="local"')
+                self.send(200,payload,mime)
             else:
                 self.send(404,{'error':'Route inconnue'})
 
@@ -126,6 +142,15 @@ def run(port):
                     result = engine.open(args)
                 elif self.path == '/api/paper/close':
                     result = engine.close()
+                elif self.path == '/api/settings':
+                    leverage = args.get('leverage')
+                    with engine.lock:
+                        if engine.paper['position']:
+                            raise ValueError('Position ouverte : changement du levier refusé')
+                        if not isinstance(leverage,int) or not 1<=leverage<=15:
+                            raise ValueError('Levier entier 1–15 requis')
+                        engine.config['leverage'] = leverage
+                    result = {'ok':True}
                 elif self.path == '/api/account':
                     address = args.get('address','')
                     if address:
@@ -157,7 +182,7 @@ def run(port):
             super().server_bind()
     server = LocalServer(('127.0.0.1',port),Handler)
     (ROOT/'data'/'agent-token.txt').write_text(token,encoding='utf-8')
-    print(f'ETH Atelier : http://127.0.0.1:{port}',flush=True)
+    print(f'AXIOM Daily : http://127.0.0.1:{port}',flush=True)
     engine.start()
     try:
         server.serve_forever()

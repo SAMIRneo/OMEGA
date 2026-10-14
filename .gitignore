@@ -14,3 +14,8 @@ Thumbs.db
 .DS_Store
 
 rust-core/target/
+
+node_modules/
+dist/
+
+/node_modules

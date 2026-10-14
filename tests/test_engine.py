@@ -13,6 +13,7 @@ class PaperTests(unittest.TestCase):
         self.directory=tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.config=json.loads((ROOT/'config.example.json').read_text())
+        self.config.update(paper_capital=50,leverage=10,max_margin=5,max_risk=1,daily_loss_limit=5,daily_mode=False)
         self.engine=Engine(self.config,pathlib.Path(self.directory.name)/'paper.json')
         self.engine.market={'connected':True,'lastEvent':time.time(),'book':{'time':time.time()*1000,'levels':[[{'px':'85000','sz':'2'}],[{'px':'85001','sz':'2'}]]},'error':None}
         self.engine.context={'maxLeverage':40,'updatedAt':time.time()}
@@ -71,8 +72,8 @@ class EthMigrationTests(unittest.TestCase):
     def test_default_storage_does_not_reuse_btc_paper(self):
         config=json.loads((ROOT/'config.example.json').read_text())
         engine=Engine(config)
-        self.assertEqual(engine.path.name,'paper-eth.json')
-        self.assertEqual(config['leverage'],10)
+        self.assertEqual(engine.path.name,'axiom-daily-paper.json')
+        self.assertEqual(config['leverage'],15)
 
     def test_public_market_requests_use_eth(self):
         from bot import Hyperliquid
@@ -81,3 +82,36 @@ class EthMigrationTests(unittest.TestCase):
         client.info=Mock(return_value=[])
         client.candles('5m')
         self.assertEqual(client.info.call_args.args[0]['req']['coin'],'ETH')
+
+class AxiomDailyTests(unittest.TestCase):
+    def setUp(self):
+        from unittest.mock import patch
+        from datetime import datetime, timezone
+        self.directory=tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.clock=patch('engine.datetime',wraps=datetime)
+        mocked=self.clock.start()
+        self.addCleanup(self.clock.stop)
+        mocked.now.return_value=datetime(2026,10,14,10,tzinfo=timezone.utc)
+        self.config=json.loads((ROOT/'config.example.json').read_text())
+        self.engine=Engine(self.config,pathlib.Path(self.directory.name)/'daily.json')
+        self.engine.market={'connected':True,'lastEvent':time.time(),'book':{'time':time.time()*1000,'levels':[[{'px':'2499.9','sz':'100'}],[{'px':'2500.1','sz':'100'}]]},'error':None}
+        self.engine.context={'maxLeverage':25,'updatedAt':time.time()}
+
+    def test_half_capital_leverage_and_daily_quota_survive_reload(self):
+        self.engine.open({'side':'long','margin':5000,'stop':2490,'target':2520,'leverage':15})
+        self.engine.close()
+        reload=Engine(self.config,self.engine.path)
+        reload.market=self.engine.market
+        reload.context=self.engine.context
+        self.assertEqual(reload.paper['entriesToday'],1)
+        with self.assertRaisesRegex(ValueError,'quotidienne'):
+            reload.open({'side':'long','margin':reload.paper['cash']*.5,'stop':2490,'target':2520})
+
+    def test_daily_rejects_wrong_margin_and_excess_leverage(self):
+        with self.assertRaises(ValueError):self.engine.open({'side':'long','margin':4999,'stop':2490,'target':2520})
+        with self.assertRaises(ValueError):self.engine.open({'side':'long','margin':5000,'stop':2490,'target':2520,'leverage':16})
+
+    def test_daily_rejects_risk_above_500(self):
+        with self.assertRaisesRegex(ValueError,'Risque'):
+            self.engine.open({'side':'long','margin':5000,'stop':2470,'target':2560})

@@ -7,5 +7,5 @@ const result=spawnSync(process.env.ETH_CARGO_BIN||'cargo',['build','--release','
 if(result.status!==0)process.exit(result.status||1);
 const bytes=readFileSync(path.join(root,'rust-core/target/wasm32-unknown-unknown/release/eth_risk_core.wasm')).toString('base64');
 const source=`/* Generated from rust-core/src/lib.rs. Rebuild with node scripts/build-rust.mjs. */\n(()=>{const core={exports:null,error:null};core.ready=WebAssembly.instantiate(Uint8Array.from(atob('${bytes}'),c=>c.charCodeAt(0)),{}).then(r=>{core.exports=r.instance.exports;return core.exports;}).catch(e=>{core.error=e;return null});window.RiskCore=core;})();\n`;
-for(const dir of ['public','web'])writeFileSync(path.join(root,dir,'risk-core.js'),source);
+writeFileSync(path.join(root,'frontend/legacy/risk-core.js'),source+'\nexport {};\n');
 console.log('Rust/WASM risk core embedded into public and local adapters.');
