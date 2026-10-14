@@ -1,0 +1,4 @@
+/* Local Python API adapter. No public-page access to the local token. */
+(()=>{let token=null;async function call(path,options={}){const mutation=options.method==='POST';if(mutation&&!token){const r=await fetch('/api/session');if(!r.ok)throw Error('Session locale indisponible');token=(await r.json()).token;}const c=new AbortController(),timer=setTimeout(()=>c.abort(),20000);try{const r=await fetch(path,{...options,signal:c.signal,headers:{'Content-Type':'application/json',...(mutation?{Authorization:'Bearer '+token}:{}),...(options.headers||{})}});const data=await r.json();if(!r.ok){if(r.status===403)token=null;throw Error(data.error||'Erreur serveur '+r.status);}return data;}finally{clearTimeout(timer)}}window.BrowserAtelier={request:call,setAddress:address=>call('/api/account',{method:'POST',body:JSON.stringify({address})}),disconnect:()=>call('/api/account',{method:'POST',body:'{"address":""}'})};})();
+
+export {};

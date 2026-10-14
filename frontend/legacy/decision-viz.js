@@ -28,3 +28,5 @@ window.MarketTelemetry={series,draw(raw){const {bars,rsi}=series(raw),vbox=size(
  if(rbox){const {ctx:c,w,h}=rbox,values=rsi.slice(-100),pad=15,y=v=>pad+(100-v)/100*(h-pad*2);for(const v of [30,50,70]){c.strokeStyle=v===50?'#352f3c':'#aa705235';c.setLineDash([3,4]);c.beginPath();c.moveTo(0,y(v));c.lineTo(w,y(v));c.stroke();c.fillStyle='#968993';c.font='8px monospace';c.fillText(String(v),w-17,y(v)-4);}c.setLineDash([]);if(values.length){c.beginPath();values.forEach((v,i)=>i?c.lineTo(i/(values.length-1||1)*w,y(v.value)):c.moveTo(0,y(v.value)));c.strokeStyle='#e8bf62';c.lineWidth=1.5;c.stroke();}else{c.fillStyle='#b29eac';c.font='10px monospace';c.fillText('Historique RSI en chargement',15,25);}}
  return rsi.at(-1)?.value??null;}};
 })();
+
+export {};

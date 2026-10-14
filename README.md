@@ -1,100 +1,155 @@
-# ETH Atelier
+# AXIOM — ETH Intelligence
 
-**Terminal ETH / Hyperliquid, portefeuille réel en lecture seule et bot de simulation pilotable.** Interface de terminal noir / magenta / vert, onglets compacts, visualisation centrale des horizons et instrumentation de marché. Noyau de calcul du risque en Rust, compilé en WebAssembly et utilisé pour les entrées navigateur et la taille du bot. Aucune clé privée, signature, transaction ou exécution réelle.
+**Un terminal de recherche et un algorithme Daily sur ETH / Hyperliquid.**
 
-- **Site public : https://btc-atelier.kairos-labspro.chatgpt.site** — le lien existant reste inchangé ; l’application concerne désormais ETH.
-- **Source : https://github.com/SAMIRneo/bot**
+[Ouvrir le site public](https://btc-atelier.kairos-labspro.chatgpt.site) · [Code source](https://github.com/SAMIRneo/bot)
 
-## Deux éditions, une interface
+AXIOM cherche une entrée intraday conforme à un ensemble de règles et à un budget de risque. Il observe le marché, décrit le contexte, propose un candidat et peut l’exécuter **en simulation uniquement**. Le portefeuille Hyperliquid reste en lecture seule. Aucun ordre réel, transfert, signature, modèle IA entraîné ou garantie de rendement.
 
-| | Web public (`public/`) | Serveur local (`web/` + Python) |
-|---|---|---|
-| Marché | ETH mainnet, REST + WebSocket directs | ETH, réseau de `config.json` |
-| Indicateurs | JavaScript, bougies clôturées | TA-Lib, bougies clôturées |
-| Wallet | Adresse saisie, mémorisation locale facultative | Adresse de `config.json`, changement en mémoire via interface |
-| Compte fictif | localStorage `eth-atelier-web-paper-v2` | `data/paper-eth.json` |
-| Stops simulés | Page visible + flux frais | Processus Python actif + flux frais |
-| Bot automatique | Contrôleur dans l’onglet | Même contrôleur dans l’onglet |
-| Funding / liquidation | Non modélisés | Funding estimé, liquidation approximative |
-| MCP / recherche avancée | Non disponibles | Passerelle MCP, recherche et backtests exploratoires |
+## Mandat retenu
 
-Les anciens fichiers BTC et leur localStorage ne sont pas réutilisés pour ETH. **Ne pas copier une position BTC dans `paper-eth.json`.** Les éditions ne synchronisent pas leur compte fictif.
+| Paramètre | Règle implémentée |
+|---|---|
+| Marché | ETH perpétuel, données Hyperliquid |
+| Capital initial de référence | 10 000 USDC fictifs |
+| Marge par entrée | 50 % du capital disponible avant frais, arrondie au centime inférieur |
+| Nombre d’entrées | **Une au maximum par jour UTC**, manuelle ou automatique |
+| Levier | Entier de ×1 à ×15, sous le plafond utilisateur et celui de l’exchange |
+| Perte prévue au stop | Maximum **500 USDC**, frais et slippage de sortie hypothétiques inclus |
+| Budget automatique | Réserve de 10 % : le candidat vise au plus 450 USDC de perte prévue |
+| Limite quotidienne de perte | 500 USDC, comptabilité UTC |
+| Sortie | Stop 1,5 ATR, objectif 3 ATR, ratio gain/risque net ≥ 1,5 |
+| Fenêtre d’entrée | Avant 23:30 UTC |
+| Fin de journée | Clôture visée dès 23:55 UTC, au prochain prix frais observé |
+
+La marge de 50 % n’est **pas** une perte maximale de 50 %. Au capital initial et à ×15, l’exposition peut atteindre 75 000 USDC. Le levier automatique baisse si nécessaire pour respecter le budget du stop ; la marge n’est pas réduite discrètement. Si même ×1 ne convient pas, aucune entrée.
+
+Un jour peut rester sans trade. L’algorithme ne connaît pas à l’avance le plus bas, le plus haut ou la meilleure variation de la journée. L’exécution actuelle sélectionne le premier setup satisfaisant les règles sur une nouvelle clôture, pas un optimum futur.
+
+## État réel du projet
+
+- **Opérationnel en simulation** : terminal, consultation wallet, contrôleur Daily, gestion des limites, journal, export CSV, contrôles du risque Rust/WASM.
+- **Stratégie de recherche** : aucune rentabilité de la version Daily n’est établie. Les tests logiciels ne sont pas un backtest de performance.
+- **Exécution réelle non intégrée** : aucune clé de signature et aucune méthode d’ordre exchange. Le scénario de 10 000 $ réels est une cible de conception, pas un compte financé ni un mandat d’exécution actif.
+- **Fonctionnement web dépendant de l’onglet** : iOS et les navigateurs peuvent suspendre la page. Le contrôleur automatique reste dans le navigateur, y compris avec le moteur Python local. Le serveur local peut continuer à surveiller les stops tant qu’il tourne.
+
+## Décision Daily
+
+Le moteur examine uniquement une **nouvelle bougie 15 min clôturée** après l’armement. Aucun signal déjà présent au démarrage ni bougie manquée pendant une suspension n’est exécuté.
+
+1. **Données** : carnet récent ; historiques 15 min, 1 h et 1 jour disponibles, récents et clôturés ; métadonnées ETH disponibles.
+2. **Contexte** : clôture daily au-dessus/sous EMA20 ; tendance 1 h concordante ; structure EMA20/50 en 15 min dans le même sens.
+3. **Déclenchement** : cassure des niveaux des 20 bougies précédentes avec volume relatif ≥ 1,2, ou reprise de l’EMA20 après franchissement. RSI dans une zone conventionnelle du modèle.
+4. **Classement** : score explicite fondé sur le contexte, la famille, le volume relatif, le signe de l’histogramme MACD et la VWAP glissante. Seuil 80/100. **Ce score n’est pas une probabilité de gain** ; les indicateurs de prix sont corrélés.
+5. **Risque** : marge 50 %, stop 1,5 ATR et cible 3 ATR. Choix du plus haut levier entier sous le plafond configuré qui respecte le budget automatique. Contrôle des frais et du ratio gain/risque net.
+6. **Validation finale** : le moteur recontrôle quota, capital, fraîcheur, levier, profondeur visible et perte prévue avant de persister la position.
+
+Les paramètres des règles sont des hypothèses à tester. MACD, RSI, EMA, ATR ou VWAP ne sont pas déclarés « meilleurs indicateurs ». Aucune donnée macro, actualité, funding futur ou liquidité invisible n’est inventée.
 
 ## Interface
 
-1. **Terminal** : ETH/USDC perp, variation 24 h, funding horaire, volume, carnet L2, graphique 7 horizons, EMA20/50, RSI, ATR, MACD et flux observé 60 s. Horizons périmés signalés.
-2. **Pilotage** : démarrer/arrêter les entrées automatiques simulées, voir les règles, les limites et la position ; ouvrir/fermer une simulation manuelle.
-3. **Portefeuille** : valeur du compte perp, marge, disponible au retrait, positions réelles tous actifs, ordres et dernières exécutions ETH. Adresse réelle du compte ou sous-compte, pas celle d’un agent API. Pas de wallet personnel embarqué dans le site public.
-4. **Journal** : historique fictif, P&L net, statistiques descriptives, export CSV et événements du contrôleur.
+- **Terminal** : graphique professionnel avec TradingView Lightweight Charts™, zoom tactile, crosshair, chandeliers/courbe, EMA et volume, carnet L2, horizons et flux observé.
+- **Decision core** : carte interactive des RSI par horizon, gates et événements du contrôleur. La géométrie du tore est illustrative ; elle n’est ni un réseau neuronal ni une preuve de confiance.
+- **Pilotage** : mandat Daily, quota 0/1, plafond de levier, candidat et raisons de refus, armement/arrêt et simulation manuelle.
+- **Portefeuille** : compte perp réel en lecture seule, positions tous actifs, ordres et dernières exécutions ETH. Saisir l’adresse du compte Hyperliquid, pas celle d’un agent API.
+- **Journal** : positions fictives clôturées, coûts, statistiques descriptives, activité et export CSV.
 
-## Bot simulé : règles exactes
+## Architecture et technologies
 
-Désactivé à chaque chargement. Le bouton Démarrer arme l’observation des **nouvelles** bougies 5 min clôturées, sans exécuter le signal présent au démarrage. Un croisement EMA20/50 doit être confirmé par la tendance 1 h concordante. Stop à 1,5 ATR ; objectif à 3 ATR. La marge est calculée sous les limites de capital, marge et risque (budget automatique à 90 % du plafond pour une réserve de coûts), puis le moteur revalide l’exécution sur la profondeur visible.
+| Composant | Technologie | Source |
+|---|---|---|
+| Règles Daily, contrats, contrôleur | TypeScript strict | `frontend/core/` |
+| Graphique financier | TradingView Lightweight Charts 5.2.1 + TypeScript | `frontend/charts/market-chart.ts` |
+| Build et distribution | Vite 8.3.4, TypeScript 7.0.2 | `vite.config.ts`, `tsconfig.json` |
+| Tests des règles | Vitest 5.0.4 | `frontend/core/daily.test.ts` |
+| Perte prévue et dimensionnement | Rust → WebAssembly | `rust-core/`, `frontend/legacy/risk-core.js` |
+| Données web, rendu DOM, visualisation | JavaScript conservé et intégré au build | `frontend/legacy/` |
+| Serveur local et validation finale | Python, TA-Lib, websocket-client | `app.py`, `engine.py`, `analysis.py` |
 
-Une seule position, une évaluation par bougie et par navigateur, via Web Locks. Historique 5 min et 1 h récent et carnet frais requis. Pas de rattrapage après suspension ou déconnexion prolongée. Arrêter le bot arrête les entrées ; la position existante reste surveillée selon le moteur. Fermer la page arrête le contrôleur ; iOS peut la suspendre en arrière-plan. L’activation n’est jamais persistée.
+La migration est ciblée : les nouveaux contrats, règles et graphiques sont typés. Le projet n’est pas entièrement réécrit en Rust ou TypeScript. Les anciens dossiers `public/` et `web/` ont été remplacés par une source canonique `frontend/`. `dist/` est généré et ignoré dans ce dépôt GitHub.
 
-**Ce n’est pas une stratégie validée.** Aucun rendement, taux de réussite futur ou probabilité n’est promis. Les règles ne constituent pas un conseil d’investissement.
+Le build découpe les adaptateurs navigateur/local et le contrôleur en modules, minifie CSS/JS et produit des noms d’assets avec empreinte. Le graphique utilise des mises à jour incrémentales et conserve son zoom lors des actualisations. Les dépendances sont verrouillées dans `package-lock.json`.
 
-## Paramètres par défaut
+## Installation et build
 
-50 USDC fictifs, levier **×10**, marge maximale 5 USDC, risque prévu au stop maximal 1 USDC, limite quotidienne de perte 5 USDC (UTC). Frais hypothétiques 4,5 bps et slippage 2 bps par côté. Le moteur contrôle le plafond de levier renvoyé par Hyperliquid ; ETH était à ×25 lors de la vérification du 14 octobre 2026. Le plafond de l’exchange peut évoluer.
+Node.js 22.12+ recommandé ; build vérifié avec Node.js 24. Rust n’est pas requis pour ouvrir l’application : le module WASM généré est versionné.
 
-Les stops s’exécutent au prochain prix observé : un saut de prix peut dépasser le risque prévu. Les mouvements pendant l’arrêt ne sont pas reconstitués. Le navigateur ne simule ni funding ni liquidation. Une source ouverte ne prouve pas sa fraîcheur : âge des données contrôlé avant les actions.
+```sh
+npm ci
+npm run build
+npm run dev
+```
 
-## Lancer le moteur Python
+Le contenu de `dist/` peut être publié sur un hébergement HTTPS statique. Le site public conserve son URL historique `btc-atelier` pour préserver les liens, mais son identité et son périmètre sont AXIOM / ETH.
+
+### Moteur Python local
 
 ```powershell
-git clone https://github.com/SAMIRneo/bot.git
-cd bot
 Copy-Item config.example.json config.json
 python -m pip install -r requirements.txt
+npm ci
+npm run build
 python app.py
 ```
 
-Ouvrir http://127.0.0.1:8765. Remplacer l’adresse d’exemple par le compte public Hyperliquid à consulter dans `config.json`. Ce fichier reste ignoré par Git. Pour une installation BTC existante, conserver l’adresse et remplacer le levier 40 par **10** ; le nouveau stockage ETH est indépendant. `start.ps1` lance également le serveur.
+Ouvrir http://127.0.0.1:8765. Renseigner l’adresse publique dans `config.json`. Le serveur sert le même build et active l’adaptateur local. Pour une ancienne configuration sans `profile: axiom-daily-v1`, l’application reprend le nouveau mandat et conserve l’adresse, le réseau et les paramètres de source/coûts. Le fichier personnel n’est pas écrasé.
 
-Le serveur écoute seulement sur 127.0.0.1 et contrôle Host/Origin. Mutations authentifiées avec un jeton local renouvelé à chaque lancement dans `data/agent-token.txt` (ignoré par Git). Aucun accès de la version publique au serveur local.
+Le serveur écoute sur 127.0.0.1 et contrôle Host/Origin. Mutations authentifiées par un jeton local renouvelé au lancement. `config.json`, `data/` et les jetons sont ignorés par Git. L’adresse peut être changée en mémoire depuis l’interface ; aucune clé privée n’est demandée.
 
-## Agent local / MCP
-
-`mcp-config.example.json` décrit la passerelle stdio. Outils : `eth_state`, `eth_candles`, `paper_open`, `paper_close`. Les anciens noms `btc_state` / `btc_candles` ont été remplacés : mettre à jour les clients. Aucun fournisseur de modèle ni agent externe n’est connecté automatiquement.
-
-HTTP : `GET /api/state`, `/api/health`, `/api/candles`, `/api/session`. `POST /api/paper/open`, `/api/paper/close`, `/api/account` requièrent le jeton local. `/api/account` modifie l’adresse en mémoire sans écraser le fichier personnel.
-
-Les backtests Python sont exploratoires et séparés du nouveau contrôleur navigateur. Ils ne constituent pas une validation de ses performances. Documentation technique antérieure conservée dans `docs/` ; ce README et `docs/ETH_V2.md` décrivent l’interface actuelle.
-
-## Héberger l’édition publique
-
-Servir le contenu de `public/` sur un hébergement HTTPS statique (Sites, GitHub Pages, etc.). Pas de build, CDN, compte fictif partagé ou secret serveur. L’adresse publique peut être mémorisée uniquement si l’utilisateur coche l’option sur son appareil. Les requêtes de compte vont à Hyperliquid ; déconnexion efface cette préférence.
-
-Sources API : https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint et https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions
-
-## Vérification
-
-```sh
-python -m unittest discover -s tests -v
-node --test tests/browser.test.cjs
-node --check public/ui.js
-node --check public/pilot.js
-node --check public/browser-engine.js
-```
-
-Le rendu visuel sur Safari/iPhone reste à vérifier sur appareil réel. L’interface prévoit des champs 16 px sur mobile, zones tactiles, safe areas, défilement horizontal des tableaux et réduction des animations selon les préférences système.
-
-## Rust / WebAssembly
-
-`rust-core/` contient un module Rust sans dépendance : perte planifiée après frais/slippage et taille de marge sous les plafonds. Le navigateur bloque les entrées si le module ne charge pas. Le contrôleur automatique utilise sa taille calculée dans les deux éditions. Le transport et l’interface restent en JavaScript ; le serveur local et sa validation finale restent en Python. Le projet n’est pas entièrement migré en Rust.
+### Rust
 
 ```sh
 rustup target add wasm32-unknown-unknown
 cargo test --manifest-path rust-core/Cargo.toml
 node scripts/build-rust.mjs
+npm run build
 ```
 
-Le build génère `public/risk-core.js` et `web/risk-core.js`, qui embarquent le binaire WebAssembly. Aucun secret ni accès exchange dans le module. Le fichier généré est versionné pour ouvrir le site sans installer Rust.
+Le script met à jour `frontend/legacy/risk-core.js`, qui embarque le binaire WebAssembly. Si le module ne charge pas, les entrées du navigateur sont bloquées. Le contrôleur l’utilise pour évaluer le risque ; Python revalide indépendamment l’exécution locale.
 
-## Interface v5 — référence decision terminal
+## Persistance et limites des modèles
 
-Terminal dense avec compte fictif, graphique ETH, carnet, carte tridimensionnelle des RSI par horizon, gates d’entrée et événements du contrôleur. La topologie du tore est illustrative : ses couleurs sont les RSI calculés ; ce n’est ni un réseau neuronal ni un score de confiance. Glisser pour tourner, toucher un horizon pour le sélectionner, bouton Pause et respect du mouvement réduit. Le dessin est suspendu hors écran et quand le document est masqué.
+| | Navigateur public | Moteur local |
+|---|---|---|
+| Compte fictif Daily | localStorage `axiom-eth-daily-paper-v1` | `data/axiom-daily-paper.json` |
+| Quota | Persisté sur cet appareil, verrou Web Locks | Persisté côté serveur, verrou du moteur |
+| Stops | Page visible, carnet récent | Processus Python actif, carnet récent |
+| Funding / liquidation | Non modélisés | Funding estimé, liquidation isolée approximative |
+| Wallet | REST public, mémorisation facultative de l’adresse | Adresse de configuration ou mémoire |
+| Contrôleur Daily | Onglet actif | Onglet actif pour les entrées |
 
-Le panneau de volume signe le volume de bougie selon la variation open/close : approximation explicitement séparée du delta des transactions WebSocket. La courbe RSI Wilder utilise les bougies clôturées. Aucun P&L, taux de réussite, latence, score IA ou flux macro fictif n’est affiché. Les gates sont des vérifications observées, pas une probabilité ou une assurance de passage d’ordre.
+Les éditions et appareils ne synchronisent pas leur simulation. Effacer localStorage efface les résultats et le quota de cet appareil : ce n’est pas une garantie globale contre plusieurs ordres réels. Les anciens historiques BTC/ETH ne sont pas réutilisés pour le mandat Daily.
+
+Frais hypothétiques 4,5 bps et slippage 2 bps par côté. Exécution sur la profondeur visible, pas un modèle complet d’impact. Les stops s’exécutent au prochain prix frais observé : un gap peut dépasser 500 USDC. La fermeture de fin de journée n’est pas assurée si le moteur, la page ou le flux est arrêté. Les mouvements pendant l’arrêt ne sont pas reconstruits. Les résultats TA-Lib et JavaScript peuvent différer.
+
+## API et agent local
+
+MCP stdio : `eth_state`, `eth_candles`, `paper_open`, `paper_close`. L’agent est à configurer séparément ; aucun fournisseur IA n’est branché automatiquement. Les limites Daily s’appliquent aussi à une entrée manuelle ou provenant d’un agent.
+
+HTTP : `GET /api/state`, `/api/health`, `/api/candles`, `/api/session`. `POST /api/paper/open`, `/api/paper/close`, `/api/account`, `/api/settings` demandent le jeton local. Un changement de levier est refusé si une position est ouverte.
+
+## Vérification
+
+```sh
+npm run typecheck
+npm test
+npm run test:browser
+npm run build
+python -m unittest discover -s tests -v
+cargo test --manifest-path rust-core/Cargo.toml
+```
+
+Les tests couvrent notamment les deux sens de marché, la marge de 50 %, le levier adaptatif, le budget, le quota après clôture/rechargement, les données anciennes/non clôturées, l’absence de signal, les frais et la fermeture observée de fin de journée. Les tests historiques Python existants sont exploratoires et distincts du nouveau Daily. **Aucun résultat de backtest Daily n’est revendiqué.** Le rendu final Safari/iPhone reste à vérifier sur appareil.
+
+## Avant un éventuel passage au réel
+
+Il reste à construire et valider : jeu de données historique horodaté, backtests sans anticipation avec coûts réalistes, validation chronologique hors échantillon et tests de sensibilité, suivi paper continu, service permanent, registre transactionnel des ordres/quota commun à tous les clients, réconciliation exchange, ordres stop reduce-only côté exchange, gestion des rejets et fills partiels, circuit d’arrêt et signature serveur via autorisation dédiée. Ce sont des travaux futurs ; le site actuel n’exécute pas le compte réel.
+
+## Sources et licences
+
+- Hyperliquid : https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint
+- TradingView Lightweight Charts : https://tradingview.github.io/lightweight-charts/docs
+- Vite : https://vite.dev/guide/
+- Notices et licence : `THIRD_PARTY_NOTICES.md`, `licenses/`.
+
+Les notes techniques dans `docs/` antérieures à AXIOM sont historiques. Ce README décrit l’état courant.
