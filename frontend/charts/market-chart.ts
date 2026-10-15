@@ -4,7 +4,7 @@ const container=document.getElementById('chart')!;
 let chart:IChartApi|null=null,timeframe:Timeframe|null=null,lastCount=0,lastFingerprint='',lastLength=0,lastTime=0,incrementalUpdates=0;
 let candles:ReturnType<IChartApi['addSeries']>,line:ReturnType<IChartApi['addSeries']>,ema20:ReturnType<IChartApi['addSeries']>,ema50:ReturnType<IChartApi['addSeries']>,volume:ReturnType<IChartApi['addSeries']>;
 const time=(t:number)=>Math.floor(t/1000) as UTCTimestamp;
-function setup(){if(chart)return;chart=createChart(container,{autoSize:true,layout:{background:{type:ColorType.Solid,color:'#1b1918'},textColor:'#c8bdb1',fontSize:12,attributionLogo:true},grid:{vertLines:{color:'#35302b'},horzLines:{color:'#35302b'}},crosshair:{mode:CrosshairMode.Normal},timeScale:{timeVisible:true,secondsVisible:false,borderColor:'#55483e'},rightPriceScale:{borderColor:'#55483e'},handleScale:{mouseWheel:true,pinch:true},handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:false}});
+function setup(){if(chart)return;chart=createChart(container,{autoSize:true,layout:{background:{type:ColorType.Solid,color:'#252c29'},textColor:'#bdcbb6',fontSize:12,attributionLogo:true},grid:{vertLines:{color:'#39463b'},horzLines:{color:'#39463b'}},crosshair:{mode:CrosshairMode.Normal},timeScale:{timeVisible:true,secondsVisible:false,borderColor:'#55483e'},rightPriceScale:{borderColor:'#55483e'},handleScale:{mouseWheel:true,pinch:true},handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:false}});
  candles=chart.addSeries(CandlestickSeries,{upColor:'#59daa3',downColor:'#f26692',borderVisible:false,wickUpColor:'#59daa3',wickDownColor:'#f26692'});
  line=chart.addSeries(LineSeries,{color:'#edb56b',lineWidth:2,visible:false});
  ema20=chart.addSeries(LineSeries,{color:'#edb56b',lineWidth:1,lastValueVisible:false,priceLineVisible:false});
@@ -22,3 +22,4 @@ window.TradingChart={render(raw,tf,mode,count){if(!raw.length||container.getBoun
  if(timeframe!==tf||lastCount!==count)chart!.timeScale().setVisibleLogicalRange({from:Math.max(0,clean.length-count),to:clean.length+3});
  timeframe=tf;lastTime=Number(last.t);lastLength=clean.length;lastCount=count;lastFingerprint=fingerprint;
 },resize(){if(chart){chart.applyOptions({width:container.clientWidth,height:container.clientHeight});}}};
+
