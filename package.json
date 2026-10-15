@@ -1,6 +1,6 @@
 {
   "name": "omega-eth-intelligence",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "type": "module",
   "packageManager": "npm@11.9.0",
@@ -17,6 +17,7 @@
     "viem": "2.57.7"
   },
   "devDependencies": {
+    "happy-dom": "21.0.1",
     "typescript": "7.0.2",
     "vite": "8.3.4",
     "vitest": "5.0.4"
