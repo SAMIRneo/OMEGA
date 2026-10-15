@@ -1,5 +1,6 @@
 import './interface.css';
 import './workspace';
+import './shortcuts';
 import './legacy/risk-core.js';
 import './charts/market-chart';
 async function start(){

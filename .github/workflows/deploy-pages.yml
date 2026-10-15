@@ -1,0 +1,48 @@
+name: Deploy OMEGA (interface) sur GitHub Pages
+
+# Publie le build statique de l'interface. L'application tourne entièrement dans
+# le navigateur (données Hyperliquid en direct, module de risque WASM embarqué en
+# base64) : aucun serveur Python n'est nécessaire pour le site publié.
+on:
+  push:
+    branches:
+      - main
+      - design/terminal-dark
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Installer les dépendances
+        run: npm ci
+      - name: Vérifier les types et construire
+        run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
