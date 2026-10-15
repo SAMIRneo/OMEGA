@@ -1,4 +1,4 @@
-/* AXIOM Workspace / Graphite instruments, frosted aluminium, ice-blue signals. */
+/* OMEGA Workspace / Graphite instruments, frosted aluminium, ice-blue signals. */
 :root { --surface-0:#180f06; --surface-1:#251c13; --surface-2:#30271e; --edge:#4c433a; --ink:#fdf4eb; --ink-soft:#cac1b8; }
 body { background:var(--surface-0); color:var(--ink); }
 button,input,select { font-family:inherit; }
@@ -362,3 +362,6 @@ body { background:#151311; color:#f5eadb; }
 .button.primary { background:#f2c18c; border-color:#f2c18c; color:#3b2519; box-shadow:inset 0 1px #ffead0,0 2px #9b6942,0 5px 10px #0003; }.button.primary:hover:not(:disabled) { background:#ffdeb0; }.text-link { color:var(--accent); }
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible { outline-color:#ffe0a6; }
 @media(max-width:760px) { .sidebar nav { background:#2b211c; border-color:#9c7350; }.nav.active { background:#68432f; }.pilot-instrument { background:#35271f; border-color:#9b704e; }.workspace-intro h1 { color:#f6e9d5; }.hero-price strong { color:#39251b; }.market-stat strong { color:#39251b; }.account-monitor .monitor-value strong { color:#f4e0cc!important; } }
+
+/* OMEGA monogram: vector mark shared with the favicon. */
+.brand-mark svg{width:29px;height:29px;fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:square;stroke-linejoin:round}

@@ -12,7 +12,7 @@ function setup(){if(chart)return;chart=createChart(container,{autoSize:true,layo
  volume=chart.addSeries(HistogramSeries,{priceFormat:{type:'volume'},priceScaleId:'volume',lastValueVisible:false,priceLineVisible:false});
  chart.priceScale('volume').applyOptions({scaleMargins:{top:.82,bottom:0},visible:false});
 }
-function series(raw:Candle[],period:number){let e=Number(raw[0]?.c??0);return raw.map((b,i)=>({time:time(b.t),value:i?(e+=2/(period+1)*(Number(b.c)-e)):e}));}
+function series(raw:Candle[],period:number){if(raw.length<period)return [];let e=raw.slice(0,period).reduce((sum,b)=>sum+Number(b.c),0)/period;return raw.slice(period-1).map((b,i)=>({time:time(b.t),value:i?(e+=2/(period+1)*(Number(b.c)-e)):e}));}
 window.TradingChart={render(raw,tf,mode,count){if(!raw.length||container.getBoundingClientRect().width===0)return;setup();
  const clean=Array.from(new Map(raw.filter(b=>[b.t,b.o,b.h,b.l,b.c,b.v].every(v=>Number.isFinite(Number(v)))).map(b=>[b.t,b])).values()).sort((a,b)=>a.t-b.t);
  const last=clean.at(-1);if(!last)return;const fingerprint=[tf,mode,count,last.t,last.o,last.h,last.l,last.c,last.v].join(':');if(fingerprint===lastFingerprint)return;

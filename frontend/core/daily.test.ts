@@ -4,7 +4,7 @@ import {quoteDepth,spreadBps} from './execution';
 import {diagnose} from './diagnostics';
 import type {Snapshot,RustRisk} from './types';
 import {risk,sample} from './test-fixtures';
-describe('AXIOM Daily',()=>{
+describe('OMEGA Daily',()=>{
  it('allocates half capital; auto leverage stays below 15 and risk under 500',()=>{const s=sample(),e=evaluateDaily(s,risk);expect(e.status).toBe('eligible');expect(e.candidate!.margin).toBe(5000);expect(e.candidate!.leverage).toBeLessThanOrEqual(15);expect(e.candidate!.leverage).toBeLessThan(15);expect(e.candidate!.plannedLoss).toBeLessThanOrEqual(450);expect(intent(e,1)!.leverage).toBe(e.candidate!.leverage);});
  it('recomputes half equity after gains; no fixed 5000 margin ceiling',()=>{const s=sample();s.paper.cash=s.paper.equity=12000;expect(evaluateDaily(s,risk).candidate!.margin).toBe(6000);});
  it('keeps the daily quota after closing a position',()=>{const s=sample();s.paper.lastEntryDay='2026-10-14';s.paper.entriesToday=1;expect(evaluateDaily(s,risk).reasons[0]).toMatch(/consommée/);});

@@ -1,10 +1,10 @@
-# AXIOM — ETH Intelligence
+# OMEGA — ETH Intelligence
 
 **Un terminal de recherche et un algorithme Daily sur ETH / Hyperliquid.**
 
-[Ouvrir le site public](https://btc-atelier.kairos-labspro.chatgpt.site) · [Code source](https://github.com/SAMIRneo/bot)
+[Ouvrir le site public](https://omega.kairos-labspro.chatgpt.site) · [Code source](https://github.com/SAMIRneo/OMEGA)
 
-AXIOM cherche une entrée intraday conforme à un ensemble de règles et à un budget de risque. Il observe le marché, décrit le contexte, propose un candidat et peut l’exécuter **en simulation uniquement**. Le portefeuille Hyperliquid reste en lecture seule. Aucun ordre réel, transfert, signature, modèle IA entraîné ou garantie de rendement.
+OMEGA cherche une entrée intraday conforme à un ensemble de règles et à un budget de risque. Il observe le marché, décrit le contexte, propose un candidat et peut l’exécuter **en simulation uniquement**. Le portefeuille Hyperliquid reste en lecture seule. Aucun ordre réel, transfert, signature, modèle IA entraîné ou garantie de rendement.
 
 ## Mandat retenu
 
@@ -80,7 +80,7 @@ npm run build
 npm run dev
 ```
 
-Le contenu de `dist/` peut être publié sur un hébergement HTTPS statique. Le site public conserve son URL historique `btc-atelier` pour préserver les liens, mais son identité et son périmètre sont AXIOM / ETH.
+Le contenu de `dist/` peut être publié sur un hébergement HTTPS statique. Le site public est publié sous le nom OMEGA, à l’adresse `https://omega.kairos-labspro.chatgpt.site`.
 
 ### Moteur Python local
 
@@ -120,7 +120,7 @@ Le script met à jour `frontend/legacy/risk-core.js`, qui embarque le binaire We
 
 Les éditions et appareils ne synchronisent pas leur simulation. Effacer localStorage efface les résultats et le quota de cet appareil : ce n’est pas une garantie globale contre plusieurs ordres réels. Les anciens historiques BTC/ETH ne sont pas réutilisés pour le mandat Daily.
 
-Frais hypothétiques 4,5 bps et slippage 2 bps par côté. Exécution sur la profondeur visible, pas un modèle complet d’impact. Les stops s’exécutent au prochain prix frais observé : un gap peut dépasser 500 USDC. La fermeture de fin de journée n’est pas assurée si le moteur, la page ou le flux est arrêté. Les mouvements pendant l’arrêt ne sont pas reconstruits. Les résultats TA-Lib et JavaScript peuvent différer.
+Frais hypothétiques 4,5 bps et slippage 2 bps par côté. Exécution sur la profondeur visible, pas un modèle complet d’impact. Les stops s’exécutent au prochain prix frais observé : un gap peut dépasser 500 USDC. La fermeture de fin de journée n’est pas assurée si le moteur, la page ou le flux est arrêté. Les mouvements pendant l’arrêt ne sont pas reconstruits. Les EMA, RSI, ATR et MACD navigateur ont été comparés à TA-Lib sur les mêmes bougies. Les arrondis numériques restent possibles.
 
 ## API et agent local
 
@@ -162,4 +162,8 @@ L’aperçu a été contrôlé sur ordinateur et aux largeurs 390 et 320 px. Ces
 - Vite : https://vite.dev/guide/
 - Notices et licence : `THIRD_PARTY_NOTICES.md`, `licenses/`.
 
-Les notes techniques dans `docs/` antérieures à AXIOM sont historiques. Ce README décrit l’état courant.
+Les notes techniques dans `docs/` antérieures à OMEGA sont historiques. Ce README décrit l’état courant.
+
+## Identité OMEGA et compatibilité
+
+Le nom visible, le favicon Ω, le paquet et le dépôt utilisent OMEGA. Les clés de stockage, verrous et identifiants de profil historiques `axiom-*` restent volontairement inchangés pour ne pas réinitialiser les données existantes sur une même origine. Le changement de domaine ne transfère pas automatiquement le localStorage de l’ancienne adresse. Le journal du navigateur reste propre à son origine et à son appareil.

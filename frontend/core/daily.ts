@@ -1,6 +1,6 @@
 import type {Evaluation,Snapshot,RustRisk,Candidate,Side,TradeIntent} from './types';
 import {quoteDepth,spreadBps} from './execution';
-export const AXIOM_PROFILE={capital:10000,allocation:0.5,maxLeverage:15,maxPlannedLoss:500,maxEntries:1,accountingTimezone:'UTC'} as const;
+export const OMEGA_PROFILE={capital:10000,allocation:0.5,maxLeverage:15,maxPlannedLoss:500,maxEntries:1,accountingTimezone:'UTC'} as const;
 export function utcDay(seconds:number):string{return new Date(seconds*1000).toISOString().slice(0,10)}
 export function entriesOnDay(s:Snapshot):number{return s.paper.lastEntryDay===utcDay(s.time)?s.paper.entriesToday:0}
 export function evaluateDaily(s:Snapshot,risk:RustRisk|null):Evaluation {
@@ -53,4 +53,4 @@ export function evaluateDaily(s:Snapshot,risk:RustRisk|null):Evaluation {
  const candidate:Candidate={side,leverage,family,score:Math.min(100,score),reasons,entry,stop,target,margin,quantity,plannedLoss,rewardRisk,impactBps};
  return {status:'eligible',reasons,candidate,day,dailyBias};
 }
-export function intent(e:Evaluation,signalTime:number):TradeIntent|null{const c=e.candidate;return c?{side:c.side,leverage:c.leverage,margin:c.margin,stop:c.stop,target:c.target,strategy:'axiom-daily/'+c.family,signalTime}:null}
+export function intent(e:Evaluation,signalTime:number):TradeIntent|null{const c=e.candidate;return c?{side:c.side,leverage:c.leverage,margin:c.margin,stop:c.stop,target:c.target,strategy:'omega-daily/'+c.family,signalTime}:null}

@@ -182,7 +182,7 @@ def run(port):
             super().server_bind()
     server = LocalServer(('127.0.0.1',port),Handler)
     (ROOT/'data'/'agent-token.txt').write_text(token,encoding='utf-8')
-    print(f'AXIOM Daily : http://127.0.0.1:{port}',flush=True)
+    print(f'OMEGA Daily : http://127.0.0.1:{port}',flush=True)
     engine.start()
     try:
         server.serve_forever()

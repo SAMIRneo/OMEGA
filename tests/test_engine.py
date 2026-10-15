@@ -83,7 +83,7 @@ class EthMigrationTests(unittest.TestCase):
         client.candles('5m')
         self.assertEqual(client.info.call_args.args[0]['req']['coin'],'ETH')
 
-class AxiomDailyTests(unittest.TestCase):
+class OmegaDailyTests(unittest.TestCase):
     def setUp(self):
         from unittest.mock import patch
         from datetime import datetime, timezone
