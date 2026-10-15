@@ -1,6 +1,7 @@
 import './style.css';
 import './atelier.css';
 import './workspace.css';
+import './research.css';
 import './workspace';
 import './legacy/risk-core.js';
 import './charts/market-chart';
@@ -9,6 +10,7 @@ if(document.documentElement.dataset.runtime==='local'){await import('./legacy/lo
 await import('./core/controller');
 await import('./legacy/decision-viz.js');
 await import('./legacy/ui.js');
+await import('./research');
 
 }
 start().catch(e=>{const alert=document.getElementById("global-alert");if(alert){alert.hidden=false;alert.textContent="Initialisation interrompue : "+String(e);}});

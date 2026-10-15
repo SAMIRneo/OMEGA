@@ -139,11 +139,11 @@ python -m unittest discover -s tests -v
 cargo test --manifest-path rust-core/Cargo.toml
 ```
 
-Les tests couvrent notamment les deux sens de marché, la marge de 50 %, le levier adaptatif, le budget, le quota après clôture/rechargement, les données anciennes/non clôturées, l’absence de signal, les frais et la fermeture observée de fin de journée. Les tests historiques Python existants sont exploratoires et distincts du nouveau Daily. **Aucun résultat de backtest Daily n’est revendiqué.** Le rendu final Safari/iPhone reste à vérifier sur appareil.
+Les tests couvrent notamment les deux sens de marché, la marge de 50 %, le levier adaptatif, le budget, le quota après clôture/rechargement, les données anciennes/non clôturées, l’absence de signal, les frais et la fermeture observée de fin de journée. Les tests historiques Python existants sont exploratoires et distincts du nouveau Daily. **Le laboratoire fournit un replay Daily exploratoire sur 7 ou 14 jours récents, avec hypothèses de coûts et de liquidité explicitement affichées ; aucune robustesse ni rentabilité n’est établie.** Le rendu final Safari/iPhone reste à vérifier sur appareil.
 
 ## Avant un éventuel passage au réel
 
-Il reste à construire et valider : jeu de données historique horodaté, backtests sans anticipation avec coûts réalistes, validation chronologique hors échantillon et tests de sensibilité, suivi paper continu, service permanent, registre transactionnel des ordres/quota commun à tous les clients, réconciliation exchange, ordres stop reduce-only côté exchange, gestion des rejets et fills partiels, circuit d’arrêt et signature serveur via autorisation dédiée. Ce sont des travaux futurs ; le site actuel n’exécute pas le compte réel.
+Il reste à construire et valider : historique étendu et versionné, backtests avec liquidité et coûts réalistes, validation chronologique hors échantillon et tests de sensibilité, suivi paper continu, service permanent, registre transactionnel des ordres/quota commun à tous les clients, réconciliation exchange, ordres stop reduce-only côté exchange, gestion des rejets et fills partiels, circuit d’arrêt et signature serveur via autorisation dédiée. Ce sont des travaux futurs ; le site actuel n’exécute pas le compte réel.
 
 ## Workspace : diagnostic, liquidité et réactivité
 
@@ -167,3 +167,15 @@ Les notes techniques dans `docs/` antérieures à OMEGA sont historiques. Ce REA
 ## Identité OMEGA et compatibilité
 
 Le nom visible, le favicon Ω, le paquet et le dépôt utilisent OMEGA. Les clés de stockage, verrous et identifiants de profil historiques `axiom-*` restent volontairement inchangés pour ne pas réinitialiser les données existantes sur une même origine. Le changement de domaine ne transfère pas automatiquement le localStorage de l’ancienne adresse. Le journal du navigateur reste propre à son origine et à son appareil.
+
+## Recherche historique et plan ATR — v0.8
+
+L’onglet Recherche charge quatre séries Hyperliquid (5 min, 15 min, 1 h, 1 jour), avec 350 bougies de préchargement pour les indicateurs. Les décisions réutilisent `evaluateDaily` et le même module d’indicateurs que l’édition navigateur, sans lecture d’une bougie future. Le calcul tourne dans un Worker, peut être annulé et ne modifie pas le compte paper. Les résultats se conservent localement et les trades s’exportent en CSV. Une série incomplète, incohérente ou trouée bloque le replay.
+
+Le replay utilise un carnet synthétique à profondeur supposée disponible : spread fixe 2 bps et slippage 2 bps / côté, ou scénario renforcé 4 / 4 bps ; frais 4,5 bps / côté. Il ne valide donc pas la liquidité historique. Les métadonnées historiques de levier, le funding et la liquidation ne sont pas reconstruits. Les entrées sont modélisées aux ouvertures suivant les clôtures 15 min ; les sorties sont examinées en 5 min. À double contact stop/objectif dans une bougie, le stop passe en premier ; un gap peut dépasser la perte prévue. La sortie de fin de journée utilise l’ouverture 23:55 UTC ; une position finale est clôturée à la fin de l’échantillon.
+
+Le drawdown décrit l’équité aux clôtures 5 min. Les segments 70 % / 30 % partagent la même trajectoire de capital et classent les trades par date de sortie ; ce n’est pas une validation indépendante. Aucune optimisation n’est effectuée. Quatorze jours et quelques trades ne suffisent pas à établir une rentabilité. La limite de l’API aux 5 000 bougies récentes motive les périodes proposées.
+
+Chaque lancement calcule aussi l’autre scénario de coûts sur les mêmes dates et les mêmes données, avec un capital fictif indépendant de 10 000 USDC. La comparaison affiche les deux P&L, nombres de trades et drawdowns, et signale un éventuel changement de signe. Le scénario sélectionné détermine le journal détaillé et le CSV ; les règles restent inchangées et aucun scénario n’est choisi automatiquement pour maximiser les résultats.
+
+Dans Pilotage, Préparer un plan ATR remplit stop, objectif et levier manuel en tenant compte de la profondeur visible, des frais, du ratio net et d’une réserve de risque de 10 %. Le plafond du bot reste inchangé. Le plan est un exemple de risque, pas un signal, et aucune position n’est ouverte sans soumission explicite.
