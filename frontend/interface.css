@@ -90,6 +90,7 @@
 
 /* -------------------------------------------------------------------- base */
 *,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
 body{
   background:var(--void);
   color:var(--ink);
@@ -168,6 +169,7 @@ svg{stroke-width:1.5}
 .network-dot{width:7px;height:7px;border-radius:50%;background:var(--up);box-shadow:0 0 0 3px rgba(46,211,160,.14);animation:blip 2.6s ease-in-out infinite}
 
 .topbar{height:58px;background:rgba(11,13,16,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--edge);padding:0 26px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:15}
+.topbar:after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;pointer-events:none;background:linear-gradient(90deg,transparent,var(--amber),transparent);opacity:.28}
 .breadcrumb{font-size:12px;color:var(--ink-3);font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase}
 .breadcrumb span{color:var(--ink-4);padding:0 4px}
 .breadcrumb strong{color:var(--ink);font-weight:500}
@@ -192,7 +194,7 @@ svg{stroke-width:1.5}
 .network-console label{font-size:12px;font-weight:500;color:var(--ink-2)}
 .network-console select{min-height:39px;font-size:12.5px;padding:8px 30px 8px 11px}
 .network-description{min-width:0;border-left:1px solid var(--edge-2);padding-left:20px}
-.network-description strong{display:block;font-size:12px;color:var(--ink-2);font-weight:500}
+.network-description strong{display:block;font-size:12px;color:var(--ink-2);font-weight:500;overflow-wrap:anywhere}
 .network-description p{font-size:11.5px;color:var(--ink-3);margin:4px 0 0;overflow-wrap:anywhere}
 .network-description [data-health=live]{color:var(--up)}
 .network-links{font-size:12px;display:flex;gap:16px;margin-top:12px}
@@ -207,6 +209,8 @@ html[data-network=testnet] .edition-tag b{background:var(--amber);color:#0a0c0f}
 .toast{background:var(--surface-3);color:var(--ink);border:1px solid var(--amber);border-left-width:3px;border-radius:var(--radius-sm);box-shadow:0 14px 34px rgba(0,0,0,.55);font-size:12.5px}
 .skip-link{position:fixed;top:12px;left:12px;z-index:60;padding:12px 18px;background:var(--amber);color:#0a0c0f;border-radius:var(--radius-sm);font-weight:600;transform:translateY(-160%);transition:transform .18s ease}
 .skip-link:focus{transform:none}
+.noscript{margin:0;padding:14px 22px;background:var(--amber);color:#0a0c0f;font-size:13px;line-height:1.55}
+.noscript strong{font-weight:700}
 
 /* ---------------------------------------------------------------- controls */
 .button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:9px 15px;font-size:12.5px;font-weight:500;font-family:var(--font-sans);border-radius:var(--radius-sm);background:var(--surface-3);border:1px solid var(--edge-2);color:var(--ink);cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease,transform .08s ease}
@@ -240,6 +244,9 @@ progress::-webkit-progress-value{background:linear-gradient(90deg,var(--amber-de
 .panel{overflow:hidden}
 .panel-head,.chart-panel>.panel-head{background:var(--surface-2);border-bottom:1px solid var(--edge);padding:15px 20px;min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:14px}
 .panel-head h2,.chart-panel>.panel-head h2{color:var(--ink);font-size:14px;font-weight:600;letter-spacing:-.005em}
+/* Reuse the heading marker the legacy sheets create then hide: a small amber tick
+   gives every panel the same console signature without touching the markup. */
+.panel-head h2:before{content:'';display:inline-block;width:6px;height:6px;margin-right:9px;vertical-align:middle;background:var(--amber);border-radius:1px;box-shadow:0 0 9px var(--amber-glow)}
 .panel-head .eyebrow{margin-bottom:3px;display:block}
 .metric-card{padding:20px 18px;border-top:2px solid var(--edge-2)}
 .metric-card>span{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
@@ -291,7 +298,7 @@ tr:hover td{background:var(--surface-2);color:var(--ink)}
 .asset h2 span,.asset .muted{font-size:10.5px;color:var(--ink-3);letter-spacing:.04em}
 .hero-price{display:flex;flex-direction:column;gap:3px;padding-right:22px;border-right:1px solid var(--edge-2)}
 .price-eyebrow{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.16em;color:var(--ink-3)}
-.hero-price strong{font-family:var(--font-mono);font-size:33px;font-weight:500;letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.1}
+.hero-price strong{font-family:var(--font-mono);font-size:33px;font-weight:500;letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.1;text-shadow:0 0 22px rgba(255,182,72,.16)}
 .hero-price #change{font-family:var(--font-mono);font-size:11px;color:var(--ink-3)}
 .market-stat{display:flex;flex-direction:column;gap:3px;min-width:88px}
 .market-stat>span{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
@@ -310,7 +317,12 @@ tr:hover td{background:var(--surface-2);color:var(--ink)}
 .chart-panel .chart-actions{display:flex;gap:7px}
 .chart-toolbar{background:var(--surface-1);border-top:1px solid var(--edge);border-bottom:1px solid var(--edge);padding:11px 18px;gap:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .chart-wrap{height:410px;position:relative}
-.chart-empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-4);font-family:var(--font-mono);font-size:11px;pointer-events:none}
+/* Instrument framing: the chart reads as a screen rather than a plain box.
+   (The torus keeps its own centred readout and a caption bar, so it stays clean.) */
+.chart-wrap:before,.chart-wrap:after{content:'';position:absolute;width:13px;height:13px;pointer-events:none;border:1px solid rgba(255,182,72,.55);z-index:3}
+.chart-wrap:before{top:9px;left:9px;border-right:0;border-bottom:0}
+.chart-wrap:after{bottom:9px;right:9px;border-left:0;border-top:0}
+.chart-empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-4);font-family:var(--font-mono);font-size:11px;pointer-events:none;animation:blip 2.2s ease-in-out infinite}
 .chart-footer{background:var(--surface-1);color:var(--ink-3);border-top:1px solid var(--edge);font-family:var(--font-mono);font-size:10px;padding:10px 18px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .chart-footer span{overflow-wrap:anywhere}
 .chart-mode{display:inline-flex;border:1px solid var(--edge-2);border-radius:var(--radius-sm);overflow:hidden}
@@ -334,6 +346,7 @@ tr:hover td{background:var(--surface-2);color:var(--ink)}
 .book-row>span:nth-child(2){color:var(--ink-3);text-align:right}
 .book-row.bid{color:var(--up)}
 .book-row.ask{color:var(--down)}
+.book-row:hover{background:var(--surface-2)}
 .book-panel .book-row span:nth-child(2){color:var(--ink-3)}
 .book-row.bid>span:nth-child(2),.book-row.ask>span:nth-child(2){color:var(--ink-4)}
 .spread{display:flex;align-items:baseline;justify-content:space-between;gap:10px;border-top:1px solid var(--edge);border-bottom:1px solid var(--edge);background:var(--surface-2);padding:9px 18px;margin:7px 0}
@@ -349,7 +362,7 @@ tr:hover td{background:var(--surface-2);color:var(--ink)}
 .account-monitor .panel-head{padding:18px;border:0;background:none}
 .account-monitor>*{grid-row:auto;grid-column:auto}
 .account-monitor .panel-head h2{color:var(--ink);font-size:13.5px}
-.account-monitor .pill{display:none}
+.account-monitor .pill{font-size:9px;letter-spacing:.14em;padding:3px 7px}
 .monitor-value{padding:16px 18px;border-left:1px solid var(--edge)}
 .monitor-value>span{display:block;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
 .monitor-value strong{display:block;font-family:var(--font-mono)!important;font-size:26px!important;font-weight:500!important;color:var(--ink)!important;letter-spacing:-.02em;line-height:1.35;margin:6px 0 2px}
@@ -675,7 +688,13 @@ footer b{color:var(--amber);font-weight:500}
 .view:not([hidden]) :nth-child(8)>.panel,.view:not([hidden]) .panel:nth-child(8){animation-delay:.23s}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-delay:0ms!important;transition-duration:.001ms!important}
+  html{scroll-behavior:auto}
   .workspace-card:hover{transform:none}
+}
+/* Visitors who ask for more contrast get harder edges and brighter secondary
+   ink, instead of the softer halftones the default palette relies on. */
+@media(prefers-contrast:more){
+  :root{--edge:#39424e;--edge-2:#4c5765;--line:#39424e;--ink-2:#c6cdd6;--ink-3:#9ba4b0;--ink-4:#8a93a0}
 }
 
 /* -------------------------------------------------------------- responsive */
@@ -740,6 +759,12 @@ footer b{color:var(--amber);font-weight:500}
   .workspace-intro p{font-size:13px;line-height:1.7}
   .section-kicker{font-size:9px}
   .intro-note{display:none}
+  /* Below ~400 px the network row used to squeeze its description into a
+     min-content column; stacking removes the last horizontal overflow. */
+  .network-console{flex-direction:column;align-items:stretch;gap:12px;padding:13px 14px}
+  .network-console>div:first-child{flex-direction:column;align-items:stretch;gap:8px;flex-shrink:1}
+  .network-console select{width:100%;min-height:42px}
+  .network-description{border-left:0;border-top:1px solid var(--edge-2);padding-left:0;padding-top:11px}
   .market-strip{display:grid;grid-template-columns:1fr 1fr;padding:17px;gap:16px;margin-bottom:17px}
   .market-strip>*{grid-column:auto;grid-row:auto}
   .asset{padding:0;gap:10px}
@@ -873,5 +898,5 @@ footer b{color:var(--amber);font-weight:500}
   td{font-size:12px;padding:11px 14px}
   footer{padding-bottom:calc(104px + env(safe-area-inset-bottom));font-size:9px;gap:8px}
   .chart-attribution{font-size:9px}
-  .toast{bottom:calc(92px + env(safe-area-inset-bottom));left:14px;right:14px}
+  .toast{bottom:calc(92px + env(safe-area-inset-bottom));left:14px;right:14px;width:auto;max-width:none;transform:none}
 }

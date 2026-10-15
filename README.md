@@ -82,6 +82,10 @@ npm run dev
 
 Le contenu de `dist/` peut être publié sur un hébergement HTTPS statique. Le site public est publié sous le nom OMEGA, à l’adresse `https://omega.kairos-labspro.chatgpt.site`.
 
+### GitHub Pages
+
+Le workflow `.github/workflows/deploy-pages.yml` construit puis publie l’interface sur GitHub Pages à chaque poussée sur `main` (déclenchement manuel possible depuis l’onglet Actions). Le site publié est entièrement côté navigateur : les données Hyperliquid sont lues en direct et le module de risque WASM est embarqué dans le bundle, sans serveur Python. Une fois Pages activé (Settings → Pages → Source : GitHub Actions), l’adresse est `https://samirneo.github.io/OMEGA/`.
+
 ### Moteur Python local
 
 ```powershell
