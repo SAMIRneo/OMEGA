@@ -1,10 +1,10 @@
-# AXIOM — ETH Intelligence
+# OMEGA — ETH Intelligence
 
 **Un terminal de recherche et un algorithme Daily sur ETH / Hyperliquid.**
 
-[Ouvrir le site public](https://btc-atelier.kairos-labspro.chatgpt.site) · [Code source](https://github.com/SAMIRneo/bot)
+[Ouvrir le site public](https://omega.kairos-labspro.chatgpt.site) · [Code source](https://github.com/SAMIRneo/OMEGA)
 
-AXIOM cherche une entrée intraday conforme à un ensemble de règles et à un budget de risque. Il observe le marché, décrit le contexte, propose un candidat et peut l’exécuter **en simulation uniquement**. Le portefeuille Hyperliquid reste en lecture seule. Aucun ordre réel, transfert, signature, modèle IA entraîné ou garantie de rendement.
+OMEGA cherche une entrée intraday conforme à un ensemble de règles et à un budget de risque. Il observe le marché, décrit le contexte, propose un candidat et peut l’exécuter **en simulation uniquement**. Le portefeuille Hyperliquid reste en lecture seule. Aucun ordre réel, transfert, signature, modèle IA entraîné ou garantie de rendement.
 
 ## Mandat retenu
 
@@ -80,7 +80,7 @@ npm run build
 npm run dev
 ```
 
-Le contenu de `dist/` peut être publié sur un hébergement HTTPS statique. Le site public conserve son URL historique `btc-atelier` pour préserver les liens, mais son identité et son périmètre sont AXIOM / ETH.
+Le contenu de `dist/` peut être publié sur un hébergement HTTPS statique. Le site public est publié sous le nom OMEGA, à l’adresse `https://omega.kairos-labspro.chatgpt.site`.
 
 ### Moteur Python local
 
@@ -120,7 +120,7 @@ Le script met à jour `frontend/legacy/risk-core.js`, qui embarque le binaire We
 
 Les éditions et appareils ne synchronisent pas leur simulation. Effacer localStorage efface les résultats et le quota de cet appareil : ce n’est pas une garantie globale contre plusieurs ordres réels. Les anciens historiques BTC/ETH ne sont pas réutilisés pour le mandat Daily.
 
-Frais hypothétiques 4,5 bps et slippage 2 bps par côté. Exécution sur la profondeur visible, pas un modèle complet d’impact. Les stops s’exécutent au prochain prix frais observé : un gap peut dépasser 500 USDC. La fermeture de fin de journée n’est pas assurée si le moteur, la page ou le flux est arrêté. Les mouvements pendant l’arrêt ne sont pas reconstruits. Les résultats TA-Lib et JavaScript peuvent différer.
+Frais hypothétiques 4,5 bps et slippage 2 bps par côté. Exécution sur la profondeur visible, pas un modèle complet d’impact. Les stops s’exécutent au prochain prix frais observé : un gap peut dépasser 500 USDC. La fermeture de fin de journée n’est pas assurée si le moteur, la page ou le flux est arrêté. Les mouvements pendant l’arrêt ne sont pas reconstruits. Les EMA, RSI, ATR et MACD navigateur ont été comparés à TA-Lib sur les mêmes bougies. Les arrondis numériques restent possibles.
 
 ## API et agent local
 
@@ -145,6 +145,16 @@ Les tests couvrent notamment les deux sens de marché, la marge de 50 %, le levi
 
 Il reste à construire et valider : jeu de données historique horodaté, backtests sans anticipation avec coûts réalistes, validation chronologique hors échantillon et tests de sensibilité, suivi paper continu, service permanent, registre transactionnel des ordres/quota commun à tous les clients, réconciliation exchange, ordres stop reduce-only côté exchange, gestion des rejets et fills partiels, circuit d’arrêt et signature serveur via autorisation dédiée. Ce sont des travaux futurs ; le site actuel n’exécute pas le compte réel.
 
+## Workspace : diagnostic, liquidité et réactivité
+
+Le workspace affiche dix contrôles observables (données, horizons, métadonnées, risque, quota, alignement, spread et configuration). Le compteur indique combien de contrôles passent ; il ne mesure pas une probabilité de gain. Pilotage distingue l’observation de l’armement manuel. Le journal trace l’équité **après chaque clôture** ; il ne représente ni le latent historique ni les creux intraposition.
+
+Le candidat Daily parcourt la profondeur L2 visible pour estimer le prix moyen avec slippage. Il réduit le levier si le volume visible ou le budget de stop l’exige, tout en conservant la marge de 50 %. Les nouvelles barrières de recherche sont un spread de 8 bps maximum, un impact visible de 8 bps maximum et une distance au signal de 1,25 ATR maximum. Les métadonnées doivent dater de moins de 120 secondes. Ces seuils sont des hypothèses opérationnelles : aucun gain de rentabilité n’est démontré. Le contrôleur relit l’état sous verrou avant une entrée et abandonne si la clôture a changé ou si l’utilisateur l’a arrêté.
+
+Dans l’édition navigateur, les horizons 15 min / 1 h / 1 jour sont chargés en priorité. Les requêtes identiques en cours sont partagées ; les historiques valides restent affichés pendant leur actualisation. Les erreurs conservent les données avec un statut d’échec et un délai de nouvelle tentative croissant. Les clôtures sont vérifiées toutes les dix secondes quand l’onglet est visible, avec un cache de 60 secondes hors changement de bougie. Le flux existant déclenche un rafraîchissement visuel au plus une fois par seconde, sans nouvelle connexion WebSocket. Les tableaux identiques ne sont pas reconstruits. Aucun fonctionnement permanent en arrière-plan n’est revendiqué.
+
+L’aperçu a été contrôlé sur ordinateur et aux largeurs 390 et 320 px. Ces contrôles de navigateur ne remplacent pas un essai sur un iPhone physique ni une validation avec lecteur d’écran.
+
 ## Sources et licences
 
 - Hyperliquid : https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint
@@ -152,4 +162,8 @@ Il reste à construire et valider : jeu de données historique horodaté, backte
 - Vite : https://vite.dev/guide/
 - Notices et licence : `THIRD_PARTY_NOTICES.md`, `licenses/`.
 
-Les notes techniques dans `docs/` antérieures à AXIOM sont historiques. Ce README décrit l’état courant.
+Les notes techniques dans `docs/` antérieures à OMEGA sont historiques. Ce README décrit l’état courant.
+
+## Identité OMEGA et compatibilité
+
+Le nom visible, le favicon Ω, le paquet et le dépôt utilisent OMEGA. Les clés de stockage, verrous et identifiants de profil historiques `axiom-*` restent volontairement inchangés pour ne pas réinitialiser les données existantes sur une même origine. Le changement de domaine ne transfère pas automatiquement le localStorage de l’ancienne adresse. Le journal du navigateur reste propre à son origine et à son appareil.

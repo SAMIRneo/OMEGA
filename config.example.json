@@ -1,0 +1,17 @@
+{
+  "account": "0x0000000000000000000000000000000000000000",
+  "network": "mainnet",
+  "paper_capital": 10000,
+  "leverage": 15,
+  "fee_bps": 4.5,
+  "slippage_bps": 2,
+  "max_margin": 5000,
+  "max_risk": 500,
+  "daily_loss_limit": 500,
+  "source_max_age_seconds": 15,
+  "max_leverage": 15,
+  "daily_mode": true,
+  "allocation_fraction": 0.5,
+  "max_entries_per_day": 1,
+  "profile": "axiom-daily-v1"
+}
