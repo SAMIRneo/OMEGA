@@ -1,0 +1,35 @@
+import type {Snapshot} from './core/types';
+const api=window.BrowserAtelier,environment=api.environment;
+const select=document.getElementById('network-select') as HTMLSelectElement;
+const status=document.getElementById('connection-detail')!;
+if(!environment){select.disabled=true;status.textContent='Réseau géré par le serveur local.';}
+else{
+ const testnet=environment.id==='testnet',name=testnet?'Testnet':'Mainnet';
+ select.value=environment.id;
+ document.documentElement.dataset.network=environment.id;
+ document.querySelectorAll<HTMLElement>('[data-network-label]').forEach(el=>el.textContent=name);
+ if(testnet)document.querySelector('.edition-tag b')!.textContent='TESTNET';
+ if(testnet){document.getElementById('bot-start')!.textContent='▷ Armer la simulation locale';document.querySelector('.bot-identity h2')!.textContent='Daily / simulation locale';document.querySelector('.side-module strong')!.textContent='Exécution testnet';document.querySelector('.side-module p')!.textContent='Ordres testnet signés par ton wallet. Compte fictif local séparé.';}
+ document.querySelectorAll<HTMLElement>('[data-network-source]').forEach(el=>el.textContent='ETH / '+name.toUpperCase());
+ document.getElementById('network-description')!.textContent=testnet?'Hyperliquid TESTNET · ordres signés via wallet · compte fictif local séparé.':'Marché principal Hyperliquid · capital simulé dans OMEGA.';
+ document.querySelectorAll<HTMLElement>('[data-account-kind]').forEach(el=>el.textContent=testnet?'Compte testnet':'Compte réel');
+ document.getElementById('wallet-source-note')!.textContent='L’adresse est envoyée uniquement à l’API '+name+' Hyperliquid. Actualisation toutes les 30 s quand la page est visible.';
+ select.addEventListener('change',async()=>{
+  const next=select.value;
+  select.disabled=true;
+  try{
+   // Read storage under the same lock as entries: no network change across an in-flight trade.
+   if(!navigator.locks)throw Error('Changement de réseau indisponible sur ce navigateur.');
+   await window.TestnetGate?.();
+   window.PaperPilot.stop();
+   await api.request('/api/network',{method:'POST',body:JSON.stringify({network:next})});
+   location.reload();
+  }catch(error){select.value=environment.id;status.textContent=error instanceof Error?error.message:String(error);select.disabled=false;}
+ });
+ window.addEventListener('axiom-state',((event:CustomEvent<Snapshot & {connection?:{source:string;websocket:boolean;latencyMs:number|null;reconnectAttempts:number;error:string;retryAt:number}}>)=>{
+  const s=event.detail,c=s.connection;if(!c)return;
+  const mode=s.market.fresh?(c.source==='websocket'?'WebSocket direct':'Secours REST'):'Données en attente';
+  status.textContent=name+' · '+mode+(c.latencyMs!==null?' · API '+c.latencyMs+' ms':'')+(c.reconnectAttempts?' · reconnexion '+c.reconnectAttempts:'')+(c.error?' · '+c.error:'');
+  status.dataset.health=s.market.fresh?'live':'waiting';
+ }) as EventListener);
+}

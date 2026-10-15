@@ -1,6 +1,7 @@
 import {evaluateDaily,intent,utcDay} from './daily';
 import type {Snapshot,RustRisk,ControllerEvent,Evaluation,TradeIntent} from './types';
-const EVENT_KEY='axiom-daily-events-v1',BAR_KEY='axiom-daily-evaluation-v1';
+const network=window.BrowserAtelier?.environment?.id??'mainnet',scope=network==='testnet'?'-testnet':'';
+const EVENT_KEY='axiom-daily-events-v1'+scope,BAR_KEY='axiom-daily-evaluation-v1'+scope;
 let active=false,paused=false,lastBar=0,resumeAfter=0,inflight=false,reason='Daily en observation.',evaluation:Evaluation|null=null;
 let events:ControllerEvent[]=[];try{const parsed=JSON.parse(localStorage.getItem(EVENT_KEY)||'[]');if(Array.isArray(parsed))events=parsed.slice(-200);}catch{}
 function log(kind:string,message:string){events.push({at:Date.now(),kind,message});events=events.slice(-200);try{localStorage.setItem(EVENT_KEY,JSON.stringify(events))}catch{}}
@@ -16,7 +17,7 @@ export const controller={
  if(paused){paused=false;resumeAfter=Date.now();lastBar=stamp;reason='Reprise · clôtures de l’absence ignorées.';return;}
  if(stamp<=resumeAfter||stamp<=lastBar){reason=evaluation.status==='blocked'?evaluation.reasons.join(' '):'Attente de la prochaine clôture 15 min.';return;}
  lastBar=stamp;inflight=true;
- try{await navigator.locks.request('axiom-daily-controller',async()=>{if(!active||document.hidden)return;const done=Number(localStorage.getItem(BAR_KEY)||0);if(stamp<=done){reason='Clôture déjà examinée par un autre onglet.';return;}localStorage.setItem(BAR_KEY,String(stamp));const current=latest?await latest():s;if(!active||document.hidden)return;if((current.indicators['15m']?.lastClosedTime??0)!==stamp){reason='Clôture modifiée pendant la validation : aucune entrée.';log('OBSERVATION',reason);return;}const e=evaluateDaily(current,core()),a=intent(e,stamp);evaluation=e;if(!a){reason=e.reasons.join(' ');log(e.status==='blocked'?'BLOCAGE':'OBSERVATION',reason);return;}await open(a);reason='Entrée Daily '+a.side.toUpperCase()+' simulée.';log('ENTRÉE',reason+' Marge '+a.margin.toFixed(2)+' USDC.');});}catch(error){reason=error instanceof Error?error.message:String(error);log('REFUS',reason);}finally{inflight=false;}
+ try{await navigator.locks.request('axiom-daily-controller'+scope,async()=>{if(!active||document.hidden)return;const done=Number(localStorage.getItem(BAR_KEY)||0);if(stamp<=done){reason='Clôture déjà examinée par un autre onglet.';return;}localStorage.setItem(BAR_KEY,String(stamp));const current=latest?await latest():s;if(!active||document.hidden)return;if((current.indicators['15m']?.lastClosedTime??0)!==stamp){reason='Clôture modifiée pendant la validation : aucune entrée.';log('OBSERVATION',reason);return;}const e=evaluateDaily(current,core()),a=intent(e,stamp);evaluation=e;if(!a){reason=e.reasons.join(' ');log(e.status==='blocked'?'BLOCAGE':'OBSERVATION',reason);return;}await open(a);reason='Entrée Daily '+a.side.toUpperCase()+' simulée.';log('ENTRÉE',reason+' Marge '+a.margin.toFixed(2)+' USDC.');});}catch(error){reason=error instanceof Error?error.message:String(error);log('REFUS',reason);}finally{inflight=false;}
  },
  get state(){return {active,paused,reason,events:[...events],evaluation};},log
 };
