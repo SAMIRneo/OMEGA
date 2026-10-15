@@ -4,11 +4,11 @@ const container=document.getElementById('chart')!;
 let chart:IChartApi|null=null,timeframe:Timeframe|null=null,lastCount=0,lastFingerprint='',lastLength=0,lastTime=0,incrementalUpdates=0;
 let candles:ReturnType<IChartApi['addSeries']>,line:ReturnType<IChartApi['addSeries']>,ema20:ReturnType<IChartApi['addSeries']>,ema50:ReturnType<IChartApi['addSeries']>,volume:ReturnType<IChartApi['addSeries']>;
 const time=(t:number)=>Math.floor(t/1000) as UTCTimestamp;
-function setup(){if(chart)return;chart=createChart(container,{autoSize:true,layout:{background:{type:ColorType.Solid,color:'#0e0e15'},textColor:'#a99cb0',fontSize:10,attributionLogo:true},grid:{vertLines:{color:'#211b29'},horzLines:{color:'#292130'}},crosshair:{mode:CrosshairMode.Normal},timeScale:{timeVisible:true,secondsVisible:false,borderColor:'#45304a'},rightPriceScale:{borderColor:'#45304a'},handleScale:{mouseWheel:true,pinch:true},handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:false}});
+function setup(){if(chart)return;chart=createChart(container,{autoSize:true,layout:{background:{type:ColorType.Solid,color:'#11161e'},textColor:'#b5c1d0',fontSize:12,attributionLogo:true},grid:{vertLines:{color:'#202936'},horzLines:{color:'#202936'}},crosshair:{mode:CrosshairMode.Normal},timeScale:{timeVisible:true,secondsVisible:false,borderColor:'#344152'},rightPriceScale:{borderColor:'#344152'},handleScale:{mouseWheel:true,pinch:true},handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:false}});
  candles=chart.addSeries(CandlestickSeries,{upColor:'#59daa3',downColor:'#f26692',borderVisible:false,wickUpColor:'#59daa3',wickDownColor:'#f26692'});
- line=chart.addSeries(LineSeries,{color:'#f23891',lineWidth:2,visible:false});
- ema20=chart.addSeries(LineSeries,{color:'#f23891',lineWidth:1,lastValueVisible:false,priceLineVisible:false});
- ema50=chart.addSeries(LineSeries,{color:'#8c86c5',lineWidth:1,lastValueVisible:false,priceLineVisible:false});
+ line=chart.addSeries(LineSeries,{color:'#83caff',lineWidth:2,visible:false});
+ ema20=chart.addSeries(LineSeries,{color:'#83caff',lineWidth:1,lastValueVisible:false,priceLineVisible:false});
+ ema50=chart.addSeries(LineSeries,{color:'#e4bf81',lineWidth:1,lastValueVisible:false,priceLineVisible:false});
  volume=chart.addSeries(HistogramSeries,{priceFormat:{type:'volume'},priceScaleId:'volume',lastValueVisible:false,priceLineVisible:false});
  chart.priceScale('volume').applyOptions({scaleMargins:{top:.82,bottom:0},visible:false});
 }

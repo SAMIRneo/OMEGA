@@ -1,4 +1,5 @@
 import './style.css';
+import './atelier.css';
 import './legacy/risk-core.js';
 import './charts/market-chart';
 async function start(){
