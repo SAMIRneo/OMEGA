@@ -1,7 +1,4 @@
-import './style.css';
-import './atelier.css';
-import './workspace.css';
-import './research.css';
+import './interface.css';
 import './workspace';
 import './legacy/risk-core.js';
 import './charts/market-chart';

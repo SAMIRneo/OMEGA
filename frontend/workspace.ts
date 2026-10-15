@@ -4,6 +4,11 @@ const $=(id:string)=>document.getElementById(id)!;
 const number=(n:number,digits=2)=>Number.isFinite(n)?n.toLocaleString('fr-FR',{maximumFractionDigits:digits,minimumFractionDigits:digits}):'—';
 const set=(id:string,value:string)=>{const el=$(id);if(el.textContent!==value)el.textContent=value;};
 let diagnosticsKey='',curveKey='';
+document.querySelector('a[href="#bot-controls"]')?.addEventListener('click',event=>{
+ event.preventDefault();
+ $('bot-controls').scrollIntoView({block:'center',behavior:'instant'});
+ $('bot-start').focus({preventScroll:true});
+});
 
 window.addEventListener('axiom-state',((event:CustomEvent<Snapshot>)=>{
  const s=event.detail,e=window.PaperPilot.state.evaluation??window.PaperPilot.evaluate(s),checks=diagnose(s,e,!!window.RiskCore?.exports);
