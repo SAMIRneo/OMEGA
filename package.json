@@ -12,7 +12,9 @@
     "test:browser": "node --test tests/browser.test.cjs"
   },
   "dependencies": {
-    "lightweight-charts": "5.2.1"
+    "@nktkas/hyperliquid": "0.33.3",
+    "lightweight-charts": "5.2.1",
+    "viem": "2.57.7"
   },
   "devDependencies": {
     "typescript": "7.0.2",

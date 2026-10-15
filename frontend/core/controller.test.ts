@@ -20,3 +20,11 @@ describe('Daily controller lifecycle',()=>{
  it('opens once on a new eligible candle and never reevaluates it into a second entry',async()=>{const {controller}=await import('./controller');controller.start(sample());const open=vi.fn(async()=>({ok:true}));await controller.tick(next(),open,async()=>next());await controller.tick(next(),open,async()=>next());expect(open).toHaveBeenCalledOnce();expect(controller.state.events.at(-1)?.kind).toBe('ENTRÉE');});
  it('ignores bars missed while suspended and resumes only for a subsequent close',async()=>{const {controller}=await import('./controller');controller.start(sample());controller.suspend();vi.setSystemTime(now+900000);const open=vi.fn();await controller.tick(next(),open);await controller.tick(next(),open);expect(open).not.toHaveBeenCalled();});
 });
+
+it('isolates testnet controller logs from mainnet',async()=>{
+ Object.assign(window,{BrowserAtelier:{environment:{id:'testnet'}}});
+ const saved=vi.spyOn(localStorage,'setItem');
+ const {controller}=await import('./controller');controller.stop();
+ expect(saved).toHaveBeenCalledWith('axiom-daily-events-v1-testnet',expect.any(String));
+ expect(saved).not.toHaveBeenCalledWith('axiom-daily-events-v1',expect.anything());
+});

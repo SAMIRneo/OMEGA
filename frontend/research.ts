@@ -3,7 +3,8 @@ const $=(id:string)=>document.getElementById(id)!;
 const number=(n:number|null,d=2)=>n===null||!Number.isFinite(n)?'—':n.toLocaleString('fr-FR',{maximumFractionDigits:d,minimumFractionDigits:d});
 let last:ReplayResult|null=null,running=false,worker:Worker|null=null,abort:AbortController|null=null,generation=0;
 let cached:{start:number;end:number;data:ReplayData}|null=null;
-const key='omega-research-last-v1';
+const environment=window.BrowserAtelier.environment??{id:'mainnet',api:'https://api.hyperliquid.xyz/info'};
+const key='omega-research-last-v1'+(environment.id==='testnet'?'-testnet':'');
 function text(id:string,value:string){$(id).textContent=value;}
 function setBusy(value:boolean){running=value;($('research-run') as HTMLButtonElement).disabled=value;($('research-cancel') as HTMLButtonElement).disabled=!value;for(const el of document.querySelectorAll<HTMLInputElement|HTMLSelectElement>('#research-form input,#research-form select'))el.disabled=value;($('research-export') as HTMLButtonElement).disabled=value||!last;}
 function fail(message:string){text('research-status',message);$('research-status').classList.add('negative');}
@@ -29,7 +30,7 @@ function showResult(result:ReplayResult){
  line.setAttribute('points',result.equity.map((p,i)=>`${20+i/Math.max(1,result.equity.length-1)*960},${175-(p.value-low)/range*145}`).join(' '));line.setAttribute('fill','none');line.setAttribute('stroke','currentColor');line.setAttribute('stroke-width','2');line.setAttribute('vector-effect','non-scaling-stroke');svg.replaceChildren(line);svg.setAttribute('aria-label','Équité simulée : minimum '+number(low)+', maximum '+number(high)+', finale '+number(result.equity.at(-1)!.value)+' USDC.');
 }
 async function loadSeries(tf:string,start:number,end:number,signal:AbortSignal){
- const response=await fetch('https://api.hyperliquid.xyz/info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'candleSnapshot',req:{coin:'ETH',interval:tf,startTime:start,endTime:end}}),signal});
+ const response=await fetch(environment.api,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'candleSnapshot',req:{coin:'ETH',interval:tf,startTime:start,endTime:end}}),signal});
  if(!response.ok)throw Error('Historique '+tf+' : HTTP '+response.status);const raw=await response.json();if(!Array.isArray(raw))throw Error('Réponse historique '+tf+' invalide.');return raw;
 }
 function stop(){generation++;abort?.abort();worker?.terminate();worker=null;abort=null;setBusy(false);}
@@ -52,5 +53,5 @@ $('research-form').addEventListener('submit',async event=>{
 });
 $('research-cancel').addEventListener('click',()=>{stop();text('research-status','Analyse annulée. Les derniers résultats sont conservés.');});
 $('research-form').addEventListener('change',()=>{if(last&&!running)text('research-status','Paramètres modifiés. Relance le replay : les résultats affichés correspondent encore aux hypothèses indiquées sous la courbe.');});
-$('research-export').addEventListener('click',()=>{if(!last)return;const rows=[['entry_utc','exit_utc','side','leverage','entry','exit','net_usdc','fees_usdc','planned_risk_usdc','reason'],...last.trades.map(t=>[new Date(t.openedAt).toISOString(),new Date(t.closedAt).toISOString(),t.side,t.leverage,t.entry,t.exit,t.netPnl,t.entryFee+t.exitFee,t.plannedLoss,t.reason])];const csv='\uFEFF'+rows.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\r\n'),url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='omega-recherche-'+last.options.start+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+$('research-export').addEventListener('click',()=>{if(!last)return;const rows=[['entry_utc','exit_utc','side','leverage','entry','exit','net_usdc','fees_usdc','planned_risk_usdc','reason'],...last.trades.map(t=>[new Date(t.openedAt).toISOString(),new Date(t.closedAt).toISOString(),t.side,t.leverage,t.entry,t.exit,t.netPnl,t.entryFee+t.exitFee,t.plannedLoss,t.reason])];const csv='\uFEFF'+rows.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\r\n'),url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='omega-'+environment.id+'-recherche-'+last.options.start+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
 try{const saved=JSON.parse(localStorage.getItem(key)||'null');if(saved?.result?.options&&Array.isArray(saved.result.trades)&&Array.isArray(saved.result.equity)){showResult(saved.result);const form=$('research-form') as HTMLFormElement,o=saved.result.options;(form.elements.namedItem('days') as HTMLSelectElement).value=String(Math.round((o.end-o.start)/86400000));(form.elements.namedItem('leverage') as HTMLSelectElement).value=String(o.leverageCap);(form.elements.namedItem('costs') as HTMLSelectElement).value=o.slippageBps===4?'stress':'standard';text('research-status','Dernier résultat local, enregistré le '+new Date(saved.savedAt).toLocaleString('fr-FR')+'. Relance l’analyse pour actualiser.');}}catch{}

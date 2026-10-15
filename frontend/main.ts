@@ -8,6 +8,8 @@ await import('./core/controller');
 await import('./legacy/decision-viz.js');
 await import('./legacy/ui.js');
 await import('./research');
+await import('./network');
+if(window.BrowserAtelier.environment?.id==='testnet')await import('./testnet');
 
 }
 start().catch(e=>{const alert=document.getElementById("global-alert");if(alert){alert.hidden=false;alert.textContent="Initialisation interrompue : "+String(e);}});
