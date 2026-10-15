@@ -159,6 +159,7 @@ L’aperçu a été contrôlé sur ordinateur et aux largeurs 390 et 320 px. Ces
 
 - Hyperliquid : https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint
 - TradingView Lightweight Charts : https://tradingview.github.io/lightweight-charts/docs
+- IBM Plex (Sans / Mono), SIL Open Font License 1.1 : polices auto-hébergées dans `frontend/fonts/`, servies depuis l’origine, sans CDN.
 - Vite : https://vite.dev/guide/
 - Notices et licence : `THIRD_PARTY_NOTICES.md`, `licenses/`.
 
