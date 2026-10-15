@@ -147,9 +147,14 @@ def run(port):
                     with engine.lock:
                         if engine.paper['position']:
                             raise ValueError('Position ouverte : changement du levier refusé')
-                        if not isinstance(leverage,int) or not 1<=leverage<=15:
-                            raise ValueError('Levier entier 1–15 requis')
-                        engine.config['leverage'] = leverage
+                        if 'strategy_profile' in args:
+                            if args['strategy_profile'] not in ('balanced','selective','aggressive'):
+                                raise ValueError('Profil de strategie inconnu')
+                            engine.config['strategy_profile'] = args['strategy_profile']
+                        else:
+                            if not isinstance(leverage,int) or not 1<=leverage<=15:
+                                raise ValueError('Levier entier 1-15 requis')
+                            engine.config['leverage'] = leverage
                     result = {'ok':True}
                 elif self.path == '/api/account':
                     address = args.get('address','')

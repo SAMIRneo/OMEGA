@@ -4,7 +4,7 @@ import type {Candidate,Candle,Evaluation,Indicator,RustRisk,Snapshot} from './ty
 
 export type ReplayFrame='5m'|'15m'|'1h'|'1d';
 export type ReplayData=Record<ReplayFrame,Candle[]>;
-export interface ReplayOptions {start:number;end:number;feeBps:number;slippageBps:number;spreadBps:number;leverageCap:number}
+export interface ReplayOptions {start:number;end:number;feeBps:number;slippageBps:number;spreadBps:number;leverageCap:number;strategyProfile?:import('./types').StrategyProfile}
 export interface ReplayTrade extends Candidate {openedAt:number;closedAt:number;signalTime:number;exit:number;entryFee:number;exitFee:number;grossPnl:number;netPnl:number;reason:string;ambiguous:boolean}
 export interface ReplayStats {trades:number;net:number;fees:number;winRate:number|null;profitFactor:number|null;average:number|null}
 export interface ReplayResult {options:ReplayOptions;trades:ReplayTrade[];equity:Array<{time:number;value:number}>;stats:ReplayStats;firstSegment:ReplayStats;lastSegment:ReplayStats;splitTime:number;maxDrawdown:number;maxDrawdownPercent:number;ambiguousBars:number;evaluations:number;refusals:Array<{reason:string;count:number}>;coverage:Record<ReplayFrame,number>;comparison?:{options:ReplayOptions;stats:ReplayStats;maxDrawdownPercent:number}}
@@ -36,7 +36,7 @@ export function summarize(trades:ReplayTrade[]):ReplayStats{
 /** As-of replay: decisions use only bars closed before each entry timestamp. */
 export function runReplay(input:ReplayData,options:ReplayOptions,progress?:(percent:number)=>void,evaluate:Evaluator=evaluateDaily):ReplayResult{
  const O=options;
- if(![O.start,O.end,O.feeBps,O.slippageBps,O.spreadBps,O.leverageCap].every(Number.isFinite)||O.end<=O.start||O.start%300000||O.end%300000||O.end-O.start>14*86400000||O.feeBps<0||O.feeBps>50||O.slippageBps<0||O.slippageBps>50||O.spreadBps<0||O.spreadBps>8||!Number.isInteger(O.leverageCap)||O.leverageCap<1||O.leverageCap>15)throw Error('Paramètres du replay invalides.');
+ if((O.strategyProfile!==undefined&&!['balanced','selective','aggressive'].includes(O.strategyProfile))||![O.start,O.end,O.feeBps,O.slippageBps,O.spreadBps,O.leverageCap].every(Number.isFinite)||O.end<=O.start||O.start%300000||O.end%300000||O.end-O.start>14*86400000||O.feeBps<0||O.feeBps>50||O.slippageBps<0||O.slippageBps>50||O.spreadBps<0||O.spreadBps>8||!Number.isInteger(O.leverageCap)||O.leverageCap<1||O.leverageCap>15)throw Error('Paramètres du replay invalides.');
  const data=Object.fromEntries(frames.map(tf=>[tf,validateSeries(input[tf].filter(b=>b.T<O.end),tf)])) as ReplayData;
  const timeline=data['5m'].filter(b=>b.t>=O.start&&b.T<O.end);
  if(timeline.length!==(O.end-O.start)/300000||timeline[0]?.t!==O.start||timeline.at(-1)!.T!==O.end-1)throw Error('La période demandée n’est pas entièrement couverte en 5 min.');
@@ -65,7 +65,7 @@ export function runReplay(input:ReplayData,options:ReplayOptions,progress?:(perc
    if(!position){
     const indicators:Snapshot['indicators']={},status:Snapshot['candleStatus']={};
     for(const tf of ['15m','1h','1d'] as const){while(indices[tf]<data[tf].length&&data[tf][indices[tf]].T<now)indices[tf]++;const index=indices[tf];if(cached[tf]?.index!==index)cached[tf]={index,value:features(data[tf].slice(Math.max(0,index-350),index),now) as Indicator};indicators[tf]=cached[tf]!.value;status[tf]={fetchedAt:now/1000};}
-    const snapshot:Snapshot={time:now/1000,runtime:'browser',market:{fresh:true,mid,sourceAgeSeconds:0,book:{time:now,levels:[[{px:String(bid),sz:'1000000'}],[{px:String(ask),sz:'1000000'}]]}},context:{maxLeverage:O.leverageCap,updatedAt:now/1000},limits:{leverage:O.leverageCap,max_leverage:15,max_margin:cash*.5,max_risk:500,daily_loss_limit:500,fee_bps:O.feeBps,slippage_bps:O.slippageBps,allocation_fraction:.5,daily_mode:true,max_entries_per_day:1},paper:{initial:10000,cash,equity:cash,unrealized:0,position:null,history:[],day,dailyPnl,entriesToday,lastEntryDay},indicators,candleStatus:status,candlesByTimeframe:{}};
+    const snapshot:Snapshot={time:now/1000,runtime:'browser',market:{fresh:true,mid,sourceAgeSeconds:0,book:{time:now,levels:[[{px:String(bid),sz:'1000000'}],[{px:String(ask),sz:'1000000'}]]}},context:{maxLeverage:O.leverageCap,updatedAt:now/1000},limits:{strategy_profile:O.strategyProfile??'balanced',leverage:O.leverageCap,max_leverage:15,max_margin:cash*.5,max_risk:500,daily_loss_limit:500,fee_bps:O.feeBps,slippage_bps:O.slippageBps,allocation_fraction:.5,daily_mode:true,max_entries_per_day:1},paper:{initial:10000,cash,equity:cash,unrealized:0,position:null,history:[],day,dailyPnl,entriesToday,lastEntryDay},indicators,candleStatus:status,candlesByTimeframe:{}};
     const result=evaluate(snapshot,replayRisk),candidate=result.candidate;
     if(candidate){const entryFee=candidate.entry*candidate.quantity*O.feeBps/10000;cash-=entryFee;dailyPnl-=entryFee;entriesToday++;lastEntryDay=day;position={...candidate,openedAt:now,signalTime:indicators['15m']!.lastClosedTime!,entryFee};}
     else {const reason=result.reasons[0]||'Aucune configuration';refusalCounts.set(reason,(refusalCounts.get(reason)||0)+1);}

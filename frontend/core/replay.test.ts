@@ -30,3 +30,5 @@ describe('Risk-aware ATR planning',()=>{
  it('supports short plans and refuses stale data or insufficient depth',()=>{const s=sample(),p=planAtr(s,'short',risk);expect(p.stop).toBeGreaterThan(p.entry);expect(p.target).toBeLessThan(p.entry);s.market.fresh=false;expect(()=>planAtr(s,'short',risk)).toThrow(/récent/);s.market.fresh=true;s.market.book!.levels[0][0].sz='.1';expect(()=>planAtr(s,'short',risk)).toThrow(/Aucun levier/);});
  it('does not prepare an apparently valid plan from a stale ATR or future metadata',()=>{const s=sample();s.candleStatus['15m']!.fetchedAt-=181;expect(()=>planAtr(s,'long',risk)).toThrow(/Historique ATR/);s.candleStatus['15m']!.fetchedAt=s.time;s.context.updatedAt=s.time+10;expect(()=>planAtr(s,'long',risk)).toThrow(/incohérentes/);});
 });
+
+it('passes the selected strategy profile to every replay evaluation',()=>{let calls=0;runReplay(fixture(),{...options(),strategyProfile:'aggressive'},undefined,(s)=>{calls++;expect(s.limits.strategy_profile).toBe('aggressive');return {status:'wait',candidate:null,reasons:[],day:s.paper.day,dailyBias:'test'};});expect(calls).toBe(96);});
