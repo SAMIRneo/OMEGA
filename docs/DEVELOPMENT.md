@@ -79,7 +79,7 @@ Lire STRATEGY.md, modifier la règle canonique et ses tests. Rechercher les copi
 
 ### Modifier un style
 
-`interface.css` est le point d’entrée. `layout.css` est la base structurelle en couche ; `obsidian.css` porte le thème et les priorités visuelles. Éviter d’ajouter une troisième cascade de corrections successives. Garder des classes sémantiques réutilisables et des règles responsive groupées.
+`interface.css` est le point d’entrée. `layout.css` est la base structurelle en couche ; `obsidian.css` porte le thème et les priorités visuelles. Éviter d’ajouter une troisième cascade de corrections successives. Garder des classes sémantiques réutilisables et des règles responsive groupées. Les tokens `--accent` (cyan), `--action` (ambre), `--violet`, `--green` et `--red` distinguent navigation, action, recherche et données directionnelles. Les réseaux se distinguent aussi par leur libellé ; le point coloré du sélecteur ne confirme pas la santé de la connexion.
 
 ## Toolchains optionnelles
 

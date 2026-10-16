@@ -1,12 +1,13 @@
 # État réel et reprise de travail
 
-Revue documentaire : **16 octobre 2026**. Version logicielle : `1.2.0` dans `package.json`. La numérotation des versions publiées par l’hébergement est indépendante ; la dernière publication applicative connue est la version Sites 16. Les modifications documentaires ultérieures ne nécessitent pas une nouvelle publication de l’application.
+Revue documentaire : **16 octobre 2026**. Version logicielle : `1.2.0` dans `package.json`. La numérotation des versions publiées par l’hébergement est indépendante ; la version publiée et son historique se consultent dans Sites. Les modifications documentaires seules ne nécessitent pas une nouvelle publication de l’application.
 
 ## Implémenté
 
 | Domaine | État et source |
 |---|---|
 | Terminal statique | Marché, Bot, Compte, Recherche ; Vite, DOM TS/JS et CSS |
+| UI / couleurs | Fond noir, surfaces graphite, navigation cyan, actions ambre, recherche violet ; gains/pertes verts/rouges, réseaux distingués par texte et couleur ; contrôles tactiles et focus clavier |
 | Visualisations | Graphique financier incrémental, carnet L2 3D, orbites CSS illustratives ; pas de modèle de prédiction |
 | Recherche | Replay récent en Worker, deux hypothèses de coûts, CSV |
 | Paper web | Compte local et contrôleur de clôtures avec Web Locks |
@@ -17,7 +18,7 @@ Revue documentaire : **16 octobre 2026**. Version logicielle : `1.2.0` dans `pac
 
 ## Preuves disponibles
 
-Lors de la revue du 16 octobre 2026, `npm run check` a passé : contrôle de la documentation, **95 tests Vitest + 20 tests du moteur navigateur**, builds typés web/Node et test HTTP du service dans un répertoire temporaire. Environnement : Node 24.19.0. Aucun agent exchange n’a été autorisé ni aucun ordre envoyé par ces vérifications. Un contrôle documentaire supplémentaire a passé après l’ajout de la carte des modules Python.
+Lors de la revue du 16 octobre 2026, `npm run check` a passé : contrôle de la documentation, **95 tests Vitest + 20 tests du moteur navigateur**, builds typés web/Node et test HTTP du service dans un répertoire temporaire. Environnement : Node 24.19.0. Aucun agent exchange n’a été autorisé ni aucun ordre envoyé par ces vérifications. Un contrôle documentaire supplémentaire a passé après l’ajout de la carte des modules Python. La passe UI/UX suivante a conservé ces 115 tests verts et le build web typé ; son rendu graphique reste à contrôler sur appareil.
 
 Les transports de signature/exécution des tests sont simulés. Ces résultats concernent le checkout vérifié ; ils ne constituent pas une certification durable du prochain commit.
 
