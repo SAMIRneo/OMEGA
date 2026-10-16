@@ -4,7 +4,7 @@ Terminal ETH et moteur Daily Hyperliquid, sur **testnet et mainnet**.
 
 [Site public](https://omega.kairos-labspro.chatgpt.site) · [Code source](https://github.com/SAMIRneo/OMEGA)
 
-## Version 1.1 — Obsidian / Spatial
+## Version 1.2 — Operations / Spatial
 
 Interface noire : fond `#000000`, surfaces neutres, textes contrastés, chiffres tabulaires, chandeliers vert menthe / rose et animations discrètes respectant la réduction des mouvements. Quatre onglets : **Marché, Bot, Compte, Recherche**. Le journal de simulation se trouve dans Compte. Les outils manuels et la simulation sont repliables dans Bot.
 
@@ -13,7 +13,7 @@ Le pilote exchange dispose désormais d’un **processus Node indépendant du na
 ### Rapidité et organisation
 
 - Import à la demande du graphique financier, de Recherche, du pilote local et de la signature. La visite de Bot ne charge pas le SDK de signature : il arrive à l’ouverture des outils manuels ou à l’autorisation d’un agent.
-- Module d’entrée : 18,35 Ko minifiés contre 188,70 Ko en v1.0 ; CSS : 105,76 Ko contre 150,32 Ko. Le graphique financier reste chargé dans Marché : ces chiffres ne représentent pas le total de tous les modules ni une mesure de LCP sur appareil.
+- Mesure de la v1.1 : module d’entrée 18,35 Ko minifiés contre 188,70 Ko en v1.0 ; CSS 105,76 Ko contre 150,32 Ko. En v1.2, le tableau de bord Bot est chargé séparément (7,07 Ko) ; l’entrée est de 12,43 Ko et le CSS de 123,77 Ko. Le graphique financier reste chargé dans Marché : ces chiffres ne représentent pas le total de tous les modules ni une mesure de LCP sur appareil.
 - Styles structurels regroupés dans `layout.css`, thème dans `obsidian.css`. Sélecteurs inutilisés et déclarations supplantées retirés de la cascade précédente.
 - Carnet : lignes DOM réutilisées. Horizons, position et événements sont reconstruits uniquement quand leurs données changent. Formatage numérique mutualisé.
 - `ChartBuffer` conserve les EMA et recalcule le suffixe modifié. Il détecte aussi une correction historique même si la dernière bougie n’a pas changé. Une clôture corrigée et la bougie suivante sont actualisées ensemble ; le zoom reste stable.
@@ -23,7 +23,15 @@ Le pilote exchange dispose désormais d’un **processus Node indépendant du na
 
 La projection Canvas représente **les 12 premiers niveaux de chaque côté du carnet**. Chaque barre a pour hauteur la quantité ETH de son niveau ; la hauteur est normalisée au maximum visible, et le panneau donne les prix, tailles et cumuls exacts. Elle n’invente pas de liquidité historique ni de trajectoire future. La vue n’est pas un signal de trading.
 
-Glisser pour tourner/incliner, cliquer un sommet pour sélectionner, flèches gauche/droite pour parcourir les niveaux, boutons Pause et Réinitialiser. Une seule source de données : les snapshots du flux existant, sans nouvelle connexion réseau. Module de 5,43 Ko minifiés ; animation plafonnée à 20 images/s, densité de pixels plafonnée à 1,5, arrêt hors écran/onglet masqué. Démarrage en pause avec réduction des mouvements ou faible mémoire déclarée. Les données périmées prennent une teinte neutre.
+Glisser pour tourner/incliner, survoler ou cliquer un sommet pour sélectionner, flèches gauche/droite pour parcourir les niveaux, boutons Pause et Réinitialiser. Deux mesures : taille par niveau ou cumul par côté ; trois caméras (perspective, face, dessus) et zoom borné. Le cumul reste propre à chaque côté. Le survol affiche le prix et la quantité exacte ; le maximum visible sert aussi d’échelle lorsque les tailles sont inférieures à 1 ETH. Une seule source de données : les snapshots du flux existant, sans nouvelle connexion réseau. Module de 7,98 Ko minifiés ; animation plafonnée à 20 images/s, densité de pixels plafonnée à 1,5, arrêt hors écran/onglet masqué. Démarrage en pause avec réduction des mouvements ou faible mémoire déclarée. Les données périmées prennent une teinte neutre.
+
+### Espace Bot
+
+Trois sous-onglets accessibles : **Vue d’ensemble, Réglages, Activité**, avec navigation au clavier. La vue d’ensemble rassemble un observatoire spatial des horizons (1 jour, 1 heure, 15 min), un panneau de connexion/exécution, quatre instruments de mandat et une chaîne de décision. Les réglages, ordres manuels et simulations restent dans le sous-onglet Réglages ; les identifiants et commandes de signature sont conservés.
+
+Les orbites sont des éléments CSS en perspective. Les marqueurs reprennent le RSI observé lorsqu’il est disponible ; les teintes et l’inspecteur indiquent la tendance propre à chaque horizon. Les valeurs anciennes/absentes restent neutres. La géométrie est illustrative et ne constitue pas une probabilité, un réseau neuronal ou l’état du pilote exchange. Animation à la demande, suspendue hors écran, page masquée ou préférence de réduction des mouvements.
+
+Le panneau de commande et Activité utilisent uniquement l’état reçu du service local. Une perte de connexion ne transforme pas un dernier état actif en confirmation d’arrêt. Les événements non confirmés ne sont pas affichés comme un journal exchange courant. Le diagnostic navigateur et le statut d’exécution restent explicitement distincts. Le budget de 500 USDC et le mandat d’une entrée sont des plafonds de conception, pas des consommations mesurées.
 
 ## Trois modes distincts
 
@@ -109,6 +117,7 @@ La simulation web conserve les clés historiques `axiom-*` pour préserver les d
 | `frontend/shared/` | Imports différés, formatage et distribution des snapshots |
 | `frontend/visuals/` | Modèle de profondeur et scène 3D Canvas |
 | `frontend/exchange.ts` | Exécution manuelle wallet, testnet/mainnet |
+| `frontend/bot-dashboard.ts`, `frontend/core/bot-view.ts` | Tableau de bord, lectures des horizons et états visuels du service |
 | `frontend/runner-ui.ts` | Connexion locale, approbation agent et commandes du service |
 | `frontend/obsidian.css` | Direction artistique noire et responsive |
 | `runner/engine.ts` | Évaluation et gestion des ordres automatiques |
@@ -143,7 +152,7 @@ python -m unittest discover -s tests -v
 cargo test --manifest-path rust-core/Cargo.toml
 ```
 
-109 tests automatisés passent dans cette version (89 Vitest + 20 tests du moteur navigateur), ainsi que le build typé du site et du service. Les nouveaux tests couvrent le tampon de courbes, les corrections historiques, les imports différés, le diagnostic/journal et les données/géométries de la vue de profondeur. Aucun navigateur de vérification visuelle n’était disponible dans cette session.
+115 tests automatisés passent dans cette version (95 Vitest + 20 tests du moteur navigateur), ainsi que le build typé du site et du service. Les nouveaux tests couvrent le tampon de courbes, les corrections historiques, les imports différés, le diagnostic/journal, la navigation et les états du tableau de bord Bot, les horizons anciens et les données/géométries de la vue de profondeur. Aucun navigateur de vérification visuelle n’était disponible dans cette session.
 
 Tests du moteur : consentement mainnet, agent expiré, isolation des réseaux, quota exchange et persistant, réservation avant envoi, réponse incertaine, arrêt pendant armement/envoi, données anciennes, ratio net, allocation, gestion reduce-only et position modifiée hors du bot. Le test HTTP lance un service temporaire sans autorisation exchange : session, Host/Origin, rotation de clé, confidentialité et séparation des réseaux.
 

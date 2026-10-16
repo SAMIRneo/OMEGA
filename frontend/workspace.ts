@@ -27,13 +27,13 @@ window.addEventListener('axiom-state',((event:CustomEvent<Snapshot>)=>{
  set('next-close-time',new Date(next*1000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'})+' UTC');
  const key=JSON.stringify(checks);
  if(!$('view-pilot').hidden&&key!==diagnosticsKey){diagnosticsKey=key;const rows=checks.map((c,i)=>{const row=document.createElement('li');row.className='decision-step '+c.state;const index=document.createElement('span');index.className='step-index';index.textContent=String(i+1).padStart(2,'0');const content=document.createElement('div'),label=document.createElement('strong'),detail=document.createElement('p'),status=document.createElement('span');label.textContent=c.label;detail.textContent=c.detail;status.className='step-status';status.textContent=c.state==='pass'?'Validé':c.state==='blocked'?'Bloqué':'En attente';content.append(label,detail);row.append(index,content,status);return row;});$('decision-checklist').replaceChildren(...rows);}
+ set('wallet-connection',s.account?'Compte consulté':'Aucun compte relié');
+ set('wallet-read-time',s.accountTime?new Date(s.accountTime*1000).toLocaleTimeString('fr-FR'):'En attente de ton adresse publique');
  if(!$('view-journal').hidden){
  const h=original.paper.history,net=h.reduce((sum,x)=>sum+Number(x.netPnl),0),grossGains=h.reduce((sum,x)=>sum+Math.max(0,Number(x.netPnl)),0),grossLosses=h.reduce((sum,x)=>sum+Math.min(0,Number(x.netPnl)),0);
  set('journal-net',number(net)+' USDC');set('journal-average',h.length?number(net/h.length)+' USDC':'—');
  set('journal-gains',number(grossGains)+' USDC');set('journal-losses',number(grossLosses)+' USDC');
  set('journal-observation',h.length?h.length+' position'+(h.length>1?'s':'')+' clôturée'+(h.length>1?'s':'')+' sur cet appareil. Données descriptives.':'Aucune position clôturée. La courbe apparaîtra au fil des simulations.');
- set('wallet-connection',s.account?'Compte consulté':'Aucun compte relié');
- set('wallet-read-time',s.accountTime?new Date(s.accountTime*1000).toLocaleTimeString('fr-FR'):'En attente de ton adresse publique');
  const keyCurve=JSON.stringify(h.map(x=>x.netPnl))+':'+original.paper.initial;
  if(keyCurve!==curveKey){curveKey=keyCurve;const ns='http://www.w3.org/2000/svg';let equity=original.paper.initial;const points=[equity,...h.map(x=>(equity+=Number(x.netPnl)))],low=Math.min(...points),high=Math.max(...points),range=high-low||1;
   const svg=$('equity-curve'),line=document.createElementNS(ns,'polyline');line.setAttribute('points',points.map((p,i)=>`${24+i/Math.max(1,points.length-1)*752},${170-(p-low)/range*130}`).join(' '));line.setAttribute('fill','none');line.setAttribute('stroke','currentColor');line.setAttribute('stroke-width','3');line.setAttribute('vector-effect','non-scaling-stroke');

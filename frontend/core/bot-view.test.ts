@@ -1,0 +1,6 @@
+import {it,expect} from 'vitest';
+import {sample} from './test-fixtures';
+import {horizonReading,executionLabel} from './bot-view';
+it('derives each horizon from its own rule and refuses old or failed data',()=>{const s=sample();expect(horizonReading(s,'1d')).toMatchObject({fresh:true,trend:'bullish'});expect(horizonReading(s,'1h').trend).toBe('bullish');expect(horizonReading(s,'15m')).toMatchObject({trend:'bullish',rsi:60});s.candleStatus['15m']!.error='offline';expect(horizonReading(s,'15m')).toMatchObject({fresh:false,trend:'neutral',rsi:null});s.candleStatus['1d']!.fetchedAt=s.time-2000;expect(horizonReading(s,'1d').fresh).toBe(false);});
+it('never presents an unconfirmed connection as an active exchange pilot',()=>{expect(executionLabel({connected:false,active:true}).label).toBe('NON RELIÉ');expect(executionLabel({connected:true,active:true}).label).toBe('PILOTE ACTIF');expect(executionLabel({connected:true,approved:true,active:false}).label).toBe('À L’ARRÊT');});
+it('prioritizes a pending send and distinguishes position monitoring from new entries',()=>{expect(executionLabel({connected:true,pending:true,active:true}).tone).toBe('blocked');expect(executionLabel({connected:true,owned:true,active:false}).label).toBe('SURVEILLANCE');});
