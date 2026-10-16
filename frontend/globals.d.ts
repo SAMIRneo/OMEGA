@@ -3,6 +3,7 @@ import type {controller} from './core/controller';
 declare global {interface Window {
  RiskCore:{exports:RustRisk|null;ready:Promise<RustRisk|null>;error:Error|null};
  PaperPilot:typeof controller;
+ OmegaRunnerGate?:()=>Promise<void>;
  TestnetGate?:()=>Promise<void>;
  ExchangeSnapshot?:(s:Snapshot)=>Snapshot|null;
  BrowserAtelier:{environment?:{id:string;label?:string;api:string;ws?:string};request(path:string,options?:{method?:string;body?:string}):Promise<Snapshot|unknown>;setAddress(value:string,remember?:boolean):Promise<void>;disconnect():void|Promise<unknown>};

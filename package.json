@@ -1,6 +1,6 @@
 {
   "name": "omega-eth-intelligence",
-  "version": "0.9.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "packageManager": "npm@11.9.0",
@@ -9,7 +9,9 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:browser": "node --test tests/browser.test.cjs"
+    "test:browser": "node --test tests/browser.test.cjs",
+    "build:bot": "tsc --project tsconfig.runner.json && vite build --config vite.runner.config.ts",
+    "bot": "npm run build:bot && node runner-dist/server.mjs"
   },
   "dependencies": {
     "@nktkas/hyperliquid": "0.33.3",

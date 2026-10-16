@@ -8,7 +8,7 @@ else{
  select.value=environment.id;select.disabled=false;
  document.documentElement.dataset.network=environment.id;
  document.querySelectorAll<HTMLElement>('[data-network-label]').forEach(el=>el.textContent=name);
- document.getElementById('network-description')!.textContent=testnet?'Fonds de test · ordres sur le véritable exchange testnet.':'Fonds réels · chaque ordre exige votre signature.';
+ document.getElementById('network-description')!.textContent=testnet?'Fonds de test · ordres sur le véritable exchange testnet.':'Fonds réels · wallet ou agent API autorisé.';
  document.querySelectorAll<HTMLElement>('[data-account-kind]').forEach(el=>el.textContent=testnet?'Compte testnet':'Compte réel');
  document.getElementById('wallet-source-note')!.textContent='L’adresse est envoyée uniquement à l’API '+name+' Hyperliquid. Actualisation toutes les 30 s quand la page est visible.';
  select.addEventListener('change',async()=>{
@@ -17,6 +17,7 @@ else{
   try{
    // Read storage under the same lock as entries: no network change across an in-flight trade.
    if(!navigator.locks)throw Error('Changement de réseau indisponible sur ce navigateur.');
+   await window.OmegaRunnerGate?.();
    await window.TestnetGate?.();
    window.PaperPilot.stop();
    await api.request('/api/network',{method:'POST',body:JSON.stringify({network:next})});

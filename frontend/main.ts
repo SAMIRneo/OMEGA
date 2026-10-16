@@ -9,6 +9,7 @@ await import('./core/controller');
 await import('./legacy/ui.js');
 await import('./research');
 await import('./network');
+await import('./runner-ui');
 // Load wallet signing only when its workspace is visited.
 if(window.BrowserAtelier.environment){
  let exchangeLoading:Promise<unknown>|null=null;
