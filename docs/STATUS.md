@@ -1,11 +1,54 @@
-> Note : documentation technique antérieure à la refonte ETH v2. Pour l’interface actuelle et ses limites, consulter README.md et docs/ETH_V2.md.
+# État réel et reprise de travail
 
-# État au 3 octobre 2026
+Revue documentaire : **16 octobre 2026**. Version logicielle : `1.2.0` dans `package.json`. La numérotation des versions publiées par l’hébergement est indépendante ; la dernière publication applicative connue est la version Sites 16. Les modifications documentaires ultérieures ne nécessitent pas une nouvelle publication de l’application.
 
-Version fonctionnelle locale : Python, interface responsive sans CDN, collecte ETH WebSocket, historique REST, indicateurs, profils approximés, portefeuille public, simulation 50 $ / ×40, test historique exploratoire et passerelle HTTP/MCP stdio.
+## Implémenté
 
-Vérifications réalisées : huit tests unitaires (coûts/persistance, fraîcheur locale et source, NaN/risque, stop, limite quotidienne, indicateurs sur bougies closes, marché plat), syntaxe JavaScript, connexion mainnet et lecture de compte, protocole MCP initialisation/liste/lecture, refus origine externe et mutation non authentifiée, refus d'un ordre incohérent depuis l'interface. Aucun ordre réel ni trade paper n'a été ouvert lors des essais de l'application finale ; les tests de transactions ont utilisé des fichiers temporaires isolés.
+| Domaine | État et source |
+|---|---|
+| Terminal statique | Marché, Bot, Compte, Recherche ; Vite, DOM TS/JS et CSS |
+| Visualisations | Graphique financier incrémental, carnet L2 3D, orbites CSS illustratives ; pas de modèle de prédiction |
+| Recherche | Replay récent en Worker, deux hypothèses de coûts, CSV |
+| Paper web | Compte local et contrôleur de clôtures avec Web Locks |
+| Exchange manuel | Wallet EIP-1193, testnet/mainnet, lot IOC + SL/TP et rapprochement |
+| Automatisation Node | Agent dédié, session locale, armement, nouvelle clôture, réservation durable et surveillance |
+| Python/MCP | Compatibilité recherche/paper ; aucune mutation exchange réelle |
+| Documentation | README court, AGENTS, cinq guides actifs, archives identifiées et contrôle automatisé des liens/commandes |
 
-Affichage contrôlé en viewport étroit et desktop. Aucun message d'erreur console au dernier contrôle. Décalage observé source/horloge locale ~8–11 s : à résoudre/mesurer avant toute prétention de faible latence. Seuil de fraîcheur source configurable 15 s, réception locale 5 s.
+## Preuves disponibles
 
-Non terminé au sens d'un système professionnel de production : données économiques externes, source de volume réellement exécuté par prix sur historique long, validation des stratégies hors échantillon, infrastructure HFT, modèle IA intégré et compatibilité de l'installation Hermes spécifique. Aucun accès trading réel, aucune clé de signature et aucune décision autonome sur fonds réels.
+Lors de la revue du 16 octobre 2026, `npm run check` a passé : contrôle de la documentation, **95 tests Vitest + 20 tests du moteur navigateur**, builds typés web/Node et test HTTP du service dans un répertoire temporaire. Environnement : Node 24.19.0. Aucun agent exchange n’a été autorisé ni aucun ordre envoyé par ces vérifications. Un contrôle documentaire supplémentaire a passé après l’ajout de la carte des modules Python.
+
+Les transports de signature/exécution des tests sont simulés. Ces résultats concernent le checkout vérifié ; ils ne constituent pas une certification durable du prochain commit.
+
+Des lectures L2 publiques ETH ont répondu HTTP 200 sur testnet et mainnet le 16 octobre 2026. Cela prouve l’accès aux données publiques à cet instant, pas une connexion à un portefeuille financé.
+
+Les tests Python/Rust demandent des toolchains séparées ; leur réussite n’est pas déduite de `npm run check`. Les nombres de tests peuvent évoluer : consulter la sortie actuelle plutôt que maintenir un nombre comme contrat logiciel.
+
+## Non validé / non livré
+
+- Aucun ordre signé depuis un wallet financé n’a validé cette version de bout en bout.
+- Aucun service cloud permanent n’est déployé ; le processus local dépend de l’ordinateur et de son état de veille.
+- Rendu final et fluidité Safari/iPhone physique non contrôlés dans cette session.
+- Aucune rentabilité, robustesse hors échantillon ou calibration de probabilité démontrée.
+- Historique profond et versionné avec liquidité, funding, liquidations et coûts de compte réels non intégré au replay.
+- Pas de quota transactionnel global commun à tous les logiciels/machines du même compte.
+- Clé d’agent locale sur disque, permissions système mais pas de coffre chiffré.
+- Attribution de propriété de position limitée face à des interventions externes ; les positions nettes peuvent être ambiguës.
+- Le frontend et le runtime comportent encore des ponts globaux et du JavaScript historique actif. L’étiquette « legacy » n’autorise pas leur suppression.
+
+## Prochaines tâches proposées
+
+| Priorité | Travail concret | Critère de fin |
+|---|---|---|
+| 1 | QA visuelle desktop/iPhone des sous-onglets, formulaires et scènes | Parcours, tailles, focus, gestes et réduction des mouvements réellement observés |
+| 2 | Validation end-to-end testnet dans un environnement dédié | Approbation, ordre, fill partiel/refus, protections et rapprochement constatés ; reçus sans secrets |
+| 3 | Durcir les transitions/reprises du service | Scénarios de crash, fin de jour, révocation et état incertain documentés/testés |
+| 4 | Améliorer l’infrastructure de recherche | Historique versionné, coûts/liquidité explicités, séparation chronologique indépendante |
+| 5 | Réduire progressivement les ponts globaux | Contrats typés et tests préservés ; migration ciblée, sans réécriture totale incidente |
+
+Ces lignes décrivent du travail restant, pas des capacités déjà acquises. Une validation du compte de l’utilisateur relève de son exploitation avec son wallet, pas d’un effet de bord d’une contribution au code.
+
+## Pour reprendre immédiatement
+
+Lire AGENTS → ARCHITECTURE → DEVELOPMENT, lancer `npm ci` si nécessaire puis `npm run check`. Choisir ensuite une tâche de portée bornée. Pour comprendre une décision, consulter STRATEGY et la source ; pour une panne de service, OPERATIONS. Ne pas utiliser les archives comme contrat actuel.

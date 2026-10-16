@@ -1,3 +1,5 @@
+> **ARCHIVE HISTORIQUE — ne décrit pas la version actuelle.** Lire la [documentation active](../README.md). Les anciens seuils, chemins, commandes et capacités ci-dessous ne sont pas des instructions de travail.
+
 # ETH Atelier v2 — 14 octobre 2026
 
 Refonte du terminal en quatre espaces : Terminal, Pilotage, Portefeuille, Journal. La source principale du frontend public se trouve dans `public/`. `web/` partage HTML/CSS/contrôleur/UI, mais utilise `local-adapter.js` pour parler au serveur Python.

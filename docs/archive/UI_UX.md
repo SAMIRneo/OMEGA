@@ -1,3 +1,5 @@
+> **ARCHIVE HISTORIQUE — ne décrit pas la version actuelle.** Lire la [documentation active](../README.md). Les anciens seuils, chemins, commandes et capacités ci-dessous ne sont pas des instructions de travail.
+
 > Note : documentation technique antérieure à la refonte ETH v2. Pour l’interface actuelle et ses limites, consulter README.md et docs/ETH_V2.md.
 
 # Interface et connexions — version 0.3
