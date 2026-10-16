@@ -8,6 +8,7 @@ Revue documentaire : **16 octobre 2026**. Version logicielle : `1.2.0` dans `pac
 |---|---|
 | Terminal statique | Marché, Bot, Compte, Recherche ; Vite, DOM TS/JS et CSS |
 | Connexion wallet | Parcours Bot visible, MetaMask depuis en-tête/Compte, lecture partagée, choix réseau gardé, erreurs et guide local ; autorisation et armement séparés |
+| Hallmark / Bot | Première passe ciblée Workbench : colonne compte, espace de commande, polices locales dérivées d’IBM Plex, tokens partagés et progression native après lecture ; fonctions de trading conservées |
 | UI / couleurs | Fond noir, surfaces graphite, navigation cyan, actions ambre, recherche violet ; gains/pertes verts/rouges, réseaux distingués par texte et couleur ; contrôles tactiles et focus clavier |
 | Visualisations | Graphique financier incrémental, carnet L2 3D, orbites CSS illustratives ; pas de modèle de prédiction |
 | Recherche | Replay récent en Worker, deux hypothèses de coûts, CSV |
