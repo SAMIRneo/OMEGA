@@ -1,169 +1,89 @@
 # OMEGA — ETH Intelligence
 
-Terminal ETH et moteur Daily Hyperliquid, sur **testnet et mainnet**.
+Un terminal ETH/Hyperliquid, une stratégie Daily et un pilote local à signature déléguée. Interface sombre, graphique financier, carnet 3D, recherche historique et suivi du compte.
 
-[Site public](https://omega.kairos-labspro.chatgpt.site) · [Code source](https://github.com/SAMIRneo/OMEGA)
+**[Ouvrir OMEGA](https://omega.kairos-labspro.chatgpt.site) · [Dépôt GitHub](https://github.com/SAMIRneo/OMEGA)**
 
-## Version 1.2 — Operations / Spatial
+Le site public est statique. Il observe le marché et permet la simulation ou la signature manuelle. L’automatisation continue demande le service Node sur un ordinateur actif et un agent autorisé par le wallet. Aucun moteur cloud permanent ni modèle IA entraîné n’est déployé. La présence d’un compte financé ou d’un pilote actif n’est jamais déduite du seul chargement de la page.
 
-Interface noire : fond `#000000`, surfaces neutres, textes contrastés, chiffres tabulaires, chandeliers vert menthe / rose et animations discrètes respectant la réduction des mouvements. Quatre onglets : **Marché, Bot, Compte, Recherche**. Le journal de simulation se trouve dans Compte. Les outils manuels et la simulation sont repliables dans Bot.
+## Démarrer
 
-Le pilote exchange dispose désormais d’un **processus Node indépendant du navigateur**. Il peut évaluer les signaux et signer automatiquement avec un agent API autorisé. Le site public reste un hébergement statique : il ne contient pas de clé ni de processus de trading permanent. Le panneau indique « Non connecté » tant qu’aucun service n’est relié. Il ne simule pas une connexion à un portefeuille.
-
-### Rapidité et organisation
-
-- Import à la demande du graphique financier, de Recherche, du pilote local et de la signature. La visite de Bot ne charge pas le SDK de signature : il arrive à l’ouverture des outils manuels ou à l’autorisation d’un agent.
-- Mesure de la v1.1 : module d’entrée 18,35 Ko minifiés contre 188,70 Ko en v1.0 ; CSS 105,76 Ko contre 150,32 Ko. En v1.2, le tableau de bord Bot est chargé séparément (7,07 Ko) ; l’entrée est de 12,43 Ko et le CSS de 123,77 Ko. Le graphique financier reste chargé dans Marché : ces chiffres ne représentent pas le total de tous les modules ni une mesure de LCP sur appareil.
-- Styles structurels regroupés dans `layout.css`, thème dans `obsidian.css`. Sélecteurs inutilisés et déclarations supplantées retirés de la cascade précédente.
-- Carnet : lignes DOM réutilisées. Horizons, position et événements sont reconstruits uniquement quand leurs données changent. Formatage numérique mutualisé.
-- `ChartBuffer` conserve les EMA et recalcule le suffixe modifié. Il détecte aussi une correction historique même si la dernière bougie n’a pas changé. Une clôture corrigée et la bougie suivante sont actualisées ensemble ; le zoom reste stable.
-- Marché : graphique et carnet en première ligne, liquidité spatiale et flux en seconde, indicateurs regroupés. Bot : diagnostic et stratégie côte à côte sur écran large, empilés sur mobile. Navigation persistante à quatre entrées sur mobile.
-
-### Vue de liquidité en 3D
-
-La projection Canvas représente **les 12 premiers niveaux de chaque côté du carnet**. Chaque barre a pour hauteur la quantité ETH de son niveau ; la hauteur est normalisée au maximum visible, et le panneau donne les prix, tailles et cumuls exacts. Elle n’invente pas de liquidité historique ni de trajectoire future. La vue n’est pas un signal de trading.
-
-Glisser pour tourner/incliner, survoler ou cliquer un sommet pour sélectionner, flèches gauche/droite pour parcourir les niveaux, boutons Pause et Réinitialiser. Deux mesures : taille par niveau ou cumul par côté ; trois caméras (perspective, face, dessus) et zoom borné. Le cumul reste propre à chaque côté. Le survol affiche le prix et la quantité exacte ; le maximum visible sert aussi d’échelle lorsque les tailles sont inférieures à 1 ETH. Une seule source de données : les snapshots du flux existant, sans nouvelle connexion réseau. Module de 7,98 Ko minifiés ; animation plafonnée à 20 images/s, densité de pixels plafonnée à 1,5, arrêt hors écran/onglet masqué. Démarrage en pause avec réduction des mouvements ou faible mémoire déclarée. Les données périmées prennent une teinte neutre.
-
-### Espace Bot
-
-Trois sous-onglets accessibles : **Vue d’ensemble, Réglages, Activité**, avec navigation au clavier. La vue d’ensemble rassemble un observatoire spatial des horizons (1 jour, 1 heure, 15 min), un panneau de connexion/exécution, quatre instruments de mandat et une chaîne de décision. Les réglages, ordres manuels et simulations restent dans le sous-onglet Réglages ; les identifiants et commandes de signature sont conservés.
-
-Les orbites sont des éléments CSS en perspective. Les marqueurs reprennent le RSI observé lorsqu’il est disponible ; les teintes et l’inspecteur indiquent la tendance propre à chaque horizon. Les valeurs anciennes/absentes restent neutres. La géométrie est illustrative et ne constitue pas une probabilité, un réseau neuronal ou l’état du pilote exchange. Animation à la demande, suspendue hors écran, page masquée ou préférence de réduction des mouvements.
-
-Le panneau de commande et Activité utilisent uniquement l’état reçu du service local. Une perte de connexion ne transforme pas un dernier état actif en confirmation d’arrêt. Les événements non confirmés ne sont pas affichés comme un journal exchange courant. Le diagnostic navigateur et le statut d’exécution restent explicitement distincts. Le budget de 500 USDC et le mandat d’une entrée sont des plafonds de conception, pas des consommations mesurées.
-
-## Trois modes distincts
-
-| Mode | Exécution | Conditions |
-|---|---|---|
-| Simulation web | Compte fictif, localStorage | Onglet visible ; arrêt/suspension du navigateur possible |
-| Exchange manuel | Vrais ordres sur le réseau choisi | Wallet EIP-1193, signature du levier puis de l’ordre ; confirmation mainnet par entrée |
-| Pilote permanent | Ordres automatiques testnet ou mainnet | Service Node actif, compte financé, agent autorisé et armement explicite |
-
-Les fonds testnet, les fonds mainnet et les 10 000 USDC fictifs sont distincts. Le mot « automatique » ne signifie pas qu’un bot est déjà armé sur votre compte. Aucune autorisation wallet n’est créée par la publication du site. Aucun retrait ou transfert n’est implémenté.
-
-## Installer et lancer le pilote permanent
-
-Node.js 22.12+ (vérifié avec Node 24). Rust et Python ne sont pas nécessaires pour ce mode ; le noyau WASM est versionné.
+Depuis la racine du dépôt, avec Node.js **22.12+** ; Node 24 a été utilisé pour les vérifications. Utiliser le gestionnaire npm déclaré par `package.json` et conserver `package-lock.json`.
 
 ```sh
 npm ci
+npm run dev
+```
+
+Ouvrir l’adresse affichée par Vite. Ce mode sert au développement du terminal et à la simulation navigateur.
+
+Pour utiliser le service permanent :
+
+```sh
 npm run build
 npm run bot
 ```
 
-Ouvrir **http://127.0.0.1:8766/#pilot** sur le même ordinateur avec MetaMask, Rabby ou un autre wallet EIP-1193 injecté.
+Ouvrir **http://127.0.0.1:8766/#pilot**. Le service démarre désarmé. Dans Bot, choisir le réseau, autoriser l’agent avec le wallet, puis démarrer le pilote. Mainnet comporte une autorisation explicite de fonds réels. Les modalités sont dans le [guide d’exploitation](docs/OPERATIONS.md).
 
-1. Choisir Testnet ou Mainnet dans OMEGA.
-2. Cliquer **Autoriser l’agent API**. Le service génère une nouvelle clé dédiée au réseau, conservée uniquement sur l’ordinateur. Le wallet signe `approveAgent` pour cette adresse, pour 24 h.
-3. Régler le profil Daily et le plafond de levier. Le service relit ces réglages au démarrage, puis les garde jusqu’au prochain armement.
-4. Sur Mainnet, cocher l’autorisation explicite de trading automatique avec fonds réels.
-5. Cliquer **Démarrer le bot**. Il attend une nouvelle clôture 15 min ; aucune ancienne opportunité n’est rattrapée.
-6. **Arrêter les entrées** désarme les nouvelles entrées ; les protections exchange et la surveillance des positions attribuées au bot continuent tant que le service tourne.
+## Trois modes, trois responsabilités
 
-Fermer l’onglet ne coupe pas ce processus. Fermer le terminal, éteindre l’ordinateur ou le mettre en veille arrête son travail ; les ordres SL/TP déjà acceptés restent côté Hyperliquid. Le service repart **désarmé après redémarrage** et reprend la surveillance d’une position dont il avait enregistré la propriété. Aucun service cloud 24 h/24 n’est déployé par cette version. Le site public ne contacte pas silencieusement votre localhost : ouvrir l’interface locale est nécessaire.
+| Mode | Où il fonctionne | Conditions |
+|---|---|---|
+| Simulation | Navigateur, capital fictif de référence 10 000 USDC | Onglet visible ; journal propre à l’appareil et à l’origine |
+| Exchange manuel | Navigateur + wallet, testnet/mainnet | Compte exchange, signature du levier puis du lot d’ordres |
+| Pilote automatique | Service Node local, agent API, testnet/mainnet | Compte financé, agent autorisé, armement explicite, processus actif |
 
-L’autorisation de l’agent est propre au réseau et au compte. Chaque nouvelle préparation génère une nouvelle clé ; un agent expiré/révoqué n’est pas recyclé. L’agent peut être révoqué depuis Hyperliquid. Ne jamais saisir la clé privée du wallet principal dans OMEGA.
+Les fonds testnet, le solde mainnet et le capital paper sont distincts. Fermer la page ne coupe pas le service Node ; arrêter le processus ou mettre l’ordinateur en veille interrompt sa surveillance. Les SL/TP déjà acceptés restent sur Hyperliquid. Aucun retrait/transfert n’est implémenté.
 
-## Règles du pilote automatique
+## Interface
 
-- ETH perpétuel uniquement ; profil Sélectif, Équilibré ou Offensif.
-- Contexte daily, tendance 1 h et déclenchement 15 min sur bougies clôturées.
-- Au plus **une tentative d’entrée par jour UTC dans cette installation**, également bloquée si les fills exchange montrent une autre entrée ETH ce jour.
-- Allocation maximale : 50 % de l’équité du compte, quantifiée selon ETH et le prix limite IOC. Le levier baisse par entiers plutôt que d’utiliser une fraction de marge arbitraire.
-- Levier isolé entre ×1 et ×15, sous les plafonds utilisateur et exchange.
-- Risque prévu automatique ≤ 450 USDC, réserve de 10 % sous le plafond 500 USDC. Ratio gain/risque net ≥ 1,5 ; frais et slippage hypothétiques.
-- Stop 1,5 ATR, cible 3 ATR. Entrée IOC bornée à 10 bps ; SL/TP reduce-only placés sur Hyperliquid, avec identifiants client distincts.
-- Pas d’entrée après 23:30 UTC. Clôture reduce-only visée dès 23:55 UTC au prochain contrôle frais ; une position du jour précédent est également visée à la reprise.
-- Limite de pertes quotidiennes ETH réalisées/frais : 500 USDC. Le funding n’entre pas dans ce calcul.
-- Refus si une position ou un ordre ETH existe avant une nouvelle entrée, si les historiques sont troués, si le carnet est ancien/croisé/malformé, si les données sont incomplètes ou si l’agent est expiré/révoqué.
-- Les barrières Daily de spread, profondeur et distance au signal sont réutilisées. Le plan final recontrôle coûts, profondeur, marge et budget au prix IOC.
+- **Marché** : graphique TradingView Lightweight Charts, EMA, volume, carnet L2, profondeur 3D et horizons.
+- **Bot** : Vue d’ensemble, Réglages et Activité. Diagnostic navigateur et état du service affichés séparément.
+- **Compte** : positions, ordres et exécutions ; journal de simulation et export CSV.
+- **Recherche** : replay récent 7/14 jours dans un Worker, coûts standard/renforcés, courbe et motifs de refus.
 
-Le service utilise **le même `evaluateDaily`, les mêmes indicateurs et le même noyau de risque Rust/WASM que le navigateur**. Après le réglage du levier, il relit le compte, la liquidité, les fills et le signal avant d’envoyer l’entrée. Un signal vieux de plus de 60 s n’est pas exécuté. Un jour peut rester sans trade.
+Les orbites sont illustratives. Le carnet 3D utilise les niveaux visibles, avec hauteur normalisée et valeurs exactes à l’inspection. Ces visuels ne mesurent pas une probabilité de gain.
 
-La réservation du quota et du cloid est écrite sur disque **avant** l’envoi. Une réponse incertaine désarme les entrées, conserve l’envoi en attente et ne provoque aucune répétition automatique. **Vérifier un envoi** rapproche son cloid et ses fills. Une entrée remplie dont les protections sont refusées reste surveillée ; le service tente une clôture reduce-only si les protections attribuées au bot manquent. Une modification externe de taille/sens suspend sa gestion pour éviter de traiter une position agrandie manuellement comme appartenant au bot. Utiliser un compte dédié : le bot ne peut pas reconnaître toutes les interventions externes sur une position nette ETH.
+## Mandat Daily
 
-Ces limites ne garantissent pas une perte maximale : gap, liquidation, funding, panne, illiquidité et refus exchange peuvent produire une perte supérieure. Le moteur n’est pas un modèle IA entraîné et aucune rentabilité n’est établie.
+ETH perpétuel ; contexte 1 jour, tendance 1 heure, déclenchement 15 minutes. Au plus une tentative d’entrée par jour UTC pour le service, levier isolé ≤ ×15, allocation maximale de 50 % de l’équité. Plafond de perte **prévue** 500 USDC, budget automatique 450 USDC, stop 1,5 ATR et cible 3 ATR. Une journée peut rester sans entrée.
 
-## Connexion et sécurité locale
+Les détails et différences entre les trois modes sont dans [STRATEGY.md](docs/STRATEGY.md). Ces budgets ne garantissent pas la perte maximale en cas de gap, panne ou liquidation. Aucune rentabilité n’est établie ; les tests logiciels ne constituent pas une validation de performance.
 
-- Endpoints fixés : `api.hyperliquid.xyz` / `api.hyperliquid-testnet.xyz`, REST `/info` et `/exchange`. Le navigateur utilise aussi les WebSockets du réseau choisi.
-- SDK `@nktkas/hyperliquid` et viem ; signatures avec source réseau fixée. Aucun endpoint utilisateur arbitraire pour signer.
-- Le serveur écoute seulement sur **127.0.0.1:8766**, refuse un autre Host/Origin et les requêtes navigateur cross-site ; aucun CORS. Session aléatoire renouvelée à chaque lancement, requise pour lire et modifier le moteur.
-- Clés et état dans `.omega-runtime/`, ignoré par Git. Répertoire 0700 et fichiers 0600 sur les systèmes POSIX ; protéger l’accès au compte système sur Windows. La clé d’agent n’est jamais retournée par l’API ni stockée dans localStorage. Ce fichier est un secret local, pas un coffre chiffré.
-- Un verrou de processus empêche deux services de partager les mêmes clés et nonces sur cette installation. Compteurs de nonce, réservations et journal sont persistés avec écriture temporaire, synchronisation disque et renommage.
-- Réseaux séparés : clé, propriétaire, nonce, quota et journal. Une clé par processus ; ne pas copier le répertoire runtime sur plusieurs machines actives.
-- Polling du service toutes les 10 s, requêtes sérialisées par moteur, timeout REST de 12 s, temporisation croissante sur erreur. Les bougies sont mises en cache jusqu’à 60 s, avec invalidation au changement de période. Une coupure bloque les entrées ; les bougies de l’absence ne sont pas rattrapées.
-- API locale `/api/live/{session,status,configure,verify,arm,stop,reconcile}`. Toutes les mutations demandent le jeton de session, y compris l’armement. Mainnet exige en plus le consentement spécifique.
+## Reprendre avec un autre agent
 
-Le quota durable est propre à cette installation ; les fills du jour ajoutent un contrôle exchange. Plusieurs logiciels/machines peuvent encore entrer simultanément sur le même compte. Aucune garantie de quota global interlogiciels n’est revendiquée.
+Donner à l’agent **le dépôt complet**, puis lui demander de commencer par [AGENTS.md](AGENTS.md). Le dépôt contient le contexte de travail ; il n’a pas besoin des conversations précédentes. Les identités, fonds et autorisations personnels restent à fournir par leur propriétaire au moment de l’exploitation.
 
-## Interface et recherche
-
-- **Marché** : chandeliers/courbe TradingView Lightweight Charts, EMA20/50, volume, carnet L2, flux observé et horizons.
-- **Bot** : état du service, autorisation et solde réellement reçus, armement/arrêt, activité ; diagnostic navigateur, stratégie, ordres manuels et simulation repliables. Le diagnostic navigateur n’est pas l’état d’exécution du service.
-- **Compte** : positions tous perpétuels, ordres et fills ETH en lecture publique ; sous-onglet Journal pour les simulations locales et CSV.
-- **Recherche** : replay 7/14 jours, profils et deux scénarios de coûts, calcul en Worker, courbe, motifs de refus et CSV. Carnet synthétique, spread et slippage supposés ; funding et liquidation historiques non reconstruits. Les segments 70/30 partagent la même trajectoire et ne constituent pas une validation indépendante.
-
-La simulation web conserve les clés historiques `axiom-*` pour préserver les données sur une même origine. Les appareils, réseaux et origines ne synchronisent pas leur journal de simulation.
-
-## Architecture
-
-| Source | Rôle |
+| Besoin | Document |
 |---|---|
-| `frontend/core/` | Règles, contrats, indicateurs, replay et contrôleur paper |
-| `frontend/charts/` | Graphique financier et tampon incrémental de bougies/EMA |
-| `frontend/shared/` | Imports différés, formatage et distribution des snapshots |
-| `frontend/visuals/` | Modèle de profondeur et scène 3D Canvas |
-| `frontend/exchange.ts` | Exécution manuelle wallet, testnet/mainnet |
-| `frontend/bot-dashboard.ts`, `frontend/core/bot-view.ts` | Tableau de bord, lectures des horizons et états visuels du service |
-| `frontend/runner-ui.ts` | Connexion locale, approbation agent et commandes du service |
-| `frontend/obsidian.css` | Direction artistique noire et responsive |
-| `runner/engine.ts` | Évaluation et gestion des ordres automatiques |
-| `runner/policy.ts` | Plans IOC, validations et garde-fous exchange |
-| `runner/server.ts` | Service HTTP local, isolation, nonces et persistance |
-| `rust-core/` | Noyau de risque compilé en WebAssembly |
-| `app.py`, `engine.py`, `agent_bridge.py` | Ancien moteur Python de simulation et MCP local |
+| Ordre de lecture, index et responsabilités documentaires | [docs/README.md](docs/README.md) |
+| Carte des fichiers, flux et contrats | [Architecture](docs/ARCHITECTURE.md) |
+| Développer, tester, modifier une fonctionnalité | [Développement](docs/DEVELOPMENT.md) |
+| Lancer, connecter, arrêter, diagnostiquer le service | [Exploitation](docs/OPERATIONS.md) |
+| Comprendre les règles, unités et différences d’exécution | [Stratégie](docs/STRATEGY.md) |
+| État réel, preuves et travaux restant à faire | [État du projet](docs/STATUS.md) |
 
-Le build navigateur est dans `dist/`. `npm run build:bot` produit `runner-dist/server.mjs` ; il utilise les dépendances Node installées et le WASM versionné dans `frontend/legacy/risk-core.js`.
-
-### Ancien mode Python
-
-```sh
-python -m pip install -r requirements.txt
-# Copier config.example.json vers config.json puis renseigner l’adresse publique.
-npm run build
-python app.py
-```
-
-http://127.0.0.1:8765 reste un moteur de simulation. Il n’est pas le service exchange automatique, qui utilise le port 8766. MCP stdio : `eth_state`, `eth_candles`, `paper_open`, `paper_close`. Aucun fournisseur IA n’est branché automatiquement.
+Les anciens documents ont été déplacés dans `docs/archive/`. Ils n’ont pas autorité sur la version actuelle.
 
 ## Vérifier
 
 ```sh
-npm run typecheck
-npm test
-npm run test:browser
-npm run build
-npm run build:bot
-node scripts/check-runner.mjs
-python -m unittest discover -s tests -v
-cargo test --manifest-path rust-core/Cargo.toml
+npm run check
 ```
 
-115 tests automatisés passent dans cette version (95 Vitest + 20 tests du moteur navigateur), ainsi que le build typé du site et du service. Les nouveaux tests couvrent le tampon de courbes, les corrections historiques, les imports différés, le diagnostic/journal, la navigation et les états du tableau de bord Bot, les horizons anciens et les données/géométries de la vue de profondeur. Aucun navigateur de vérification visuelle n’était disponible dans cette session.
+Cette commande vérifie la documentation, les tests frontend/moteur navigateur, les builds typés et l’API du service dans un environnement temporaire sans autorisation exchange. Pour une modification documentaire seule : `npm run check:docs`.
 
-Tests du moteur : consentement mainnet, agent expiré, isolation des réseaux, quota exchange et persistant, réservation avant envoi, réponse incertaine, arrêt pendant armement/envoi, données anciennes, ratio net, allocation, gestion reduce-only et position modifiée hors du bot. Le test HTTP lance un service temporaire sans autorisation exchange : session, Host/Origin, rotation de clé, confidentialité et séparation des réseaux.
+Les vérifications Python et Rust sont séparées et nécessitent leurs toolchains ; voir [DEVELOPMENT.md](docs/DEVELOPMENT.md). Le rendu iPhone/Safari et les ordres signés sur un compte financé restent à valider. Les preuves datées sont dans [STATUS.md](docs/STATUS.md).
 
-Les lectures publiques L2 ETH ont répondu HTTP 200 sur les deux réseaux le 16 octobre 2026. **Aucun ordre signé n’a été envoyé depuis un wallet financé pour valider cette version.** Les signatures et ordres sont testés avec des transports simulés. Le rendu Safari/iPhone physique et l’exécution réelle de bout en bout restent à vérifier. Aucun rendement n’est déduit des tests logiciels.
+## Technologie et compatibilité
 
-## Sources et licences
+TypeScript, JavaScript, CSS, Vite, Lightweight Charts, SDK Hyperliquid, viem, Node et Rust/WASM. Le moteur Python/MCP est conservé à la racine pour compatibilité ; il utilise le port 8765 et reste paper-only. Le service Node automatique utilise le port 8766.
 
-- [API Hyperliquid](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api)
-- [Agents et nonces](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/nonces-and-api-wallets)
-- [Exchange et approbation agent](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/exchange-endpoint)
-- [TradingView Lightweight Charts](https://tradingview.github.io/lightweight-charts/docs)
-- `THIRD_PARTY_NOTICES.md`, `licenses/`.
+Les clés historiques `axiom-*` sont conservées pour éviter une réinitialisation implicite des données navigateur. Les répertoires générés et personnels sont ignorés par Git. Ni une clé privée ni un portefeuille personnel ne sont requis pour lancer les tests.
 
-Les documents antérieurs dans `docs/` sont historiques ; ce README décrit la version courante.
+## Références et licences
+
+[API Hyperliquid](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api) · [Lightweight Charts](https://tradingview.github.io/lightweight-charts/docs) · [Notices tierces](THIRD_PARTY_NOTICES.md).
+
+Ce dépôt ne déclare actuellement pas de licence globale pour son propre code ; les notices tierces ne valent pas licence de l’ensemble du projet.
