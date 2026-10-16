@@ -42,10 +42,10 @@ def features(raw, now):
     adx_last=value(adx) or 0
     return {'ready':value(e50) is not None, 'backend':'TA-Lib', 'longTrendReady':long_ready,
             'rsi':50 if np.all(close[-15:]==close[-1]) else value(rsi),
-            'macd':value(macd),'histogram':value(hist),'atr':value(atr),'adx':adx_last,
+            'macd':value(macd),'histogram':value(hist),'previousHistogram':value(hist,-2),'plusDI':value(talib.PLUS_DI(high,low,close,timeperiod=14)),'minusDI':value(talib.MINUS_DI(high,low,close,timeperiod=14)),'atr':value(atr),'adx':adx_last,
             'ema20':value(e20),'ema50':value(e50),'ema200':value(e200),'previousEma20':value(e20,-2),'previousEma50':value(e50,-2),
             'rollingVwap':vwap,'bbUpper':value(upper),'bbLower':value(lower),'bbMiddle':value(middle),
-            'previousBbUpper':value(upper,-2),'previousBbLower':value(lower,-2),'cmf':cmf,
+            'bbWidth':float((upper[-1]-lower[-1])/middle[-1]) if middle[-1] else 0,'previousBbUpper':value(upper,-2),'previousBbLower':value(lower,-2),'cmf':cmf,
             'relativeVolume':float(volume[-1]/volume_base) if volume_base else 0,
             'obvChange20':float(obv[-1]-obv[-21]),'previousClose':float(close[-2]),
             'upperWickRatio':float((high[-1]-max(close[-1],body_open))/candle_range) if candle_range else 0,

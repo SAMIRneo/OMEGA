@@ -1,0 +1,1 @@
+{"extends":"./tsconfig.json","compilerOptions":{"types":["node"],"lib":["ES2023","DOM"]},"include":["runner/**/*.ts","frontend/core/types.ts","frontend/core/daily.ts","frontend/core/execution.ts","frontend/core/testnet-plan.ts","vite.runner.config.ts"],"exclude":["runner/**/*.test.ts"]}
