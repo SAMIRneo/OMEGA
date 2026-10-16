@@ -1,5 +1,2 @@
-@import './style.css' layer(legacy);
-@import './atelier.css' layer(legacy);
-@import './workspace.css' layer(legacy);
-@import './research.css' layer(legacy);
+@import './layout.css' layer(base);
 @import './obsidian.css';

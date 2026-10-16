@@ -1,7 +1,9 @@
 import {createChart,CandlestickSeries,LineSeries,HistogramSeries,ColorType,CrosshairMode,type UTCTimestamp,type IChartApi} from 'lightweight-charts';
 import type {Candle,Timeframe} from '../core/types';
+import {ChartBuffer} from './data-buffer';
+const buffer=new ChartBuffer();
 const container=document.getElementById('chart')!;
-let chart:IChartApi|null=null,timeframe:Timeframe|null=null,lastCount=0,lastFingerprint='',lastLength=0,lastTime=0,incrementalUpdates=0;
+let chart:IChartApi|null=null,timeframe:Timeframe|null=null,lastCount=0,lastMode='',incrementalUpdates=0;
 let candles:ReturnType<IChartApi['addSeries']>,line:ReturnType<IChartApi['addSeries']>,ema20:ReturnType<IChartApi['addSeries']>,ema50:ReturnType<IChartApi['addSeries']>,volume:ReturnType<IChartApi['addSeries']>;
 const time=(t:number)=>Math.floor(t/1000) as UTCTimestamp;
 function setup(){if(chart)return;chart=createChart(container,{autoSize:true,layout:{background:{type:ColorType.Solid,color:'#060809'},textColor:'#a8b7c8',fontSize:12,attributionLogo:true},grid:{vertLines:{color:'#182027'},horzLines:{color:'#182027'}},crosshair:{mode:CrosshairMode.Normal},timeScale:{timeVisible:true,secondsVisible:false,borderColor:'#2a3742'},rightPriceScale:{borderColor:'#2a3742'},handleScale:{mouseWheel:true,pinch:true},handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:false}});
@@ -12,14 +14,18 @@ function setup(){if(chart)return;chart=createChart(container,{autoSize:true,layo
  volume=chart.addSeries(HistogramSeries,{priceFormat:{type:'volume'},priceScaleId:'volume',lastValueVisible:false,priceLineVisible:false});
  chart.priceScale('volume').applyOptions({scaleMargins:{top:.82,bottom:0},visible:false});
 }
-function series(raw:Candle[],period:number){if(raw.length<period)return [];let e=raw.slice(0,period).reduce((sum,b)=>sum+Number(b.c),0)/period;return raw.slice(period-1).map((b,i)=>({time:time(b.t),value:i?(e+=2/(period+1)*(Number(b.c)-e)):e}));}
 window.TradingChart={render(raw,tf,mode,count){if(!raw.length||container.getBoundingClientRect().width===0)return;setup();
- const clean=Array.from(new Map(raw.filter(b=>[b.t,b.o,b.h,b.l,b.c,b.v].every(v=>Number.isFinite(Number(v)))).map(b=>[b.t,b])).values()).sort((a,b)=>a.t-b.t);
- const last=clean.at(-1);if(!last)return;const fingerprint=[tf,mode,count,last.t,last.o,last.h,last.l,last.c,last.v].join(':');if(fingerprint===lastFingerprint)return;
- candles.applyOptions({visible:mode==='candles'});line.applyOptions({visible:mode==='line'});
- const cs=clean.map(b=>({time:time(b.t),open:Number(b.o),high:Number(b.h),low:Number(b.l),close:Number(b.c)})),ls=clean.map(b=>({time:time(b.t),value:Number(b.c)})),vs=clean.map(b=>({time:time(b.t),value:Number(b.v),color:Number(b.c)>=Number(b.o)?'#60e6ae25':'#ff788a25'}));
- if(timeframe===tf&&clean.length>=2&&(Number(last.t)===lastTime||Number(clean.at(-2)!.t)===lastTime)&&incrementalUpdates<200){incrementalUpdates++;candles.update(cs.at(-1)!);line.update(ls.at(-1)!);volume.update(vs.at(-1)!);ema20.update(series(clean,20).at(-1)!);ema50.update(series(clean,50).at(-1)!);}else{incrementalUpdates=0;candles.setData(cs);line.setData(ls);volume.setData(vs);ema20.setData(series(clean,20));ema50.setData(series(clean,50));}
- if(timeframe!==tf||lastCount!==count)chart!.timeScale().setVisibleLogicalRange({from:Math.max(0,clean.length-count),to:clean.length+3});
- timeframe=tf;lastTime=Number(last.t);lastLength=clean.length;lastCount=count;lastFingerprint=fingerprint;
+ const result=buffer.update(raw),changedTimeframe=timeframe!==tf;
+ if(mode!==lastMode){candles.applyOptions({visible:mode==='candles'});line.applyOptions({visible:mode==='line'});lastMode=mode;}
+ const candle=(i:number)=>{const b=buffer.bars[i];return {time:b.time as UTCTimestamp,open:b.open,high:b.high,low:b.low,close:b.close};};
+ const closing=(i:number)=>({time:buffer.bars[i].time as UTCTimestamp,value:buffer.bars[i].close});
+ const vol=(i:number)=>({time:buffer.bars[i].time as UTCTimestamp,value:buffer.bars[i].volume,color:buffer.bars[i].close>=buffer.bars[i].open?'#60e6ae25':'#ff788a25'});
+ const average=(values:(number|null)[])=>values.flatMap((value,i)=>value===null?[]:[{time:buffer.bars[i].time as UTCTimestamp,value}]);
+ if(result.changed||changedTimeframe){
+  if(!changedTimeframe&&result.incremental&&incrementalUpdates<200){incrementalUpdates++;for(let i=result.start;i<buffer.bars.length;i++){candles.update(candle(i));line.update(closing(i));volume.update(vol(i));if(buffer.ema20[i]!==null)ema20.update({time:buffer.bars[i].time as UTCTimestamp,value:buffer.ema20[i]!});if(buffer.ema50[i]!==null)ema50.update({time:buffer.bars[i].time as UTCTimestamp,value:buffer.ema50[i]!});}}
+  else{incrementalUpdates=0;candles.setData(buffer.bars.map((_,i)=>candle(i)));line.setData(buffer.bars.map((_,i)=>closing(i)));volume.setData(buffer.bars.map((_,i)=>vol(i)));ema20.setData(average(buffer.ema20));ema50.setData(average(buffer.ema50));}
+ }
+ if(changedTimeframe||lastCount!==count)chart!.timeScale().setVisibleLogicalRange({from:Math.max(0,buffer.bars.length-count),to:buffer.bars.length+3});
+ timeframe=tf;lastCount=count;
 },resize(){if(chart){chart.applyOptions({width:container.clientWidth,height:container.clientHeight});}}};
 

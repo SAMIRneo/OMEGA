@@ -4,11 +4,26 @@ Terminal ETH et moteur Daily Hyperliquid, sur **testnet et mainnet**.
 
 [Site public](https://omega.kairos-labspro.chatgpt.site) · [Code source](https://github.com/SAMIRneo/OMEGA)
 
-## Version 1.0 — Obsidian
+## Version 1.1 — Obsidian / Spatial
 
 Interface noire : fond `#000000`, surfaces neutres, textes contrastés, chiffres tabulaires, chandeliers vert menthe / rose et animations discrètes respectant la réduction des mouvements. Quatre onglets : **Marché, Bot, Compte, Recherche**. Le journal de simulation se trouve dans Compte. Les outils manuels et la simulation sont repliables dans Bot.
 
 Le pilote exchange dispose désormais d’un **processus Node indépendant du navigateur**. Il peut évaluer les signaux et signer automatiquement avec un agent API autorisé. Le site public reste un hébergement statique : il ne contient pas de clé ni de processus de trading permanent. Le panneau indique « Non connecté » tant qu’aucun service n’est relié. Il ne simule pas une connexion à un portefeuille.
+
+### Rapidité et organisation
+
+- Import à la demande du graphique financier, de Recherche, du pilote local et de la signature. La visite de Bot ne charge pas le SDK de signature : il arrive à l’ouverture des outils manuels ou à l’autorisation d’un agent.
+- Module d’entrée : 18,35 Ko minifiés contre 188,70 Ko en v1.0 ; CSS : 105,76 Ko contre 150,32 Ko. Le graphique financier reste chargé dans Marché : ces chiffres ne représentent pas le total de tous les modules ni une mesure de LCP sur appareil.
+- Styles structurels regroupés dans `layout.css`, thème dans `obsidian.css`. Sélecteurs inutilisés et déclarations supplantées retirés de la cascade précédente.
+- Carnet : lignes DOM réutilisées. Horizons, position et événements sont reconstruits uniquement quand leurs données changent. Formatage numérique mutualisé.
+- `ChartBuffer` conserve les EMA et recalcule le suffixe modifié. Il détecte aussi une correction historique même si la dernière bougie n’a pas changé. Une clôture corrigée et la bougie suivante sont actualisées ensemble ; le zoom reste stable.
+- Marché : graphique et carnet en première ligne, liquidité spatiale et flux en seconde, indicateurs regroupés. Bot : diagnostic et stratégie côte à côte sur écran large, empilés sur mobile. Navigation persistante à quatre entrées sur mobile.
+
+### Vue de liquidité en 3D
+
+La projection Canvas représente **les 12 premiers niveaux de chaque côté du carnet**. Chaque barre a pour hauteur la quantité ETH de son niveau ; la hauteur est normalisée au maximum visible, et le panneau donne les prix, tailles et cumuls exacts. Elle n’invente pas de liquidité historique ni de trajectoire future. La vue n’est pas un signal de trading.
+
+Glisser pour tourner/incliner, cliquer un sommet pour sélectionner, flèches gauche/droite pour parcourir les niveaux, boutons Pause et Réinitialiser. Une seule source de données : les snapshots du flux existant, sans nouvelle connexion réseau. Module de 5,43 Ko minifiés ; animation plafonnée à 20 images/s, densité de pixels plafonnée à 1,5, arrêt hors écran/onglet masqué. Démarrage en pause avec réduction des mouvements ou faible mémoire déclarée. Les données périmées prennent une teinte neutre.
 
 ## Trois modes distincts
 
@@ -90,7 +105,9 @@ La simulation web conserve les clés historiques `axiom-*` pour préserver les d
 | Source | Rôle |
 |---|---|
 | `frontend/core/` | Règles, contrats, indicateurs, replay et contrôleur paper |
-| `frontend/charts/` | Graphique financier |
+| `frontend/charts/` | Graphique financier et tampon incrémental de bougies/EMA |
+| `frontend/shared/` | Imports différés, formatage et distribution des snapshots |
+| `frontend/visuals/` | Modèle de profondeur et scène 3D Canvas |
 | `frontend/exchange.ts` | Exécution manuelle wallet, testnet/mainnet |
 | `frontend/runner-ui.ts` | Connexion locale, approbation agent et commandes du service |
 | `frontend/obsidian.css` | Direction artistique noire et responsive |
@@ -125,6 +142,8 @@ node scripts/check-runner.mjs
 python -m unittest discover -s tests -v
 cargo test --manifest-path rust-core/Cargo.toml
 ```
+
+109 tests automatisés passent dans cette version (89 Vitest + 20 tests du moteur navigateur), ainsi que le build typé du site et du service. Les nouveaux tests couvrent le tampon de courbes, les corrections historiques, les imports différés, le diagnostic/journal et les données/géométries de la vue de profondeur. Aucun navigateur de vérification visuelle n’était disponible dans cette session.
 
 Tests du moteur : consentement mainnet, agent expiré, isolation des réseaux, quota exchange et persistant, réservation avant envoi, réponse incertaine, arrêt pendant armement/envoi, données anciennes, ratio net, allocation, gestion reduce-only et position modifiée hors du bot. Le test HTTP lance un service temporaire sans autorisation exchange : session, Host/Origin, rotation de clé, confidentialité et séparation des réseaux.
 
