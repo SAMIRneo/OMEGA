@@ -1,0 +1,46 @@
+import {afterEach,beforeEach,expect,it,vi} from 'vitest';
+import {Window} from 'happy-dom';
+import {readFileSync} from 'node:fs';
+const fake=vi.hoisted(()=>({connect:vi.fn(),refresh:vi.fn(),disconnect:vi.fn()}));
+vi.mock('./exchange',()=>({connectWallet:fake.connect,refreshWallet:fake.refresh,disconnectWallet:fake.disconnect}));
+let dom:Window;
+const el=(id:string)=>dom.document.getElementById(id)! as unknown as HTMLElement;
+beforeEach(()=>{
+ vi.resetModules();vi.clearAllMocks();fake.connect.mockResolvedValue(undefined);
+ dom=new Window({url:'https://omega.test/#pilot'});dom.document.write(readFileSync(new URL('./index.html',import.meta.url),'utf8'));
+ (dom as any).BrowserAtelier={environment:{id:'testnet'}};
+ vi.stubGlobal('window',dom);vi.stubGlobal('document',dom.document);vi.stubGlobal('location',dom.location);vi.stubGlobal('fetch',vi.fn());
+});
+afterEach(()=>{dom.happyDOM.abort();vi.unstubAllGlobals();});
+it('offers a visible wallet entry without probing localhost or requesting wallet access on load',async()=>{
+ await import('./wallet-connection');expect(fetch).not.toHaveBeenCalled();expect(fake.connect).not.toHaveBeenCalled();
+ expect(el('connect-wallet-state').textContent).toBe('Wallet non connecté');expect(el('connect-wallet-help').hidden).toBe(false);
+ expect(el('connect-service-state').textContent).toContain('service local requis');expect(el('connect-service-help').hidden).toBe(false);
+ expect(el('wallet-short')).not.toBeNull();expect(dom.document.querySelector('[data-connect-network="testnet"]')?.getAttribute('aria-pressed')).toBe('true');
+});
+it('keeps wallet reads separate from approval and confirmed automation',async()=>{
+ await import('./wallet-connection');const {publishWallet}=await import('./shared/wallet-store');const {publishRunner}=await import('./shared/runner-store');
+ publishWallet({network:'testnet',address:'0x1111111111111111111111111111111111111111',busy:false,readAt:Date.now(),equity:1200,withdrawable:0,position:{size:-6,entry:2400},openOrders:2,message:'Compte lu',error:false});
+ expect(el('connect-position').textContent).toContain('Short');expect(el('connect-position-note').hidden).toBe(false);expect(el('connect-step-wallet').dataset.complete).toBe('true');
+ expect(el('connect-step-agent').dataset.complete).toBe('false');expect(fake.connect).not.toHaveBeenCalled();
+ publishRunner({connected:false,approved:true,active:true});expect(el('connect-step-start').dataset.complete).toBe('false');
+ publishRunner({connected:true,network:'testnet',approved:true,active:false});expect(el('connect-step-agent').dataset.complete).toBe('true');expect(el('connect-step-start').dataset.complete).toBe('false');
+ publishRunner({connected:true,network:'testnet',owner:'0x2222222222222222222222222222222222222222',approved:true,active:true});expect(el('connect-step-agent').dataset.complete).toBe('false');expect(el('connect-agent-state').textContent).toContain('autre compte');
+ publishWallet({network:'mainnet',address:null,busy:false,readAt:0,equity:9999,withdrawable:0,position:null,openOrders:0,message:'',error:false});expect(el('connect-equity').textContent).toBe('—');
+});
+it('retains an import/connection error after loading ends, with the retry button available',async()=>{
+ const module=await import('./wallet-connection');fake.connect.mockRejectedValueOnce(Error('Module indisponible'));await module.connect();
+ expect(el('connect-feedback').textContent).toBe('Module indisponible');expect(el('connect-feedback').dataset.tone).toBe('error');
+ expect((dom.document.querySelector('.connect-wallet-actions [data-wallet-connect]') as any).disabled).toBe(false);await module.connect();expect(fake.connect).toHaveBeenCalledTimes(2);
+});
+it('uses the guarded network selector and surfaces a refusal in the connection card',async()=>{
+ await import('./wallet-connection');const select=el('network-select') as any;const change=vi.fn();select.addEventListener('change',change);
+ (dom.document.querySelector('[data-connect-network="mainnet"]') as any).click();expect(change).not.toHaveBeenCalled();
+ select.disabled=false;(dom.document.querySelector('[data-connect-network="mainnet"]') as any).click();expect(change).toHaveBeenCalledTimes(1);expect(select.value).toBe('mainnet');
+ dom.dispatchEvent(new dom.CustomEvent('omega-network-error',{detail:'Arrête le pilote avant de changer de réseau.' as any}));expect(el('connect-feedback').textContent).toContain('Arrête le pilote');
+});
+it('selects the announced MetaMask provider when another wallet owns window.ethereum',async()=>{
+ const fallback={request:vi.fn()},metamask={request:vi.fn()};(dom as any).ethereum=fallback;
+ const {walletProvider}=await import('./shared/wallet-provider');expect(walletProvider()).toBe(fallback);
+ dom.dispatchEvent(new dom.CustomEvent('eip6963:announceProvider',{detail:{info:{rdns:'io.metamask'},provider:metamask}}));expect(walletProvider()).toBe(metamask);
+});

@@ -17,6 +17,12 @@ async function start(){
  const dashboard=lazyModule(()=>import('./bot-dashboard'));
  const depth=lazyModule(()=>import('./visuals/depth-scene'));
  const exchange=lazyModule(()=>import('./exchange'));
+ const connection=lazyModule(()=>import('./wallet-connection'));
+ document.addEventListener('click',event=>{
+  if(!(event.target instanceof Element)||!event.target.closest('[data-wallet-connect]'))return;
+  event.preventDefault();location.hash='pilot';
+  void connection().then(module=>module.connect()).catch(e=>report('Connexion MetaMask indisponible',e));
+ });
  const manual=document.querySelector<HTMLDetailsElement>('.execution-details')!;
  const connect=document.getElementById('testnet-connect') as HTMLButtonElement;
  connect.disabled=true;
@@ -24,6 +30,7 @@ async function start(){
  const route=()=>{
   const view=location.hash.slice(1)||'terminal';
   if(view==='terminal'){void loadChart();void depth().catch(e=>report('Vue de liquidité indisponible',e));}
+  if(view==='pilot'||view==='wallet')void connection().catch(e=>report('Connexion wallet indisponible',e));
   if(view==='research')void research().catch(e=>report('Recherche indisponible',e));
   if(view==='pilot'){void dashboard().catch(e=>report('Vue du bot indisponible',e));void runner().catch(e=>report('Pilotage indisponible',e));loadExchange();}
  };

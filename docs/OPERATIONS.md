@@ -21,11 +21,14 @@ npm run bot
 
 `npm run bot` reconstruit le bundle Node. Après les deux builds, `npm run start:bot` permet de relancer sans reconstruire. Le répertoire courant doit être la racine du dépôt : le service lit le build web et le WASM avec des chemins relatifs à cette racine.
 
-1. Ouvrir l’interface locale avec un wallet EIP-1193 injecté.
+1. Ouvrir l’interface locale dans le navigateur contenant MetaMask (ou un wallet EIP-1193 injecté).
 2. Choisir le réseau dans OMEGA ; le réseau sélectionné fixe REST, WebSocket et source de signature.
-3. Dans Bot, autoriser l’agent. Le service prépare une nouvelle clé dédiée ; le wallet du propriétaire signe son approbation pour 24 h.
-4. Vérifier le compte/réseau effectivement affichés, puis régler profil et plafond de levier dans Réglages.
-5. Revenir à Vue d’ensemble, autoriser explicitement les fonds réels si Mainnet, puis démarrer le pilote.
+3. En tête de Bot, cliquer « Connecter MetaMask », autoriser le partage de l’adresse, puis vérifier le compte Hyperliquid et les positions affichées. Cette étape ne signe aucun ordre.
+4. Dans les commandes du bot, cliquer « Autoriser dans MetaMask ». Le service prépare une nouvelle clé dédiée ; le wallet du propriétaire signe son approbation pour 24 h.
+5. Vérifier le compte/réseau effectivement affichés, puis régler profil et plafond de levier dans Réglages.
+6. Revenir à Vue d’ensemble, autoriser explicitement les fonds réels si Mainnet, puis démarrer le pilote.
+
+Le bouton de connexion est aussi accessible dans l’en-tête et dans Compte. Sur le site public, il établit la session wallet/lecture pour les ordres manuels ; un guide visible explique comment lancer et ouvrir le service local. Les commandes d’automatisation locales y restent masquées. Une erreur de changement de réseau remonte dans le parcours de connexion, sans contourner les gardes. Si plusieurs extensions sont installées, OMEGA privilégie MetaMask annoncé via EIP-6963, puis le fournisseur injecté compatible.
 
 Les USDC du compte paper ne financent pas le testnet. Un compte lu n’est pas un agent autorisé ; une autorisation d’agent n’arme pas automatiquement les entrées.
 

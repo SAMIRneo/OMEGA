@@ -39,7 +39,7 @@ Les fonds testnet, le solde mainnet et le capital paper sont distincts. Fermer l
 ## Interface
 
 - **Marché** : graphique TradingView Lightweight Charts, EMA, volume, carnet L2, profondeur 3D et horizons.
-- **Bot** : Vue d’ensemble, Réglages et Activité. Diagnostic navigateur et état du service affichés séparément.
+- **Bot** : connexion MetaMask visible en tête, choix Testnet/Mainnet, lecture du compte, puis autorisation et démarrage séparés. Vue d’ensemble, Réglages et Activité ; guide local accessible depuis le site public.
 - **Compte** : positions, ordres et exécutions ; journal de simulation et export CSV.
 - **Recherche** : replay récent 7/14 jours dans un Worker, coûts standard/renforcés, courbe et motifs de refus.
 
