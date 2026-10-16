@@ -10,6 +10,6 @@ it('checks the permanent runner before a network switch even before the Bot tab 
  const fetch=vi.fn(async(path:string)=>({ok:true,json:async()=>path.includes('/session')?{token:'test-session'}:{network:'mainnet',active:true,approved:true,owner:null,events:[],reason:'Actif'}}));vi.stubGlobal('fetch',fetch);
  await import('./network');const select=dom.document.getElementById('network-select') as any;select.value='testnet';select.dispatchEvent(new dom.Event('change'));
  // Flush dynamic imports without advancing the service's polling interval.
- for(let i=0;i<30;i++)await vi.advanceTimersByTimeAsync(0);
+ await vi.dynamicImportSettled();await vi.advanceTimersByTimeAsync(0);
  expect(dom.document.getElementById('connection-detail')?.textContent).toContain('Arrête le pilote automatique');expect(request).not.toHaveBeenCalled();expect(stop).not.toHaveBeenCalled();expect(select.value).toBe('mainnet');
 });

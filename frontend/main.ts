@@ -14,6 +14,7 @@ async function start(){
  await import('./core/controller');
  const research=lazyModule(()=>import('./research'));
  const runner=lazyModule(()=>import('./runner-ui'));
+ const dashboard=lazyModule(()=>import('./bot-dashboard'));
  const depth=lazyModule(()=>import('./visuals/depth-scene'));
  const exchange=lazyModule(()=>import('./exchange'));
  const manual=document.querySelector<HTMLDetailsElement>('.execution-details')!;
@@ -24,7 +25,7 @@ async function start(){
   const view=location.hash.slice(1)||'terminal';
   if(view==='terminal'){void loadChart();void depth().catch(e=>report('Vue de liquidité indisponible',e));}
   if(view==='research')void research().catch(e=>report('Recherche indisponible',e));
-  if(view==='pilot'){void runner().catch(e=>report('Pilotage indisponible',e));loadExchange();}
+  if(view==='pilot'){void dashboard().catch(e=>report('Vue du bot indisponible',e));void runner().catch(e=>report('Pilotage indisponible',e));loadExchange();}
  };
  manual.addEventListener('toggle',loadExchange);
  window.addEventListener('hashchange',route);
