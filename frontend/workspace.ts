@@ -1,7 +1,9 @@
+import {formatNumber} from './shared/format';
+import {rememberSnapshot} from './shared/market-store';
 import {diagnose} from './core/diagnostics';
 import type {Snapshot} from './core/types';
 const $=(id:string)=>document.getElementById(id)!;
-const number=(n:number,digits=2)=>Number.isFinite(n)?n.toLocaleString('fr-FR',{maximumFractionDigits:digits,minimumFractionDigits:digits}):'—';
+const number=(n:number,digits=2)=>formatNumber(n,digits);
 const set=(id:string,value:string)=>{const el=$(id);if(el.textContent!==value)el.textContent=value;};
 let diagnosticsKey='',curveKey='';
 document.querySelector('a[href="#bot-controls"]')?.addEventListener('click',event=>{
@@ -11,6 +13,7 @@ document.querySelector('a[href="#bot-controls"]')?.addEventListener('click',even
 });
 
 window.addEventListener('axiom-state',((event:CustomEvent<Snapshot>)=>{
+ rememberSnapshot(event.detail);
  const original=event.detail,connected=window.ExchangeSnapshot?.(original),s=connected??original,e=window.PaperPilot.evaluate(s),checks=diagnose(s,e,!!window.RiskCore?.exports).filter(c=>connected||c.label!=='Quota et capital');
  const passed=checks.filter(c=>c.state==='pass').length;
  set('system-health',s.market.fresh?'Données en direct':'Données à vérifier');
@@ -22,11 +25,9 @@ window.addEventListener('axiom-state',((event:CustomEvent<Snapshot>)=>{
  const next=(Math.floor(s.time/900)+1)*900,remaining=Math.max(0,Math.ceil(next-s.time));
  set('next-close',Math.floor(remaining/60).toString().padStart(2,'0')+':'+(remaining%60).toString().padStart(2,'0'));
  set('next-close-time',new Date(next*1000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'})+' UTC');
- const state=window.PaperPilot.state;
- set('pilot-mode',state.active?(state.paused?'Surveillance suspendue':'Surveillance active'):'Observation');
- set('pilot-mode-detail',state.active?state.reason:'L’armement reste manuel. Le diagnostic se met à jour en continu.');
  const key=JSON.stringify(checks);
- if(key!==diagnosticsKey){diagnosticsKey=key;const rows=checks.map((c,i)=>{const row=document.createElement('li');row.className='decision-step '+c.state;const index=document.createElement('span');index.className='step-index';index.textContent=String(i+1).padStart(2,'0');const content=document.createElement('div'),label=document.createElement('strong'),detail=document.createElement('p'),status=document.createElement('span');label.textContent=c.label;detail.textContent=c.detail;status.className='step-status';status.textContent=c.state==='pass'?'Validé':c.state==='blocked'?'Bloqué':'En attente';content.append(label,detail);row.append(index,content,status);return row;});$('decision-checklist').replaceChildren(...rows);}
+ if(!$('view-pilot').hidden&&key!==diagnosticsKey){diagnosticsKey=key;const rows=checks.map((c,i)=>{const row=document.createElement('li');row.className='decision-step '+c.state;const index=document.createElement('span');index.className='step-index';index.textContent=String(i+1).padStart(2,'0');const content=document.createElement('div'),label=document.createElement('strong'),detail=document.createElement('p'),status=document.createElement('span');label.textContent=c.label;detail.textContent=c.detail;status.className='step-status';status.textContent=c.state==='pass'?'Validé':c.state==='blocked'?'Bloqué':'En attente';content.append(label,detail);row.append(index,content,status);return row;});$('decision-checklist').replaceChildren(...rows);}
+ if(!$('view-journal').hidden){
  const h=original.paper.history,net=h.reduce((sum,x)=>sum+Number(x.netPnl),0),grossGains=h.reduce((sum,x)=>sum+Math.max(0,Number(x.netPnl)),0),grossLosses=h.reduce((sum,x)=>sum+Math.min(0,Number(x.netPnl)),0);
  set('journal-net',number(net)+' USDC');set('journal-average',h.length?number(net/h.length)+' USDC':'—');
  set('journal-gains',number(grossGains)+' USDC');set('journal-losses',number(grossLosses)+' USDC');
@@ -38,6 +39,7 @@ window.addEventListener('axiom-state',((event:CustomEvent<Snapshot>)=>{
   const svg=$('equity-curve'),line=document.createElementNS(ns,'polyline');line.setAttribute('points',points.map((p,i)=>`${24+i/Math.max(1,points.length-1)*752},${170-(p-low)/range*130}`).join(' '));line.setAttribute('fill','none');line.setAttribute('stroke','currentColor');line.setAttribute('stroke-width','3');line.setAttribute('vector-effect','non-scaling-stroke');
   svg.replaceChildren();if(h.length){svg.append(line);svg.setAttribute('aria-label','Équité après chaque clôture : '+number(original.paper.initial)+' à '+number(equity)+' USDC. Les creux pendant les positions ne sont pas représentés.');}
   svg.classList.toggle('curve-empty',!h.length);
+ }
  }
 }) as EventListener);
 

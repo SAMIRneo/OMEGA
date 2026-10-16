@@ -1,0 +1,3 @@
+import {it,expect,vi} from 'vitest';
+import {lazyModule} from './lazy';
+it('shares an in-flight load and retries a failed import without duplicating successful modules',async()=>{let resolve:(value:string)=>void=()=>{};const loader=vi.fn(()=>new Promise<string>(r=>{resolve=r;})),load=lazyModule(loader);const a=load(),b=load();expect(a).toBe(b);resolve('ready');expect(await a).toBe('ready');await load();expect(loader).toHaveBeenCalledTimes(1);const failing=vi.fn().mockRejectedValueOnce(Error('offline')).mockResolvedValue('ready'),retry=lazyModule(failing);await expect(retry()).rejects.toThrow('offline');expect(await retry()).toBe('ready');expect(failing).toHaveBeenCalledTimes(2);});
