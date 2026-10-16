@@ -24,7 +24,7 @@ else{
    window.PaperPilot.stop();
    await api.request('/api/network',{method:'POST',body:JSON.stringify({network:next})});
    location.reload();
-  }catch(error){select.value=environment.id;select.disabled=false;status.textContent=error instanceof Error?error.message:String(error);select.disabled=false;}
+  }catch(error){select.value=environment.id;select.disabled=false;status.textContent=error instanceof Error?error.message:String(error);window.dispatchEvent(new window.CustomEvent('omega-network-error',{detail:status.textContent}));select.disabled=false;}
  });
  window.addEventListener('axiom-state',((event:CustomEvent<Snapshot & {connection?:{source:string;websocket:boolean;latencyMs:number|null;reconnectAttempts:number;error:string;retryAt:number}}>)=>{
   const s=event.detail,c=s.connection;if(!c)return;

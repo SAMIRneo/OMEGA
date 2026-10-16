@@ -1,5 +1,7 @@
+import {publishWallet} from './shared/wallet-store';
+import {walletProvider,walletError} from './shared/wallet-provider';
 import {ExchangeClient,HttpTransport,InfoClient} from '@nktkas/hyperliquid';
-import {createWalletClient,custom,type EIP1193Provider,type Address} from 'viem';
+import {createWalletClient,custom,type Address} from 'viem';
 import {formatPrice,formatSize} from '@nktkas/hyperliquid/utils';
 import {exchangePlan,exchangeStatus,exchangeDay} from './core/testnet-plan';
 import type {Snapshot} from './core/types';
@@ -26,17 +28,20 @@ let dayFills:typeof fills=[];
 let meta:{asset:number;szDecimals:number;maxLeverage:number}|null=null;
 const form=$('testnet-order-form') as HTMLFormElement;
 form.addEventListener('change',event=>{if(event.target!==consent)consent.checked=false;});
-const status=(message:string)=>{$('testnet-action-status').textContent=message;};
+let sessionMessage='',sessionError=false,activeProvider:ReturnType<typeof walletProvider>;
+const status=(message:string,error=false)=>{sessionMessage=message;sessionError=error;$('testnet-action-status').textContent=message;publishSession();};
 const number=(n:unknown)=>Number(n).toLocaleString('fr-FR',{maximumFractionDigits:4});
-const provider=()=> (window as Window & {ethereum?:EIP1193Provider & {on?:(event:string,fn:()=>void)=>void}}).ethereum;
+const provider=()=>activeProvider??walletProvider();
+function publishSession(){const position=account?.assetPositions.find(x=>x.position.coin==='ETH'&&Number(x.position.szi)!==0)?.position;publishWallet({network,address,busy,readAt,equity:account?Number(account.marginSummary.accountValue):null,withdrawable:account?Number(account.withdrawable):null,position:position?{size:Number(position.szi),entry:Number(position.entryPx)}:null,openOrders:orders.filter(x=>x.coin==='ETH').length,message:sessionMessage,error:sessionError});}
 function guard(){if(window.BrowserAtelier.environment?.id!==network||transport.isTestnet!==isTestnet)throw Error('Réseau de signature incohérent.');if(!address||!exchange)throw Error('Connecte le wallet Hyperliquid.');}
 const pendingKey=()=> 'omega-'+network+'-exchange-pending-'+address?.toLowerCase();
 function pending():{cloid:`0x${string}`;at:number}|null{const raw=localStorage.getItem(pendingKey());if(!raw)return null;try{return JSON.parse(raw)}catch{throw Error('Journal d’envoi illisible : vérifie le compte Hyperliquid avant de poursuivre.');}}
-function setBusy(value:boolean){busy=value;(document.getElementById('network-select') as HTMLSelectElement).disabled=value;for(const b of panel.querySelectorAll<HTMLButtonElement>('button'))b.disabled=value;for(const el of form.querySelectorAll<HTMLInputElement|HTMLSelectElement>('input,select'))el.disabled=value;}
+function setBusy(value:boolean){busy=value;publishSession();(document.getElementById('network-select') as HTMLSelectElement).disabled=value;for(const b of panel.querySelectorAll<HTMLButtonElement>('button'))b.disabled=value;for(const el of form.querySelectorAll<HTMLInputElement|HTMLSelectElement>('input,select'))el.disabled=value;}
 function render(){
+ publishSession();
  $('testnet-wallet').textContent=address??'Aucun wallet connecté';
  $('testnet-balance').textContent=account?number(account.marginSummary.accountValue)+' USDC / '+networkLabel:'—';
- $('testnet-available').textContent=account?number(account.withdrawable)+' USDC disponibles':'Solde lu directement sur Hyperliquid';
+ $('testnet-available').textContent=account?number(account.withdrawable)+' USDC retirables':'Solde lu directement sur Hyperliquid';
  const position=account?.assetPositions.find(x=>x.position.coin==='ETH')?.position;
  $('testnet-position').textContent=position?number(position.szi)+' ETH · entrée '+number(position.entryPx)+' · P&L '+number(position.unrealizedPnl)+' USDC':account?'Aucune position ETH':'Compte non consulté';
  const root=$('testnet-orders');root.replaceChildren();
@@ -60,18 +65,23 @@ async function read(){
  })();try{await reading;}finally{reading=null;}
 }
 async function verifySigner(){guard();const accounts=await provider()!.request({method:'eth_accounts'});if(!accounts.some(a=>a.toLowerCase()===address!.toLowerCase()))throw Error('Le compte actif du wallet a changé. Reconnecte-le.');}
-async function run(action:()=>Promise<void>){if(busy)return;setBusy(true);try{if(!navigator.locks)throw Error('Verrouillage entre onglets indisponible : utilise un navigateur compatible.');await navigator.locks.request('omega-'+network+'-sign-'+(address?.toLowerCase()??'connect'),action);}catch(error){status(error instanceof Error?error.message:String(error));}finally{setBusy(false);render();}}
-function disconnect(){consent.checked=false;exchange=null;address=null;account=null;orders=[];fills=[];readAt=0;meta=null;status('Session de signature fermée. Les ordres déjà placés restent sur Hyperliquid.');render();}
-$('testnet-connect').addEventListener('click',()=>run(async()=>{
+async function run(action:()=>Promise<void>){if(busy)return;setBusy(true);try{if(!navigator.locks)throw Error('Verrouillage entre onglets indisponible : utilise un navigateur compatible.');await navigator.locks.request('omega-'+network+'-sign-'+(address?.toLowerCase()??'connect'),action);}catch(error){status(walletError(error),true);}finally{setBusy(false);render();}}
+function disconnect(){activeProvider?.removeListener?.('accountsChanged',disconnect);activeProvider?.removeListener?.('chainChanged',disconnect);activeProvider=undefined;consent.checked=false;exchange=null;address=null;account=null;orders=[];fills=[];readAt=0;meta=null;status('Session de signature fermée. Les ordres déjà placés restent sur Hyperliquid.');render();}
+export async function connectWallet(){return run(async()=>{
+ status('Ouvre MetaMask et autorise l’accès à ton adresse. Aucune signature de trading.');
  if(window.BrowserAtelier.environment?.id!==network)throw Error('Réseau changé. Recharge la page.');
  const p=provider();if(!p)throw Error('Aucun wallet Ethereum détecté. Ouvre OMEGA dans un navigateur avec MetaMask ou Rabby pour signer sur '+networkLabel+'.');
- const accounts=await p.request({method:'eth_requestAccounts'});if(!accounts[0])throw Error('Aucun compte autorisé.');address=accounts[0];
+ const accounts=await p.request({method:'eth_requestAccounts'});if(!accounts[0])throw Error('Aucun compte autorisé.');
+ activeProvider?.removeListener?.('accountsChanged',disconnect);activeProvider?.removeListener?.('chainChanged',disconnect);activeProvider=p;address=accounts[0];account=null;readAt=0;orders=[];fills=[];
  const wallet=createWalletClient({account:address,transport:custom(p)});
  exchange=new ExchangeClient({wallet,transport,defaultExpiresAfter:()=>Date.now()+60000});
  p.on?.('accountsChanged',disconnect);p.on?.('chainChanged',disconnect);
  await read();await window.BrowserAtelier.setAddress(address,false);
  status(pending()?'Un envoi précédent doit être vérifié avant une nouvelle entrée.':'Wallet connecté. Les ordres Hyperliquid nécessitent ta signature ; aucune clé privée n’est demandée.');
-}));
+});}
+export const disconnectWallet=disconnect;
+export const refreshWallet=()=>run(async()=>{await read();status('Compte '+networkLabel+' actualisé.');});
+$('testnet-connect').addEventListener('click',()=>void connectWallet());
 $('testnet-disconnect').addEventListener('click',disconnect);
 $('testnet-refresh').addEventListener('click',()=>run(async()=>{await read();status('Compte '+networkLabel+' actualisé.');}));
 // Disabled fields are intentionally locked during signing; FormData omits them.
@@ -98,7 +108,7 @@ form.addEventListener('submit',event=>{event.preventDefault();run(async()=>{
 $('testnet-reconcile').addEventListener('click',()=>run(async()=>{guard();await read();const p=pending();if(!p){status('Aucun envoi en attente de vérification.');return;}const result=await info.orderStatus({user:address!,oid:p.cloid});if(result.status==='order'){localStorage.removeItem(pendingKey());status('Ordre retrouvé sur '+networkLabel+' : '+result.order.status+'. Vérifie les protections ci-dessous.');}else if(Date.now()-p.at>90000&&!orders.some(x=>x.coin==='ETH')&&!account!.assetPositions.some(x=>x.position.coin==='ETH')){localStorage.removeItem(pendingKey());status('Ordre introuvable après expiration, aucune position ni ordre ETH : envoi débloqué.');}else status('Statut non résolu : patiente jusqu’à expiration et vérifie à nouveau. Aucune relance automatique.');}));
 $('testnet-close').addEventListener('click',()=>run(async()=>{await read();await verifySigner();const p=account!.assetPositions.find(x=>x.position.coin==='ETH')?.position;if(!p||!Number(p.szi))throw Error('Aucune position ETH à clôturer.');const book=await info.l2Book({coin:'ETH'});if(!book||Date.now()-book.time>5000)throw Error('Carnet trop ancien.');const buy=Number(p.szi)<0;const result=await exchange!.order({orders:[{a:meta!.asset,b:buy,p:formatPrice(Number(book.levels[buy?1:0][0].px)*(buy?1.003:.997),meta!.szDecimals),s:formatSize(Math.abs(Number(p.szi)),meta!.szDecimals),r:true,t:{limit:{tif:'Ioc'}}}],grouping:'na'});const checked=exchangeStatus(result);status(checked.errors.length?checked.errors.join(' · '):'Clôture reduce-only soumise. Vérifie la quantité restante et les ordres de protection.');await read();}));
 $('testnet-daily').addEventListener('click',()=>run(async()=>{consent.checked=false;await read();if(!last||!account)throw Error('Attends les horizons de marché.');if(account.assetPositions.some(x=>x.position.coin==='ETH'&&Number(x.position.szi)!==0)||orders.some(x=>x.coin==='ETH'))throw Error('Gère la position et les ordres ETH existants.');const daily=exchangeDay(dayFills,Date.now()),eq=Number(account.marginSummary.accountValue);const s={...last,paper:{...last.paper,cash:eq,equity:eq,position:null,entriesToday:daily.entries,lastEntryDay:new Date().toISOString().slice(0,10),dailyPnl:daily.pnl},limits:{...last.limits,max_margin:eq*.5}};const e=window.PaperPilot.evaluate(s);if(!e.candidate||e.status!=='eligible')throw Error('Aucun candidat Daily éligible : '+e.reasons.join(' '));const c=e.candidate;for(const [name,value] of Object.entries({side:c.side,quantity:c.quantity,leverage:c.leverage,stop:c.stop,target:c.target}))(form.elements.namedItem(name) as HTMLInputElement).value=String(value);status('Candidat Daily copié dans le formulaire. Examine le plan, puis signe pour envoyer à Hyperliquid.');}));
-window.addEventListener('axiom-state',((event:CustomEvent<Snapshot>)=>{last=event.detail;if(address&&!document.hidden&&!busy&&Date.now()-readAt>15000)read().catch(e=>status('Actualisation compte Hyperliquid : '+e.message));}) as EventListener);
+window.addEventListener('axiom-state',((event:CustomEvent<Snapshot>)=>{last=event.detail;if(address&&!document.hidden&&!busy&&Date.now()-readAt>15000)read().catch(e=>status('Actualisation compte Hyperliquid : '+e.message,true));}) as EventListener);
 render();
 window.ExchangeSnapshot=(s:Snapshot)=>{
  if(!account)return null;

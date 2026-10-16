@@ -1,11 +1,12 @@
 import {publishRunner} from './shared/runner-store';
-import type {EIP1193Provider} from 'viem';
+import {walletProvider,walletError} from './shared/wallet-provider';
 const $=(id:string)=>document.getElementById(id)!;
 const local=location.origin==='http://127.0.0.1:8766';
 const network=window.BrowserAtelier.environment?.id??'mainnet';
 let token='',current:any=null,busy=false,verified=false,reachable=false;
 const message=(text:string)=>{$('runner-status').textContent=text;};
-$('runner-mainnet-row').hidden=network!=='mainnet';
+$('runner-mainnet-row').hidden=!local||network!=='mainnet';
+(document.querySelector('.runner-actions') as HTMLElement).hidden=!local;
 async function request(path:string,body?:unknown){
  if(!local)throw Error('Service permanent non connecté. Ouvre OMEGA sur http://127.0.0.1:8766 après npm run bot.');
  if(!token){const response=await fetch('/api/live/session',{cache:'no-store'});if(!response.ok)throw Error('Session du service indisponible.');token=(await response.json()).token;}
@@ -32,11 +33,11 @@ function render(){
  if(state?.settings)$('runner-config').textContent='Service : '+state.settings.profile+' · levier maximal ×'+state.settings.leverage+'. Les réglages du formulaire sont appliqués au prochain démarrage.';
 }
 async function refresh(){current=await request('status');if(!verified&&current.owner){current=await request('verify',{});verified=true;}render();if(current.reason)message(current.reason);}
-async function run(fn:()=>Promise<void>){if(busy)return;busy=true;render();try{await fn();}catch(error){message(error instanceof Error?error.message:String(error));}finally{busy=false;render();}}
+async function run(fn:()=>Promise<void>){if(busy)return;busy=true;render();try{await fn();}catch(error){message(walletError(error));}finally{busy=false;render();}}
 $('runner-refresh').addEventListener('click',()=>run(refresh));
 $('runner-mainnet').addEventListener('change',render);
 $('runner-authorize').addEventListener('click',()=>run(async()=>{
- const provider=(window as Window & {ethereum?:EIP1193Provider}).ethereum;if(!provider)throw Error('Ouvre OMEGA permanent dans un navigateur avec MetaMask ou Rabby.');
+ const provider=walletProvider();if(!provider)throw Error('Ouvre OMEGA permanent dans un navigateur avec MetaMask ou Rabby.');
  const [address]=await provider.request({method:'eth_requestAccounts'});if(!address)throw Error('Aucun compte wallet autorisé.');
  current=await request('configure',{owner:address});
  if(current.network!==network||!/^0x[0-9a-fA-F]{40}$/.test(current.agent)||current.agent.toLowerCase()===address.toLowerCase())throw Error('Agent du service incohérent.');

@@ -83,3 +83,19 @@ it('reports a rejected cancellation without claiming that the order was cancelle
  await start();(dom.document.querySelector('#testnet-orders button') as any).click();await settle();
  expect(el('testnet-action-status').textContent).toBe('already filled');
 });
+
+it('publishes a verified wallet read without sending any trading action',async()=>{
+ await start();const {subscribeWallet}=await import('./shared/wallet-store');let state:any;subscribeWallet(s=>state=s);
+ expect(state).toMatchObject({network:'testnet',address:fake.accounts[0],equity:1000,busy:false,error:false});expect(state.readAt).toBeGreaterThan(0);
+ expect(fake.calls.some(x=>x[0]==='order'||x[0]==='leverage')).toBe(false);
+ const callback=(dom as any).ethereum.on.mock.calls.find((x:any)=>x[0]==='accountsChanged')[1];callback();
+ expect(state).toMatchObject({address:null,equity:null,readAt:0});
+});
+it('explains a rejected MetaMask connection and allows a retry without signing',async()=>{
+ (dom as any).BrowserAtelier={environment:{id:'testnet'},setAddress:vi.fn()};
+ (dom as any).ethereum={request:vi.fn().mockRejectedValueOnce({code:4001}).mockResolvedValue(fake.accounts),on:vi.fn()};
+ const module=await import('./exchange');await module.connectWallet();
+ expect(el('testnet-action-status').textContent).toContain('Demande refusée dans MetaMask');
+ await module.connectWallet();expect(el('testnet-wallet').textContent).toBe(fake.accounts[0]);
+ expect(fake.calls.some(x=>x[0]==='order'||x[0]==='leverage')).toBe(false);
+});
