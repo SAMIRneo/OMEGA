@@ -7,13 +7,15 @@ const $=(id:string)=>document.getElementById(id)!;
 const exchange=lazyModule(()=>import('./exchange'));
 const local=location.origin==='http://127.0.0.1:8766';
 const network=window.BrowserAtelier.environment?.id??'',label=network==='testnet'?'Testnet':'Mainnet';
-let wallet:WalletView|null=null,runner:RunnerView={connected:false},loading=false,loadError='';
+let wallet:WalletView|null=null,runner:RunnerView={connected:false},loading=false,loadError='',guided=false;
 function render(){
  const known=wallet?.network===network?wallet:null,read=!!known?.readAt,connected=!!known?.address,busy=loading||!!known?.busy,service=runner.connected&&runner.network===network,mismatch=!!(service&&known?.address&&runner.owner&&known.address.toLowerCase()!==runner.owner.toLowerCase());
  $('connect-network-name').textContent=label+(network==='testnet'?' · fonds de test':' · fonds réels');
  for(const button of document.querySelectorAll<HTMLButtonElement>('[data-connect-network]')){button.setAttribute('aria-pressed',String(button.dataset.connectNetwork===network));button.disabled=busy||!network;}
  for(const button of document.querySelectorAll<HTMLButtonElement>('[data-wallet-connect]')){button.disabled=busy||!network;(button.querySelector('[data-wallet-label]')??button).textContent=busy?'Patiente…':connected?'Reconnecter MetaMask':'Connecter MetaMask';}
  $('connect-address').textContent=known?.address??'Ton compte apparaîtra ici';
+ const accountCard=document.querySelector<HTMLElement>('.connect-account')!;accountCard.setAttribute('aria-busy',String(busy));accountCard.dataset.state=busy?'loading':known?.error||loadError?'error':read?'success':'idle';
+ if(read&&!guided){guided=true;($('connect-automation') as HTMLDetailsElement).open=true;}
  $('connect-wallet-state').textContent=busy?'Action en cours…':known?.error?'Connexion à vérifier':read?'Compte Hyperliquid lu':connected?'Wallet autorisé · lecture à terminer':'Wallet non connecté';
  $('connect-equity').textContent=read&&known?.equity!==null?formatNumber(known!.equity!,2)+' USDC':'—';
  $('connect-position').textContent=read?(known?.position?(known.position.size<0?'Short':'Long')+' · '+formatNumber(Math.abs(known.position.size),4)+' ETH':'Aucune position ETH'):'Connecte MetaMask pour consulter';
@@ -30,8 +32,8 @@ function render(){
  $('connect-ready-state').textContent=mismatch?'Vérifie le compte du service avant de démarrer.':!service?'Disponible après connexion du service':runner.active?'Bot automatique actif':runner.pending?'Envoi à vérifier':runner.owned?'Position sous surveillance':'Démarrage séparé, après autorisation';
  $('connect-service-help').hidden=local&&service;
  const step=$('connect-step-wallet');step.dataset.complete=String(read&&!known?.error);$('connect-step-agent').dataset.complete=String(service&&!!runner.approved&&!mismatch);$('connect-step-start').dataset.complete=String(service&&!!runner.active&&!mismatch);
- $('connect-manual').textContent=known?.position||known?.openOrders?'Gérer la position et les ordres ETH':'Préparer un ordre manuel';
- $('connect-next-label').textContent=mismatch?'Vérifier le compte dans les commandes du bot':service?(runner.approved?'Dernière étape : vérifier les réglages, puis démarrer':'Étape suivante : autoriser l’agent ci-dessous'):'Pour trader automatiquement : ouvrir OMEGA local';
+ $('connect-manual').textContent=known?.position||known?.openOrders?'Gérer la position ETH':'Ordre manuel';
+ $('connect-next-label').textContent=mismatch?'Vérifier le compte':service?(runner.approved?'Voir les commandes':'Autoriser l’agent'):'Configurer le service';
 }
 export async function connect(){
  if(loading)return;loading=true;loadError='';render();

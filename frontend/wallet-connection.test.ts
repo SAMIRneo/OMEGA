@@ -22,8 +22,9 @@ it('keeps wallet reads separate from approval and confirmed automation',async()=
  await import('./wallet-connection');const {publishWallet}=await import('./shared/wallet-store');const {publishRunner}=await import('./shared/runner-store');
  publishWallet({network:'testnet',address:'0x1111111111111111111111111111111111111111',busy:false,readAt:Date.now(),equity:1200,withdrawable:0,position:{size:-6,entry:2400},openOrders:2,message:'Compte lu',error:false});
  expect(el('connect-position').textContent).toContain('Short');expect(el('connect-position-note').hidden).toBe(false);expect(el('connect-step-wallet').dataset.complete).toBe('true');
+ expect((el('connect-automation') as HTMLDetailsElement).open).toBe(true);(el('connect-automation') as HTMLDetailsElement).open=false;
  expect(el('connect-step-agent').dataset.complete).toBe('false');expect(fake.connect).not.toHaveBeenCalled();
- publishRunner({connected:false,approved:true,active:true});expect(el('connect-step-start').dataset.complete).toBe('false');
+ publishRunner({connected:false,approved:true,active:true});expect((el('connect-automation') as HTMLDetailsElement).open).toBe(false);expect(el('connect-step-start').dataset.complete).toBe('false');
  publishRunner({connected:true,network:'testnet',approved:true,active:false});expect(el('connect-step-agent').dataset.complete).toBe('true');expect(el('connect-step-start').dataset.complete).toBe('false');
  publishRunner({connected:true,network:'testnet',owner:'0x2222222222222222222222222222222222222222',approved:true,active:true});expect(el('connect-step-agent').dataset.complete).toBe('false');expect(el('connect-agent-state').textContent).toContain('autre compte');
  publishWallet({network:'mainnet',address:null,busy:false,readAt:0,equity:9999,withdrawable:0,position:null,openOrders:0,message:'',error:false});expect(el('connect-equity').textContent).toBe('—');

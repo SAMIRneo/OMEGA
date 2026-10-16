@@ -43,7 +43,7 @@ Le graphe montre les responsabilités, pas une séquence d’envoi automatique d
 | Service Node | [server.ts](../runner/server.ts) | HTTP, session, clés, nonces, persistance, verrou de processus |
 | Automatisation | [engine.ts](../runner/engine.ts), [policy.ts](../runner/policy.ts) | État du pilote, revalidation, plan IOC, gestion de position |
 | Risque | [lib.rs](../rust-core/src/lib.rs), [runtime-risk.ts](../runner/runtime-risk.ts) | Noyau Rust/WASM et chargement Node |
-| Styles | [interface.css](../frontend/interface.css), [layout.css](../frontend/layout.css), [obsidian.css](../frontend/obsidian.css) | Point d’import, base en couche CSS et thème/priorités visuelles |
+| Styles | [interface.css](../frontend/interface.css), [layout.css](../frontend/layout.css), [obsidian.css](../frontend/obsidian.css) | Point d’import, base en couche CSS et thème/priorités visuelles ; tokens.css et polices locales pour la vue Bot |
 
 `frontend/legacy/` n’est pas une archive : plusieurs fichiers y sont exécutés. `testnet-plan.ts` conserve un nom historique mais `exchangePlan` gère explicitement testnet **et** mainnet. Son wrapper `testnetPlan` reste limité au testnet.
 

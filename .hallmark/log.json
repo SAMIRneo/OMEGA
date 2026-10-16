@@ -1,0 +1,15 @@
+[
+  {
+    "date": "2026-10-16",
+    "scope": "Bot view",
+    "macrostructure": "Workbench",
+    "theme": "OMEGA Obsidian (existing brand)",
+    "genre": "modern-minimal",
+    "tone": "austere technical",
+    "enrichment": "none; existing data visual retained",
+    "nav": "existing main navigation; Bot underline tabs",
+    "footer": "Ft2 inline rule",
+    "brief": "Connect MetaMask, inspect Hyperliquid account, authorize and operate the local runner",
+    "verification": "DOM and build checks; visual device verification unavailable"
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-16",
+  "scope": "Bot view",
+  "source": {
+    "fonts": "frontend/obsidian.css:3",
+    "palette": "frontend/obsidian.css:2",
+    "framework": "package.json:25",
+    "entry": "frontend/interface.css:1"
+  },
+  "framework": "Vite + DOM TypeScript/JavaScript",
+  "previousFonts": "Inter / Segoe UI, monospace; no installed font asset",
+  "motion": "No motion dependency; existing optional CSS orbit",
+  "preserve": [
+    "black background requested by user",
+    "stable routes and IDs",
+    "MetaMask and exchange lifecycle",
+    "confirmed runner state"
+  ],
+  "introduce": [
+    "local IBM Plex fonts",
+    "named tokens",
+    "account rail and command workspace",
+    "short labels; native automation disclosure"
+  ]
+}
