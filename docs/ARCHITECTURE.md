@@ -79,7 +79,7 @@ Le dossier `docs/archive/` archive des textes ; il ne déplace pas ces modules d
 - Le module de signature manuelle arrive à l’ouverture des outils manuels. L’autorisation d’un agent importe son propre SDK au clic.
 - Le proxy du graphique conserve le dernier rendu demandé avant l’arrivée de son module. `ChartBuffer` détecte les corrections de préfixe et recalcule les EMA à partir de la première modification.
 - Les lignes du carnet sont réutilisées. Les clés de rendu limitent les reconstructions des horizons, événements et positions.
-- La profondeur 3D est une projection Canvas, pas un rendu Three.js/WebGL. Les orbites du Bot utilisent CSS en perspective. Les animations sont locales et ne prennent aucune décision.
+- La profondeur 3D est une projection Canvas, pas un rendu Three.js/WebGL. Le Bot présente les horizons en lignes lisibles, sans scène décorative. Les animations du carnet sont locales et ne prennent aucune décision.
 
 ## Chemin d’une entrée Node
 
