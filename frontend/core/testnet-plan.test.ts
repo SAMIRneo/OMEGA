@@ -15,3 +15,11 @@ it('deduplicates partial entries and accounts for fees within the current UTC da
  expect(exchangeDay([f,{...f},{...f,dir:'Close Long',oid:2,closedPnl:'-10'},{...f,time:now-86400000,oid:3}],now)).toMatchObject({entries:1,pnl:-11.5});
  expect(()=>exchangeDay(Array(2000).fill(f),now)).toThrow();expect(()=>exchangeDay([{...f,fee:'bad'}],now)).toThrow();
 });
+it('rejects malformed exchange metadata, direction and client order IDs',()=>{
+ for(const change of [{maxLeverage:NaN},{maxLeverage:0},{asset:-1},{asset:1.5},{szDecimals:7},{szDecimals:NaN},{side:'other'},{cloid:'bad'}])expect(()=>testnetPlan({...input(),...change} as any)).toThrow('Métadonnées');
+});
+it('requires a filled entry and recognized contingent protections before confirming the bracket',()=>{
+ const filled={filled:{oid:1,totalSz:'.02',avgPx:'2400'}},response=(statuses:unknown[])=>({status:'ok',response:{data:{statuses}}});
+ for(const statuses of [['waitingForFill','waitingForFill','waitingForFill'],[filled,{},'waitingForFill'],[{filled:{oid:1,totalSz:'NaN'}},'waitingForFill','waitingForFill']])expect(exchangeStatus(response(statuses)).protected).toBe(false);
+ expect(exchangeStatus(response([filled,'waitingForFill','waitingForTrigger'])).protected).toBe(true);
+});

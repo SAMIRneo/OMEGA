@@ -1,6 +1,6 @@
 # Documentation active
 
-Documentation de la version logicielle `1.2.0`, revue le 16 octobre 2026. Elle vise un développeur ou un agent n’ayant aucun historique du projet.
+Documentation de la version logicielle `1.2.0`, revue le 17 octobre 2026. Elle vise un développeur ou un agent n’ayant aucun historique du projet.
 
 ## Parcours de lecture
 
@@ -22,6 +22,7 @@ Documentation de la version logicielle `1.2.0`, revue le 16 octobre 2026. Elle v
 | OPERATIONS | Exploitation et API locale | Le cycle de vie, un endpoint ou la persistance change |
 | STRATEGY | Décision et limites par mode | Un seuil, coût, profil ou chemin d’ordre change |
 | STATUS | Preuves, limites et prochaine étape | Une capacité est ajoutée ou une validation réalisée |
+| [AUDIT.md](AUDIT.md) | Constats, corrections et périmètre de l’audit du 17 octobre | Une nouvelle passe d’audit change ses résultats |
 
 Éviter de recopier les mêmes détails dans plusieurs fichiers. Les chemins ci-dessus sont la documentation courante. Le code et le lockfile établissent le comportement implémenté ; une divergence documentaire doit être signalée et corrigée.
 

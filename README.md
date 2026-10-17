@@ -66,6 +66,7 @@ Donner à l’agent **le dépôt complet**, puis lui demander de commencer par [
 | Garanties et limites mainnet/testnet | [Réseaux](docs/NETWORKS.md) |
 | Comprendre les règles, unités et différences d’exécution | [Stratégie](docs/STRATEGY.md) |
 | État réel, preuves et travaux restant à faire | [État du projet](docs/STATUS.md) |
+| Constats, corrections et limites de l’audit technique | [Audit du 17 octobre](docs/AUDIT.md) |
 
 Les anciens documents ont été déplacés dans `docs/archive/`. Ils n’ont pas autorité sur la version actuelle.
 

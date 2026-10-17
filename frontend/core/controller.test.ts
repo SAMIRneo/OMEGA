@@ -28,3 +28,19 @@ it('isolates testnet controller logs from mainnet',async()=>{
  expect(saved).toHaveBeenCalledWith('axiom-daily-events-v1-testnet',expect.any(String));
  expect(saved).not.toHaveBeenCalledWith('axiom-daily-events-v1',expect.anything());
 });
+
+it('invalidates an old validation when the controller is stopped and armed again',async()=>{
+ const {controller}=await import('./controller');controller.start(sample());let release!:(s:Snapshot)=>void;
+ const open=vi.fn(),pending=controller.tick(next(),open,()=>new Promise(resolve=>{release=resolve}));
+ controller.stop();controller.start(sample());release(next());await pending;
+ expect(controller.state.active).toBe(true);expect(open).not.toHaveBeenCalled();
+});
+it('invalidates a validation suspended while the final snapshot is pending',async()=>{
+ const {controller}=await import('./controller');controller.start(sample());let release!:(s:Snapshot)=>void;
+ const open=vi.fn(),pending=controller.tick(next(),open,()=>new Promise(resolve=>{release=resolve}));
+ controller.suspend();release(next());await pending;expect(open).not.toHaveBeenCalled();
+});
+it('blocks automatic entries when the shared candle journal is corrupted',async()=>{
+ const {controller}=await import('./controller');controller.start(sample());localStorage.setItem('axiom-daily-evaluation-v1','broken');
+ const open=vi.fn();await controller.tick(next(),open);expect(open).not.toHaveBeenCalled();expect(controller.state.reason).toContain('Journal de clôtures illisible');
+});

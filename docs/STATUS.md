@@ -95,3 +95,9 @@ Les commandes et le compte sont regroupés au-dessus des onglets Suivi/Réglages
 Les boutons techniques d’autorisation/démarrage restent les cibles internes des contrôles existants ; une seule action principale est présentée. Le réseau, les consentements, les refus d’opérations concurrentes et l’incertitude des envois restent conservés. Le guide local et les diagnostics sont disponibles sans occuper la vue principale. Les anciennes explications de simulation à une entrée et allocation fixe ont été corrigées.
 
 Validation : 126 tests Vitest et 20 tests moteur navigateur/VM, builds web/Node et contrôle HTTP isolé. Tests spécifiques de consentement mainnet, déclenchement uniquement au clic et attente pendant une opération. Aucun fonds engagé. Rendu graphique sur navigateur et iPhone physique non contrôlé dans cet environnement.
+
+## Audit correctif — 17 octobre 2026
+
+[Rapport d’audit](AUDIT.md) : surveillance découplée des bougies/fills et du quota d’entrée, rapprochement limité aux quantités et au sens attribuables, confirmation stricte des brackets, conservation du pending manuel partiel, invalidation des anciennes validations paper et validation des métadonnées/journaux.
+
+Validation : `npm run check` passé avec 136 tests Vitest + 20 tests navigateur/VM, builds typés et contrôle HTTP isolé. Dépendances Python installées dans un environnement temporaire : 18 tests passés. `npm audit` ne signale aucune vulnérabilité connue. Cargo absent : tests Rust non exécutés. Aucun fonds engagé, aucune validation graphique ou rentabilité démontrée. Le service Node local doit être mis à jour pour appliquer les corrections d’exécution.
