@@ -15,7 +15,7 @@ afterEach(()=>{dom.happyDOM.abort();vi.unstubAllGlobals();});
 it('offers a visible wallet entry without probing localhost or requesting wallet access on load',async()=>{
  await import('./wallet-connection');expect(fetch).not.toHaveBeenCalled();expect(fake.connect).not.toHaveBeenCalled();
  expect(el('connect-wallet-state').textContent).toBe('Wallet non connecté');expect(el('connect-wallet-help').hidden).toBe(false);
- expect(el('connect-service-state').textContent).toContain('service local requis');expect(el('connect-service-help').hidden).toBe(false);
+ expect(el('connect-service-state').textContent).toContain('Mode web');expect(el('connect-service-help').hidden).toBe(true);
  expect(el('wallet-short')).not.toBeNull();expect(dom.document.querySelector('[data-connect-network="testnet"]')?.getAttribute('aria-pressed')).toBe('true');
 });
 it('keeps wallet reads separate from approval and confirmed automation',async()=>{
@@ -51,7 +51,7 @@ it('connects from the primary local action and never authorizes or arms just fro
  expect(el('next-step-title').textContent).toBe('Connecter MetaMask');
  (el('next-step-action') as any).click();await vi.dynamicImportSettled();expect((el('account-disclosure') as HTMLDetailsElement).open).toBe(true);expect(fake.connect).toHaveBeenCalledTimes(1);
  publishWallet({network:'testnet',address:'0x1111111111111111111111111111111111111111',busy:false,readAt:Date.now(),equity:1200,withdrawable:0,position:null,openOrders:0,message:'Compte lu',error:false});
- expect(el('next-step-title').textContent).toBe('Ouvrir OMEGA local');
+ expect(el('next-step-title').textContent).toBe('Vérifier OMEGA local');
  (el('next-step-action') as any).click();expect((el('connect-service-help') as HTMLDetailsElement).open).toBe(true);
  publishRunner({connected:true,network:'testnet',approved:true,active:false});expect(el('next-step-action').dataset.target).toBe('ready');
  publishRunner({connected:true,network:'testnet',approved:true,pending:true});expect(el('next-step-action').dataset.target).toBe('pending');
@@ -83,8 +83,7 @@ it('restores only a previously remembered session, without another connection re
  expect(fake.restore).toHaveBeenCalledOnce();expect(fake.connect).not.toHaveBeenCalled();expect(fetch).not.toHaveBeenCalled();
 });
 
-it('guides first-time public visitors to local setup before requesting MetaMask access',async()=>{
- await import('./wallet-connection');expect(el('next-step-action').dataset.target).toBe('service');
- (el('next-step-action') as any).click();expect((el('connect-service-help') as HTMLDetailsElement).open).toBe(true);
- expect(fake.connect).not.toHaveBeenCalled();expect(fake.restore).not.toHaveBeenCalled();
+it('offers direct web connection without requiring a local installation',async()=>{
+ await import('./wallet-connection');expect(el('next-step-action').dataset.target).toBe('wallet');
+ (el('next-step-action') as any).click();await vi.dynamicImportSettled();expect(fake.connect).toHaveBeenCalledOnce();expect(el('connect-service-help').hidden).toBe(true);
 });

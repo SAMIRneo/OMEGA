@@ -8,9 +8,9 @@ export function horizonReading(snapshot:Snapshot,tf:Timeframe){
  return {trend,fresh,rsi:fresh&&Number.isFinite(value?.rsi)?value!.rsi!:null};
 }
 export function executionLabel(state:RunnerView){
- if(!state.connected)return {label:'NON RELIÉ',tone:'offline',detail:'Le service permanent n’a pas confirmé son état.'};
+ if(!state.connected)return {label:'NON RELIÉ',tone:'offline',detail:'Le moteur n’a pas confirmé son état.'};
  if(state.pending)return {label:'À VÉRIFIER',tone:'blocked',detail:'Un envoi exchange doit être réconcilié.'};
- if(state.active)return {label:'PILOTE ACTIF',tone:'live',detail:'État reçu du service permanent.'};
+ if(state.active)return {label:'PILOTE ACTIF',tone:'live',detail:'État confirmé du moteur d’exécution.'};
  if(state.owned)return {label:'SURVEILLANCE',tone:'watch',detail:'Position du bot sous surveillance, entrées arrêtées.'};
  return {label:'À L’ARRÊT',tone:'idle',detail:state.approved?'Agent autorisé ; armement manuel requis.':'L’agent doit être autorisé sur ce réseau.'};
 }

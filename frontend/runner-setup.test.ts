@@ -3,6 +3,7 @@ import {Window} from 'happy-dom';
 import {readFileSync} from 'node:fs';
 const fake=vi.hoisted(()=>({signatures:[] as any[],rejectMain:false}));
 vi.mock('@nktkas/hyperliquid',()=>({HttpTransport:class{isTestnet:boolean;constructor(o:any){this.isTestnet=o.isTestnet}},ExchangeClient:class{options:any;constructor(o:any){this.options=o}async approveAgent(p:any){const n=this.options.transport.isTestnet?'testnet':'mainnet';fake.signatures.push({network:n,...p});if(n==='mainnet'&&fake.rejectMain)throw {code:4001};states[n].approved=true;states[n].approvedUntil=Date.now()+30*86400000;}}}));
+vi.mock('./web/runner',()=>({browserRequest:vi.fn(async(path:string,body:any,n:string)=>{calls.push({path:'web/'+path+'?network='+n,body});if(path==='configure'){states[n].owner=body.owner;states[n].approved=false;}if(path==='arm')states[n].active=true;return {...states[n],mode:'web'};})}));
 const owner='0x1111111111111111111111111111111111111111';
 let dom:Window,states:Record<string,any>,calls:{path:string;body:any}[],permission:ReturnType<typeof vi.fn>,restarted=false;
 const el=(id:string)=>dom.document.getElementById(id)!;
@@ -43,4 +44,12 @@ it('can configure only the selected network and renews a stale local HTTP sessio
  (el('runner-authorize') as any).click();await settle();expect(fake.signatures.map(x=>x.network)).toEqual(['testnet']);
  const previous=calls.filter(x=>x.path.endsWith('/session')).length;restarted=true;(el('runner-refresh') as any).click();await settle();
  expect(calls.filter(x=>x.path.endsWith('/session'))).toHaveLength(previous+1);expect(el('runner-service').textContent).toContain('Connecté');
+});
+
+it('authorizes both networks and explicitly starts from the hosted page without a local service',async()=>{
+ dom.location.href='https://omega.test/#pilot';(dom as any).BrowserAtelier.environment.id='mainnet';await import('./runner-ui');await settle();
+ expect(el('web-mode-note').hasAttribute('hidden')).toBe(false);expect(el('runner-mainnet-row').hasAttribute('hidden')).toBe(false);(el('runner-authorize') as any).click();await settle();
+ expect(fake.signatures.map(x=>x.network)).toEqual(['testnet','mainnet']);expect(fake.signatures.every(x=>x.agentName.startsWith('OMEGAweb-'))).toBe(true);expect(fetch).not.toHaveBeenCalled();
+ expect((el('runner-start') as any).disabled).toBe(true);(el('runner-mainnet') as any).checked=true;el('runner-mainnet').dispatchEvent(new dom.Event('change'));(el('runner-start') as any).click();await settle();
+ expect(calls.find(x=>x.path==='web/arm?network=mainnet')?.body.consent).toBe('MAINNET');expect(states.mainnet.active).toBe(true);expect(fetch).not.toHaveBeenCalled();
 });

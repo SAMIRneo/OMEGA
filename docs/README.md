@@ -21,6 +21,7 @@ Documentation de la version logicielle `1.2.0`, revue le 17 octobre 2026. Elle v
 | DEVELOPMENT | Commandes, tests et tâches | Un script, build ou processus de validation change |
 | OPERATIONS | Exploitation et API locale | Le cycle de vie, un endpoint ou la persistance change |
 | STRATEGY | Décision et limites par mode | Un seuil, coût, profil ou chemin d’ordre change |
+| [WEB.md](WEB.md) | Parcours depuis le lien, coffre web et limites | Le runtime web ou son stockage change |
 | [DATA.md](DATA.md) | Données conservées, export, copies et récupération | Une politique de persistance ou son format change |
 | STATUS | Preuves, limites et prochaine étape | Une capacité est ajoutée ou une validation réalisée |
 | [AUDIT.md](AUDIT.md) | Constats, corrections et périmètre de l’audit du 17 octobre | Une nouvelle passe d’audit change ses résultats |

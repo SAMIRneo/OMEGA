@@ -27,25 +27,25 @@ function render(){
  $('connect-equity').textContent=read&&known?.equity!==null?formatNumber(known!.equity!,2)+' USDC':'—';
  $('connect-position').textContent=read?(known?.position?(known.position.size<0?'Short':'Long')+' · '+formatNumber(Math.abs(known.position.size),4)+' ETH':'Aucune position ETH'):'Connecte MetaMask pour consulter';
  $('connect-read-time').textContent=read?'Dernière lecture '+new Date(known!.readAt).toLocaleTimeString('fr-FR')+' · '+label:'Compte perpétuel · lecture seule';
- $('connect-feedback').textContent=loadError||known?.message||(local?'Le compte est mémorisé sur ce navigateur. La reprise ne signe ni ne démarre le bot.':'Pour le bot automatique, connecte-toi dans OMEGA local : les permissions du site public et du service local sont distinctes.');
+ $('connect-feedback').textContent=loadError||known?.message||'Le compte est mémorisé sur ce navigateur. La connexion ne signe aucun ordre et ne démarre pas le bot.';
  $('connect-feedback').dataset.tone=loadError||known?.error?'error':'info';
  $('connect-wallet-help').hidden=!!walletProvider();
  ($('connect-refresh') as HTMLButtonElement).disabled=busy||!read;
  ($('connect-disconnect') as HTMLButtonElement).disabled=busy||!connected;
  $('connect-position-note').hidden=!known?.position&&!known?.openOrders;
  $('connect-position-note').textContent=known?.position?'Une position ETH existe déjà. Consulte-la avant toute nouvelle entrée.':known?.openOrders?'Des ordres ETH sont déjà ouverts. Consulte leurs protections avant de poursuivre.':'';
- $('connect-service-state').textContent=service?'Service local connecté':local?'Service local à vérifier':'Automatisation : service local requis';
- $('connect-agent-state').textContent=mismatch?'Le service utilise un autre compte : '+runner.owner+'. Vérifie le compte avant de continuer.':service?(runner.approved?'Agent autorisé sur '+label:'Autorisation MetaMask à signer'):'OMEGA local requis';
+ $('connect-service-state').textContent=service?(local?'Service local connecté':'Mode web prêt · cet onglet'):local?'Service local à vérifier':'Mode web à vérifier';
+ $('connect-agent-state').textContent=mismatch?'Le service utilise un autre compte : '+runner.owner+'. Vérifie le compte avant de continuer.':service?(runner.approved?'Agent autorisé sur '+label:'Autorisation MetaMask à signer'):'Connexion du moteur à vérifier';
  $('connect-ready-state').textContent=mismatch?'Vérifie le compte du service avant de démarrer.':!service?'Après autorisation':runner.active?'Bot automatique actif':runner.pending?'Envoi à vérifier':runner.owned?'Position sous surveillance':'Démarrage séparé, après autorisation';
- $('connect-service-help').hidden=local&&service;
+ $('connect-service-help').hidden=!local||service;document.querySelector<HTMLElement>('.connect-service-note')!.hidden=!local;
  const step=$('connect-step-wallet');step.dataset.complete=String(read&&!known?.error);$('connect-step-agent').dataset.complete=String(service&&!!runner.approved&&!mismatch);$('connect-step-start').dataset.complete=String(service&&!!runner.active&&!mismatch);
  $('connect-manual').textContent=known?.position||known?.openOrders?'Gérer la position ETH':'Ordre manuel';
  $('connect-next-label').textContent=mismatch?'Vérifier le compte':service?(runner.approved?'Voir les commandes':'Autoriser l’agent'):'Configurer le service';
- const state=!local&&!read?'service':!read||known?.error||loadError?'wallet':mismatch?'mismatch':!service?'service':runner.pending?'pending':runner.active?'active':runner.owned?'owned':!runner.approved?'authorize':'ready';
+ const state=!read||known?.error||loadError?'wallet':mismatch?'mismatch':!service?'service':runner.pending?'pending':runner.active?'active':runner.owned?'owned':!runner.approved?'authorize':'ready';
  const guidance={
   wallet:['Connecter MetaMask','Lecture du compte uniquement. Aucun ordre à cette étape.','Connecter MetaMask'],
   mismatch:['Vérifier le compte du service','Le service et le wallet utilisent des comptes différents.','Vérifier le compte'],
-  service:['Ouvrir OMEGA local',read?'Compte connecté. Pour autoriser le bot, ouvre OMEGA sur ton ordinateur.':'Pour une seule connexion et les deux réseaux, commence dans OMEGA local.','Installer ou ouvrir OMEGA local'],
+  service:[local?'Vérifier OMEGA local':'Vérifier le mode web',local?'Le service local doit être disponible.':'Les contrôles du navigateur doivent être disponibles pour autoriser le bot.','Vérifier la connexion'],
   pending:['Vérifier le dernier envoi','Un ordre attend un rapprochement. Vérifiez son état avant toute nouvelle entrée.','Voir la vérification'],
   active:['Le pilote est actif','Le service confirme son activité. Les événements sont disponibles dans Activité.','Voir l’activité'],
   owned:['Une position est sous surveillance','Les nouvelles entrées sont arrêtées ; le service surveille la position attribuée au bot.','Voir le compte'],
@@ -87,7 +87,7 @@ $('connect-manual').addEventListener('click',()=>{
 });
 $('next-step-action').addEventListener('click',()=>{
  const state=$('next-step-action').dataset.target;
- if(state==='service'){($('connect-local-guide') as HTMLButtonElement).click();return;}
+ if(state==='service'){($(local?'connect-local-guide':'runner-refresh') as HTMLButtonElement).click();return;}
  if(state==='active'){($('bot-tab-activity') as HTMLButtonElement).click();$('bot-tab-activity').focus();return;}
  if(state==='owned'){location.hash='wallet';return;}
  if(state==='wallet'){void connect();return;}

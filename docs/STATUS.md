@@ -14,9 +14,10 @@ Revue documentaire : **17 octobre 2026**. Version logicielle : `1.2.0` dans `pac
 | Recherche | Replay récent en Worker, deux hypothèses de coûts, CSV |
 | Paper web | Compte local et contrôleur de clôtures avec Web Locks |
 | Exchange manuel | Wallet EIP-1193, testnet/mainnet, lot IOC + SL/TP et rapprochement |
+| Bot web | Configuration et armement depuis le lien, coffre chiffré, même LiveEngine ; onglet visible et appareil éveillé |
 | Automatisation Node | Agent dédié, session intraday, jusqu’à 4 tentatives, pause 30 min, objectif réalisé et réservation durable |
 | Python/MCP | Compatibilité recherche/paper ; aucune mutation exchange réelle |
-| Documentation | README court, AGENTS, cinq guides actifs, archives identifiées et contrôle automatisé des liens/commandes |
+| Documentation | README court, AGENTS, guides actifs, archives identifiées et contrôle automatisé des liens/commandes |
 
 ## Preuves disponibles
 
@@ -55,6 +56,8 @@ Ces lignes décrivent du travail restant, pas des capacités déjà acquises. Un
 ## Pour reprendre immédiatement
 
 Lire AGENTS → ARCHITECTURE → DEVELOPMENT, lancer `npm ci` si nécessaire puis `npm run check`. Choisir ensuite une tâche de portée bornée. Pour comprendre une décision, consulter STRATEGY et la source ; pour une panne de service, OPERATIONS. Ne pas utiliser les archives comme contrat actuel.
+
+Les sections datées suivantes décrivent des jalons successifs ; le dernier jalon précise les évolutions récentes.
 
 ## Nettoyage du 17 octobre 2026
 
@@ -117,3 +120,13 @@ Validation : `npm run check` passé avec **144 tests Vitest + 20 tests navigateu
 Les ledgers Node sont validés et écrits atomiquement avec copie `.bak`, révision/date et permissions POSIX. Les réglages du dernier armement sont rechargés sans armer le moteur. Un fichier absent avec sauvegarde présente ou un état corrompu bloque le démarrage plutôt que de régénérer une identité. Une panne de sauvegarde désarme les entrées ; un échec de réservation ne transmet pas d’ordre et l’échec du journal ne provoque pas de rejet de tick non géré.
 
 Validation : `npm run check` passé avec **157 tests Vitest + 23 tests navigateur/VM**, builds typés et contrôle HTTP réel incluant arrêt/redémarrage, agent identique, pending/quota/réglages conservés et token renouvelé. Aucun ordre ou agent financé utilisé. Le guide [DATA.md](DATA.md) précise les exclusions, limites, copies hors disque et récupération manuelle. Aucun stockage cloud personnel ni import automatique d’anciennes sauvegardes n’est livré. Rendu graphique et parcours MetaMask réel non vérifiés dans cet environnement.
+
+## Exécution depuis le lien — 17 octobre 2026
+
+Le site publié propose maintenant le bot web : connecter MetaMask, configurer les deux réseaux, régler et armer depuis la page, sans service local obligatoire. Les agents web portent des noms distincts de Node, limités à 16 caractères avant le suffixe d’expiration. Les agents valides sont repris et chaque réseau reste autorisé séparément. Mainnet exige toujours son consentement explicite et le compte MetaMask propriétaire est revérifié au démarrage.
+
+LiveEngine est partagé entre Node et navigateur ; ses sauvegardes peuvent être asynchrones et sont attendues. Le coffre IndexedDB chiffre le ledger complet en AES-GCM avec clé de chiffrement non extractible via Web Crypto, révisions vérifiées et génération précédente chiffrée. Les clés d’agents restent hors localStorage, statuts et exports. Un lock d’exécution par réseau et un contrôle final au transport empêchent un second onglet ou une entrée tardive après arrêt/masquage de la page. Aucun moteur cloud permanent n’est ajouté.
+
+La fermeture, le masquage ou le changement de compte stoppe les nouvelles entrées ; recharger reste désarmé et conserve les incertitudes. Les protections exchange persistent, mais leur surveillance locale dépend de l’onglet et de l’appareil. Le chiffrement ne protège pas d’un code compromis sur la même origine et le coffre n’est pas exporté. Les règles de risque, réservations, refus de renvoi et contrôles mainnet/testnet sont conservés. Le parcours et les limites sont dans [WEB.md](WEB.md).
+
+Validation : `npm run check` passé avec **171 tests Vitest + 23 tests navigateur/VM**, builds web/Node typés et contrôle HTTP avec redémarrage. Les tests additionnels couvrent coffre chiffré, clé non extractible, corruption, mauvais réseau, écrivain périmé, transaction échouée, agents distincts, armement mainnet, commit avant transmission, onglet masqué, cycle de page, compte modifié et UI publique sans localhost. Signatures/noms web validés hors ligne via le SDK réel. `npm audit` signale 0 vulnérabilité connue. Aucun fonds, permission MetaMask réelle ou ordre exchange utilisé. QA graphique/extension et parcours financé de bout en bout non réalisés ; tests Rust non exécutés.

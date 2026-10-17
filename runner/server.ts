@@ -53,7 +53,7 @@ const server=createServer(async(req,res)=>{
     case '/api/live/configure':await engine.configure(input.owner);engine.ledger.key=generatePrivateKey();engine.ledger.nonce=0;register(network,engine.ledger);send(200,engines[network].status());return;
     case '/api/live/verify':await engine.verifyApproval();break;
     case '/api/live/arm':await engine.arm(input.settings,input.consent);break;
-    case '/api/live/stop':engine.stop();break;
+    case '/api/live/stop':await engine.stop();break;
     case '/api/live/reconcile':await engine.reconcile();break;
     default:send(404,{error:'Endpoint inconnu.'});return;
    }
