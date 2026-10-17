@@ -8,7 +8,8 @@ OMEGA is an ETH/Hyperliquid research terminal with browser paper trading, manual
 2. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): ownership, data flows, source map and contracts.
 3. [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): commands, checks and task recipes.
 4. [docs/STATUS.md](docs/STATUS.md): verified capabilities, gaps and next work.
-5. Read [docs/OPERATIONS.md](docs/OPERATIONS.md) for lifecycle/API changes, or [docs/STRATEGY.md](docs/STRATEGY.md) for rules/risk changes.
+5. For network/signing/account changes, read [docs/NETWORKS.md](docs/NETWORKS.md). Use `frontend/core/networks.js` as the only endpoint/signing-network configuration. Preserve session revision guards, explicit network response validation and per-network ledger identities.
+6. Read [docs/OPERATIONS.md](docs/OPERATIONS.md) for lifecycle/API changes, or [docs/STRATEGY.md](docs/STRATEGY.md) for rules/risk changes.
 
 `docs/archive/` is historical context only. Source code and the lockfile establish implemented behavior; update documentation when it disagrees. Do not change code to match an obsolete document.
 

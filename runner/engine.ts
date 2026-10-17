@@ -4,7 +4,7 @@ import {features} from '../frontend/core/indicators.js';
 import {formatPrice,formatSize} from '@nktkas/hyperliquid/utils';
 import {reservedAttempts,canEvaluate,validBook,validCandles,exchangeDay,exchangePlan,exchangeStatus,bracketConfirmed,assertNoExposure,autoPlan,validateSettings,type Network} from './policy';
 import type {Snapshot,RustRisk,Indicator} from '../frontend/core/types';
-export interface Ledger {owner:`0x${string}`|null;key:`0x${string}`;nonce:number;attemptDay:string;attemptCount?:number;lastAttemptAt?:number;lastExitAt?:number;pending:{cloid:`0x${string}`;at:number}|null;owned:boolean;protectionIds?:number[];protectionCloids?:string[];ownedSide?:'long'|'short';ownedQuantity?:number;events:{at:number;message:string}[]}
+export interface Ledger {network?:Network;owner:`0x${string}`|null;key:`0x${string}`;nonce:number;attemptDay:string;attemptCount?:number;lastAttemptAt?:number;lastExitAt?:number;pending:{cloid:`0x${string}`;at:number}|null;owned:boolean;protectionIds?:number[];protectionCloids?:string[];ownedSide?:'long'|'short';ownedQuantity?:number;events:{at:number;message:string}[]}
 export class LiveEngine {
  private candleCache=new Map<string,{at:number;bars:any[]}>();
  active=false;busy=false;generation=0;armedAt=0;lastBar=0;heartbeat=0;approved=false;reason='À l’arrêt.';failures=0;retryAt=0;equity:number|null=null;
@@ -13,7 +13,7 @@ export class LiveEngine {
  log(message:string){this.reason=message;this.ledger.events.push({at:Date.now(),message});this.ledger.events=this.ledger.events.slice(-100);this.save();}
  stop(){this.generation++;this.active=false;this.log('Entrées arrêtées. Les protections exchange et la surveillance de la position du bot restent actives.');}
  async verifyApproval(){if(!this.ledger.owner){this.approved=false;return false;}const agents=await this.info.extraAgents({user:this.ledger.owner});this.approved=agents.some((a:any)=>a.address.toLowerCase()===this.agent.toLowerCase()&&(a.validUntil===null||a.validUntil>Date.now()+60000));return this.approved;}
- async configure(owner:`0x${string}`){if(this.busy||this.active||this.ledger.owned||this.ledger.pending)throw Error('Arrête le bot et résous sa position ou son envoi avant de changer de compte.');if(!/^0x[0-9a-fA-F]{40}$/.test(owner)||/^0x0{40}$/.test(owner))throw Error('Adresse de compte invalide.');this.ledger.owner=owner;this.approved=false;this.save();}
+ async configure(owner:`0x${string}`){if(this.busy||this.active||this.ledger.owned||this.ledger.pending)throw Error('Arrête le bot et résous sa position ou son envoi avant de changer de compte.');if(!/^0x[0-9a-fA-F]{40}$/.test(owner)||/^0x0{40}$/.test(owner))throw Error('Adresse de compte invalide.');this.ledger.owner=owner.toLowerCase() as `0x${string}`;this.approved=false;this.save();}
  async arm(settings:unknown,consent:unknown){
   if(this.busy||this.active)throw Error('Moteur occupé.');if(this.ledger.pending||this.ledger.owned)throw Error('Position ou envoi du bot à vérifier.');
   if(this.network==='mainnet'&&consent!=='MAINNET')throw Error('Autorisation MAINNET requise.');

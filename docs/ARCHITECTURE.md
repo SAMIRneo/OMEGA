@@ -34,6 +34,7 @@ Le graphe montre les responsabilités, pas une séquence d’envoi automatique d
 | Indicateurs / plans | [indicators.js](../frontend/core/indicators.js), [plan.ts](../frontend/core/plan.ts), [testnet-plan.ts](../frontend/core/testnet-plan.ts) | Calculs clôturés, plan paper, plan exchange sur les deux réseaux |
 | Simulation automatique | [controller.ts](../frontend/core/controller.ts) | Armement paper navigateur, nouvelles clôtures, Web Locks |
 | Stores | [market-store.ts](../frontend/shared/market-store.ts), [runner-store.ts](../frontend/shared/runner-store.ts) | Dernier snapshot observé ; état confirmé du service |
+| Réseaux | [networks.js](../frontend/core/networks.js) | Définitions REST/WS immuables, transport signé et refus des incohérences |
 | Connexion wallet | [wallet-connection.ts](../frontend/wallet-connection.ts), [wallet-store.ts](../frontend/shared/wallet-store.ts), [wallet-provider.ts](../frontend/shared/wallet-provider.ts) | Parcours visible, prochaine étape et dépliage du compte, session de lecture/signature partagée, sélection MetaMask EIP-6963 ; aucun armement à la connexion |
 | Présentation | [workspace.ts](../frontend/workspace.ts), [bot-dashboard.ts](../frontend/bot-dashboard.ts), [bot-view.ts](../frontend/core/bot-view.ts) | Diagnostic, journal, sous-onglets Bot et lectures des horizons |
 | Exchange manuel | [exchange.ts](../frontend/exchange.ts) | Connexion wallet, plan, signatures, lecture et rapprochement |
@@ -131,3 +132,5 @@ La surveillance de la position attribuée au bot est distincte de l’armement d
 ## Réservations intraday
 
 Le ledger conserve `attemptDay`, `attemptCount` et `lastAttemptAt` et `lastExitAt` (secondes). Un ancien ledger sans compteur mais avec une date d’essai conserve une tentative consommée. Le compteur est écrit avec le pending/cloid avant l’envoi. Réconciliation et redémarrage ne le remettent pas à zéro. Le service compare le nombre de fills d’entrée du compte au compteur local et retient leur maximum ; il n’offre pas de quota global transactionnel entre logiciels indépendants.
+
+La matrice des réseaux, schémas de signature et garde-fous de concurrence est décrite dans [NETWORKS.md](NETWORKS.md).

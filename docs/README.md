@@ -30,3 +30,5 @@ Documentation de la version logicielle `1.2.0`, revue le 16 octobre 2026. Elle v
 [archive/README.md](archive/README.md) indexe les notes antérieures. Leur vocabulaire, anciens capitaux/leviers, chemins `public/` ou `web/`, noms Atelier et conclusions de tests appartiennent à leur version. Ils ne doivent pas servir de procédure de lancement ou d’instructions à un agent actuel.
 
 L’archive de documentation externe produite par `python sync_docs.py` va dans `docs/official/`, ignoré par Git. Elle contient des captures de sources, pas des spécifications internes ni une preuve de revue à jour.
+
+Pour les modifications de réseau, signature, identité de compte ou journal exchange : lire [Mainnet et testnet](NETWORKS.md).

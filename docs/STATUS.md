@@ -79,3 +79,11 @@ La scène 3D Marché et ses contrôles sont supprimés. La courbe SVG utilise le
 La nouvelle politique n’a pas été validée sur compte financé, en testnet de bout en bout, en simulation historique réelle hors échantillon ni sur iPhone physique. Le moteur Python/MCP garde ses règles paper historiques.
 
 Validation de la politique intraday : `npm run check` réussi (109 tests Vitest, 19 tests moteur navigateur/VM, builds web et Node typés, contrôle HTTP du service dans un dossier temporaire). Les tests couvrent les arrêts de session, le refroidissement inter-opérations, le budget restant, la migration des compteurs et l’absence de renvoi automatique. Aucun wallet financé ni ordre exchange utilisé.
+
+## Durcissement mainnet/testnet — 17 octobre 2026
+
+Configuration réseau partagée et immuable ; refus des identifiants/endpoints incohérents, réponses du service validées, binding réseau des ledgers, agents obligatoirement distincts, signatures inter-onglets sérialisées, compte primaire revérifié, lectures périmées invalidées après déconnexion et journaux pending validés. Aucun changement du mandat de risque intraday.
+
+Lectures publiques ETH : HTTP 200 sur mainnet et testnet. La signature MetaMask réelle et les ordres sur comptes financés restent non validés de bout en bout. Les contrats et preuves sont détaillés dans [NETWORKS.md](NETWORKS.md).
+
+Validation de cette passe réseau : `npm run check` réussi, **124 tests Vitest + 20 tests moteur navigateur/VM**, builds web/Node typés et contrôle HTTP isolé. Les signatures SDK sont aussi produites puis récupérées cryptographiquement hors ligne avec une clé déterministe de test, pour les ordres et autorisations sur chacun des réseaux. Aucune clé personnelle, aucun fonds ni ordre exchange utilisé.

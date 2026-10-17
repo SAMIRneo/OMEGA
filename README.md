@@ -63,6 +63,7 @@ Donner à l’agent **le dépôt complet**, puis lui demander de commencer par [
 | Carte des fichiers, flux et contrats | [Architecture](docs/ARCHITECTURE.md) |
 | Développer, tester, modifier une fonctionnalité | [Développement](docs/DEVELOPMENT.md) |
 | Lancer, connecter, arrêter, diagnostiquer le service | [Exploitation](docs/OPERATIONS.md) |
+| Garanties et limites mainnet/testnet | [Réseaux](docs/NETWORKS.md) |
 | Comprendre les règles, unités et différences d’exécution | [Stratégie](docs/STRATEGY.md) |
 | État réel, preuves et travaux restant à faire | [État du projet](docs/STATUS.md) |
 

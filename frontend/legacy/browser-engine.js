@@ -1,9 +1,11 @@
+import {networkDefinition} from '../core/networks.js';
 import {sessionBlock} from '../core/session.js';
 import {features} from '../core/indicators';
 /* Public, read-only market access. Paper trades remain in this browser. */
 (()=>{
-let network='mainnet';try{if(localStorage.getItem('omega-network')==='testnet')network='testnet'}catch{}
-const environment=Object.freeze({id:network,label:network==='testnet'?'Testnet':'Mainnet',api:network==='testnet'?'https://api.hyperliquid-testnet.xyz/info':'https://api.hyperliquid.xyz/info',ws:network==='testnet'?'wss://api.hyperliquid-testnet.xyz/ws':'wss://api.hyperliquid.xyz/ws'});
+let storedNetwork=null;try{storedNetwork=localStorage.getItem('omega-network')}catch{}
+const network=storedNetwork??'mainnet',definition=networkDefinition(network);
+const environment=Object.freeze({id:definition.id,label:definition.label,api:definition.apiUrl+'/info',ws:definition.ws});
 const scope=key=>network==='mainnet'?key:key+'-testnet';
 const API=environment.api,TF={'5m':300,'15m':900,'30m':1800,'1h':3600,'4h':14400,'1d':86400,'1w':604800};
 const limits={strategy_profile:'balanced',paper_capital:10000,leverage:15,max_leverage:15,max_margin:5000,allocation_fraction:.5,max_entries_per_day:4,daily_profit_target:200,trade_risk:100,daily_mode:true,max_risk:500,daily_loss_limit:500,fee_bps:4.5,slippage_bps:2};

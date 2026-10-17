@@ -9,7 +9,7 @@ vi.mock('@nktkas/hyperliquid',()=>({
   async frontendOpenOrders(){return fake.open;}
   async userFills(){return [];}
   async userFillsByTime(){return fake.today;}
-  async meta(){return {universe:[{name:'ETH',szDecimals:4,maxLeverage:20}]};}
+  async meta(){return {universe:[...Array.from({length:fake.network==='mainnet'?2:1},(_,i)=>({name:'OTHER'+i,szDecimals:2,maxLeverage:10})),{name:'ETH',szDecimals:4,maxLeverage:20}]};}
   async l2Book(){return {time:Date.now(),levels:[[{px:'2399.9',sz:'100'}],[{px:'2400',sz:'100'}]]};}
   async orderStatus(){return {status:'unknownOid'};}
  },
@@ -40,7 +40,7 @@ beforeEach(()=>{
 afterEach(()=>{dom.happyDOM.abort();vi.unstubAllGlobals();});
 it('preserves locked form values through both signing steps and sends an IOC bracket on testnet',async()=>{
  const form=await start();form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();
- const order=fake.calls.find(x=>x[0]==='order')?.[1];expect(order).toBeTruthy();expect(order.orders[0].s).toBe('0.02');expect(order.orders[0].t.limit.tif).toBe('Ioc');expect(order.orders.slice(1).every((x:any)=>x.r)).toBe(true);
+ const order=fake.calls.find(x=>x[0]==='order')?.[1];expect(order).toBeTruthy();expect(order.orders[0].a).toBe(1);expect(order.orders[0].s).toBe('0.02');expect(order.orders[0].t.limit.tif).toBe('Ioc');expect(order.orders.slice(1).every((x:any)=>x.r)).toBe(true);
  expect(fake.calls.find(x=>x[0]==='transport')[1].apiUrl).toBe('https://api.hyperliquid-testnet.xyz');
  expect(el('testnet-action-status').textContent).toContain('TESTNET');
 });
@@ -49,7 +49,7 @@ it('requires explicit mainnet consent, pins its transport and resets consent aft
  expect(fake.calls.some(x=>x[0]==='leverage')).toBe(false);
  (el('mainnet-consent') as any).checked=true;form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();
  expect(fake.calls.find(x=>x[0]==='transport')[1]).toMatchObject({isTestnet:false,apiUrl:'https://api.hyperliquid.xyz'});
- expect(fake.calls.some(x=>x[0]==='order')).toBe(true);expect((el('mainnet-consent') as any).checked).toBe(false);
+ expect(fake.calls.find(x=>x[0]==='order')[1].orders[0].a).toBe(2);expect(fake.calls.some(x=>x[0]==='order')).toBe(true);expect((el('mainnet-consent') as any).checked).toBe(false);
 });
 it('keeps uncertain sends pending, blocks duplicates and isolates the mainnet journal',async()=>{
  const form=await start('mainnet');fake.reject=true;(el('mainnet-consent') as any).checked=true;
@@ -98,4 +98,23 @@ it('explains a rejected MetaMask connection and allows a retry without signing',
  expect(el('testnet-action-status').textContent).toContain('Demande refusée dans MetaMask');
  await module.connectWallet();expect(el('testnet-wallet').textContent).toBe(fake.accounts[0]);
  expect(fake.calls.some(x=>x[0]==='order'||x[0]==='leverage')).toBe(false);
+});
+
+it('refuses a secondary account and an inconsistent endpoint before signing',async()=>{
+ const form=await start();fake.accounts=['0x2222222222222222222222222222222222222222','0x1111111111111111111111111111111111111111'];
+ form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();expect(fake.calls.some(x=>x[0]==='leverage'||x[0]==='order')).toBe(false);
+ fake.accounts=['0x1111111111111111111111111111111111111111'];(dom as any).BrowserAtelier.environment.api='https://api.hyperliquid.xyz/info';
+ form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();expect(el('testnet-action-status').textContent).toContain('Endpoints incohérents');expect(fake.calls.some(x=>x[0]==='order')).toBe(false);
+});
+it('discards an in-flight account read after wallet disconnection',async()=>{
+ await start();const {InfoClient}=await import('@nktkas/hyperliquid');let resolve!:(value:any)=>void;
+ const original=InfoClient.prototype.clearinghouseState;
+ InfoClient.prototype.clearinghouseState=vi.fn(()=>new Promise(r=>{resolve=r;})) as any;
+ try{const module=await import('./exchange');const read=module.refreshWallet();await settle();module.disconnectWallet();resolve({marginSummary:{accountValue:'9999'},withdrawable:'9999',assetPositions:[]});await read;
+ const {subscribeWallet}=await import('./shared/wallet-store');let view:any;const off=subscribeWallet(s=>view=s);expect(view.address).toBeNull();expect(view.equity).toBeNull();expect(view.readAt).toBe(0);off();expect(fake.calls.some(x=>x[0]==='order')).toBe(false);
+ }finally{InfoClient.prototype.clearinghouseState=original;}
+});
+it('blocks a network change during a wallet read and rejects a malformed pending journal',async()=>{
+ await start();const key='omega-testnet-exchange-pending-'+fake.accounts[0];dom.localStorage.setItem(key,JSON.stringify({cloid:'bad',at:NaN}));
+ (el('testnet-preview') as any).click();await settle();expect(el('testnet-action-status').textContent).toContain('Journal d’envoi illisible');expect(fake.calls.some(x=>x[0]==='leverage'||x[0]==='order')).toBe(false);
 });

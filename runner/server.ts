@@ -4,7 +4,7 @@ import {resolve,extname,sep} from 'node:path';
 import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {generatePrivateKey,privateKeyToAccount} from 'viem/accounts';
 import {ExchangeClient,HttpTransport,InfoClient} from '@nktkas/hyperliquid';
-import {networkConfig,type Network} from './policy';
+import {bindLedgerNetwork,assertDistinctAgents,networkConfig,type Network} from './policy';
 import {LiveEngine,type Ledger} from './engine';
 import {loadRisk} from './runtime-risk';
 const root=process.cwd(),dir=resolve(root,'.omega-runtime'),port=8766,origin='http://127.0.0.1:'+port;
@@ -22,7 +22,7 @@ for(const network of ['testnet','mainnet'] as const){
  const file=resolve(dir,network+'.json');let ledger:Ledger;
  if(existsSync(file)){ledger=JSON.parse(readFileSync(file,'utf8'));if(!ledger.key||!Array.isArray(ledger.events)||!Number.isFinite(ledger.nonce))throw Error('État du moteur invalide.');}
  else ledger={owner:null,key:generatePrivateKey(),nonce:0,attemptDay:'',pending:null,owned:false,events:[]};
- register(network,ledger);
+ bindLedgerNetwork(ledger,network);register(network,ledger);
 }
 function register(network:Network,ledger:Ledger){
  const file=resolve(dir,network+'.json');
@@ -31,6 +31,7 @@ function register(network:Network,ledger:Ledger){
  const exchange=new ExchangeClient({transport,wallet,defaultExpiresAfter:()=>Date.now()+60000,nonceManager:()=>{ledger.nonce=Math.max(Date.now(),ledger.nonce+1);save();return ledger.nonce;}});
  engines[network]=new LiveEngine(network,ledger,wallet.address,new InfoClient({transport}),exchange,risk,save);
 }
+assertDistinctAgents(engines.mainnet.agent,engines.testnet.agent);
 const timer=setInterval(()=>{for(const engine of Object.values(engines))void engine.tick();},10000);
 const mime:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.wasm':'application/wasm','.png':'image/png','.woff2':'font/woff2'};
 const server=createServer(async(req,res)=>{
@@ -44,7 +45,7 @@ const server=createServer(async(req,res)=>{
    if(url.pathname==='/api/live/session'&&req.method==='GET'){send(200,{token});return;}
    const authorization=req.headers['x-omega-session'];
    if(typeof authorization!=='string'||authorization.length!==token.length||!timingSafeEqual(Buffer.from(authorization),Buffer.from(token))){send(401,{error:'Session locale requise.'});return;}
-   const network=url.searchParams.get('network');if(network!=='testnet'&&network!=='mainnet')throw Error('Réseau requis.');const engine=engines[network];
+   if(url.searchParams.getAll('network').length!==1)throw Error('Un seul réseau explicite est requis.');const network=url.searchParams.get('network');if(network!=='testnet'&&network!=='mainnet')throw Error('Réseau requis.');const engine=engines[network];
    if(req.method==='GET'&&url.pathname==='/api/live/status'){send(200,engine.status());return;}
    if(req.method!=='POST'){send(405,{error:'Méthode refusée.'});return;}
    let body='';for await(const chunk of req){body+=chunk;if(body.length>8192)throw Error('Requête trop grande.');}const input=JSON.parse(body||'{}');

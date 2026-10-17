@@ -1,13 +1,11 @@
+import {networkConfig} from '../frontend/core/networks.js';
+export {networkConfig};
 import {formatPrice,formatSize} from '@nktkas/hyperliquid/utils';
 import {quoteDepth} from '../frontend/core/execution';
 import type {Candidate} from '../frontend/core/types';
 import {exchangeDay,exchangePlan,exchangeStatus} from '../frontend/core/testnet-plan';
 export {exchangeDay,exchangePlan,exchangeStatus};
 export type Network='testnet'|'mainnet';
-export function networkConfig(network:Network){
- if(network!=='testnet'&&network!=='mainnet')throw Error('Réseau inconnu.');
- return {isTestnet:network==='testnet',apiUrl:network==='testnet'?'https://api.hyperliquid-testnet.xyz':'https://api.hyperliquid.xyz',timeout:12000};
-}
 export function validBook(book:any,now:number){
  if(!book||book.coin!=='ETH'||!Number.isFinite(book.time)||now-book.time>5000||book.time>now+1500||!Array.isArray(book.levels)||book.levels.length!==2)throw Error('Carnet ETH absent ou ancien.');
  for(let side=0;side<2;side++){
@@ -62,4 +60,12 @@ export function reservedAttempts(ledger:{attemptDay:string;attemptCount?:number}
  const count=ledger.attemptCount??1;
  if(!Number.isInteger(count)||count<1||count>4)throw Error('Compteur de tentatives persistant invalide.');
  return count;
+}
+
+export function bindLedgerNetwork(ledger:{network?:string},network:Network){
+ if(ledger.network!==undefined&&ledger.network!==network)throw Error('Journal du service associé à un autre réseau.');
+ ledger.network=network;
+}
+export function assertDistinctAgents(mainnet:string,testnet:string){
+ if(mainnet.toLowerCase()===testnet.toLowerCase())throw Error('Un agent distinct est requis pour chaque réseau.');
 }
