@@ -8,7 +8,7 @@ Revue documentaire : **17 octobre 2026**. Version logicielle : `1.2.0` dans `pac
 |---|---|
 | Terminal statique | Marché, Bot, Compte, Recherche ; Vite, DOM TS/JS et CSS |
 | Connexion wallet | Parcours Bot visible, MetaMask depuis en-tête/Compte, lecture partagée, choix réseau gardé, erreurs et guide local ; autorisation et armement séparés |
-| Hallmark / Bot | Première passe ciblée Workbench : colonne compte, espace de commande, polices locales dérivées d’IBM Plex, tokens partagés et progression native après lecture ; fonctions de trading conservées |
+| Hallmark / Bot | Bloc de connexion unique : étapes Compte/Autorisation/Démarrage, action principale contextuelle, compte et détails techniques repliables ; règles de trading conservées |
 | UI / couleurs | Fond noir, surfaces graphite, navigation cyan, actions ambre, recherche violet ; gains/pertes verts/rouges, réseaux distingués par texte et couleur ; contrôles tactiles et focus clavier |
 | Visualisations | Graphique financier incrémental, profondeur cumulée SVG ; horizons du Bot sans figure décorative ; pas de modèle de prédiction |
 | Recherche | Replay récent en Worker, deux hypothèses de coûts, CSV |
@@ -87,3 +87,11 @@ Configuration réseau partagée et immuable ; refus des identifiants/endpoints i
 Lectures publiques ETH : HTTP 200 sur mainnet et testnet. La signature MetaMask réelle et les ordres sur comptes financés restent non validés de bout en bout. Les contrats et preuves sont détaillés dans [NETWORKS.md](NETWORKS.md).
 
 Validation de cette passe réseau : `npm run check` réussi, **124 tests Vitest + 20 tests moteur navigateur/VM**, builds web/Node typés et contrôle HTTP isolé. Les signatures SDK sont aussi produites puis récupérées cryptographiquement hors ligne avec une clé déterministe de test, pour les ordres et autorisations sur chacun des réseaux. Aucune clé personnelle, aucun fonds ni ordre exchange utilisé.
+
+## Connexion simplifiée — 17 octobre 2026
+
+Les commandes et le compte sont regroupés au-dessus des onglets Suivi/Réglages/Activité. Le parcours Compte → Autorisation → Démarrage reste visible ; les détails de connexion et le compte se déplient à la demande. L’action principale ouvre directement MetaMask pour lire le compte, puis peut transmettre un clic explicite à l’autorisation ou au démarrage existants. Sur mainnet, elle conduit d’abord au consentement fonds réels si celui-ci n’a pas été coché. Aucune mise à jour d’état ne signe ou n’arme automatiquement le pilote.
+
+Les boutons techniques d’autorisation/démarrage restent les cibles internes des contrôles existants ; une seule action principale est présentée. Le réseau, les consentements, les refus d’opérations concurrentes et l’incertitude des envois restent conservés. Le guide local et les diagnostics sont disponibles sans occuper la vue principale. Les anciennes explications de simulation à une entrée et allocation fixe ont été corrigées.
+
+Validation : 126 tests Vitest et 20 tests moteur navigateur/VM, builds web/Node et contrôle HTTP isolé. Tests spécifiques de consentement mainnet, déclenchement uniquement au clic et attente pendant une opération. Aucun fonds engagé. Rendu graphique sur navigateur et iPhone physique non contrôlé dans cet environnement.

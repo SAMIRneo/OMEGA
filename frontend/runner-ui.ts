@@ -29,7 +29,8 @@ function render(){
   if(id==='runner-stop')button.disabled||=!state?.active;
   if(id==='runner-reconcile')button.disabled||=!state?.pending||state?.active;
  }
- publishRunner({...state,connected:!!state&&reachable});
+ for(const id of ['runner-authorize','runner-start','runner-stop','runner-reconcile']){const button=$(id) as HTMLButtonElement;button.hidden=id==='runner-authorize'||id==='runner-start'?true:id==='runner-stop'?!state?.active:!state?.pending;}
+ publishRunner({...state,busy:busy||!!state?.busy,connected:!!state&&reachable});
  const log=$('runner-log');log.replaceChildren(...(state?.events??[]).slice(-15).reverse().map((event:any)=>{const row=document.createElement('p');row.textContent=new Date(event.at).toLocaleString('fr-FR')+' · '+event.message;return row;}));
  if(state?.settings)$('runner-config').textContent='Service : '+state.settings.profile+' · levier maximal ×'+state.settings.leverage+' · objectif journalier +'+(state.settings.dailyTarget??200)+' USDC. Les réglages du formulaire sont appliqués au prochain démarrage.';
 }
