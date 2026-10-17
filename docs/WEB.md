@@ -5,12 +5,27 @@ Le site publié permet la connexion MetaMask, la configuration de Testnet et Mai
 ## Parcours
 
 1. Dans **Bot**, connecter MetaMask et vérifier le compte ainsi que le réseau affichés. L’accès à l’adresse ne signe aucun ordre.
-2. Conserver **Configurer Testnet + Mainnet ensemble**, puis cliquer **Configurer dans MetaMask**. Chaque réseau manquant demande sa propre signature ; l’autorisation est demandée pour 30 jours et reste révocable. Les autorisations valides du même compte sont conservées.
+2. Conserver **Configurer Testnet + Mainnet ensemble**, puis cliquer **Configurer dans MetaMask**. Chaque réseau manquant demande sa propre signature ; l’autorisation est demandée pour 180 jours maximum et reste révocable. Les autorisations valides du même compte sont conservées.
 3. Dans **Réglages**, choisir profil, plafond de levier et objectif journalier. Les soldes doivent être ceux du compte Hyperliquid du réseau choisi ; le capital de simulation ne finance pas les ordres réels.
 4. Choisir le réseau à utiliser. Pour Mainnet, cocher le consentement aux fonds réels puis cliquer **Démarrer le bot**. L’armement attend une nouvelle clôture admissible ; il ne transmet pas une entrée immédiatement.
 5. Garder l’onglet ouvert et visible, l’appareil éveillé et connecté. Arrêter les entrées ou vérifier un pending depuis les commandes existantes. Les ordres manuels et leur clôture restent accessibles avec le wallet.
 
-Une signature refusée sur le second réseau conserve le premier. Le bouton de complément reprend le réseau manquant. Une expiration/révocation entraîne une nouvelle clé avant réautorisation, sans recycler un ancien nonce. Le navigateur ne demande jamais la clé privée ou phrase de récupération MetaMask.
+Une signature refusée sur le second réseau conserve le premier. Une préparation non confirmée, inutilisée (nonce nul) et âgée de moins de 24 heures conserve aussi son agent après refus ou rechargement ; aucune signature n’est relancée automatiquement. Le bouton de complément reprend le réseau manquant. Une expiration/révocation confirmée ou une identité déjà utilisée non autorisée entraîne une nouvelle clé avant réautorisation, sans recycler un ancien nonce. Une panne de lecture ne déclenche aucune rotation. Le navigateur ne demande jamais la clé privée ou phrase de récupération MetaMask.
+
+## Une connexion, puis réutilisation
+
+| Situation | Ce que fait OMEGA |
+|---|---|
+| Première configuration des deux réseaux | Une permission de compte MetaMask, puis deux signatures d’agent distinctes ; durée demandée de 180 jours maximum, révocable |
+| Retour sur la même adresse du site et le même navigateur | Restauration passive via eth_accounts, puis vérification indépendante des agents auprès d’Hyperliquid ; aucune signature si valides |
+| Changement du réseau EVM affiché dans MetaMask | Le compte mémorisé est conservé ; le sélecteur OMEGA et le transport signé choisissent Hyperliquid mainnet/testnet |
+| MetaMask verrouillé ou accès aux comptes suspendu | Le compte et les agents restent mémorisés ; nouvelles entrées web arrêtées. Déverrouiller reprend la lecture sans nouvelle permission si MetaMask expose le même compte |
+| Véritable changement de compte ou clic Déconnecter | Session oubliée, nouvelles entrées web arrêtées ; aucune substitution silencieuse du propriétaire |
+| Agent expiré/révoqué, coffre effacé ou autre appareil/origine | Nouvelle configuration pour le réseau concerné ; les autres autorisations valides restent conservées |
+
+Les agents existants gardent leur expiration réelle, y compris ceux précédemment autorisés pour 30 jours. Ils ne sont ni prolongés ni remplacés automatiquement. La date relue sur chaque réseau fait autorité. Le focus de la page et le déverrouillage ne demandent jamais eth_requestAccounts, de signature ou d’armement.
+
+Le compte reste lié au bot, mais l’autorisation n’est pas une connexion illimitée. Recharger la page conserve le lien et exige un clic Démarrer. Pour une activité indépendante de l’onglet, utiliser le service Node et maintenir son processus actif ; fermer ce site statique ne laisse aucun moteur hébergé tourner.
 
 ## Exécution et interruptions
 

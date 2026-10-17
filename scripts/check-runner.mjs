@@ -22,7 +22,7 @@ try{
  const status=async(network)=>{const r=await fetch(origin+'/api/live/status?network='+network,{headers});assert.equal(r.status,200);return r.json();};
  const main=await status('mainnet'),test=await status('testnet');assert.notEqual(main.agent,test.agent);assert.equal(main.active,false);assert.equal(test.active,false);assert.equal('key' in test,false);assert.equal('nonce' in test,false);assert.equal(test.owner,null);
  const configure=async()=>{const response=await fetch(origin+'/api/live/configure?network=testnet',{method:'POST',headers,body:JSON.stringify({owner:'0x1111111111111111111111111111111111111111'})});assert.equal(response.status,200);return response.json();};
- const first=await configure(),second=await configure();assert.notEqual(first.agent,second.agent);assert.equal((await status('mainnet')).owner,null);
+ const first=await configure(),second=await configure();assert.equal(first.agent,second.agent);assert.equal((await status('mainnet')).owner,null);
  const arm=await fetch(origin+'/api/live/arm?network=mainnet',{method:'POST',headers,body:JSON.stringify({settings:{profile:'balanced',leverage:15}})});assert.equal(arm.status,400);assert.match((await arm.json()).error,/MAINNET/);
  for(const query of ['', '?network=other','?network=mainnet&network=testnet']){const invalid=await fetch(origin+'/api/live/status'+query,{headers});assert.equal(invalid.status,400);}
  assert.equal((await status('testnet')).network,'testnet');assert.equal((await status('mainnet')).network,'mainnet');
@@ -35,5 +35,5 @@ try{
  const restored=await (await fetch(origin+'/api/live/status?network=testnet',{headers:{'X-Omega-Session':nextSession.token}})).json();
  assert.equal(restored.agent,second.agent);assert.equal(restored.active,false);assert.equal(restored.pending,true);assert.equal(restored.attemptCount,3);assert.equal(restored.settings.leverage,3);
  assert.equal(JSON.parse(readFileSync(ledgerFile+'.bak','utf8')).pending.cloid,fixture.pending.cloid);
- console.log('Local runner: auth, Origin/Host, network isolation, rotation, no secret exposure, mainnet consent, static serving and durable restart passed. No exchange orders sent.');
+ console.log('Local runner: auth, Origin/Host, network isolation, idempotent preparation, no secret exposure, mainnet consent, static serving and durable restart passed. No exchange orders sent.');
 }finally{await stop();rmSync(temp,{recursive:true,force:true});}

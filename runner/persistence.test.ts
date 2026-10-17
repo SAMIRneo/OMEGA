@@ -22,3 +22,8 @@ it('keeps the primary intact if writing its backup fails',()=>{
  const f=fixture();saveLedger(f.file,f.ledger,'testnet');const before=readFileSync(f.file,'utf8');mkdirSync(f.file+'.bak');f.ledger.nonce++;
  expect(()=>saveLedger(f.file,f.ledger,'testnet')).toThrow();expect(readFileSync(f.file,'utf8')).toBe(before);expect(readdirSync(f.dir).some(x=>x.endsWith('.tmp'))).toBe(false);
 });
+
+it('preserves validated agent preparation across restart and refuses malformed confirmation metadata',()=>{
+ const f=fixture();f.ledger.agentApproval={preparedAt:Date.now(),confirmed:false};saveLedger(f.file,f.ledger,'testnet');expect(loadLedger(f.file,'testnet')?.agentApproval).toEqual(f.ledger.agentApproval);
+ const state=JSON.parse(readFileSync(f.file,'utf8'));state.agentApproval.confirmed='yes';writeFileSync(f.file,JSON.stringify(state));expect(()=>loadLedger(f.file,'testnet')).toThrow('démarrage bloqué');
+});

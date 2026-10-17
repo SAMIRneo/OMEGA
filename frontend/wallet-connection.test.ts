@@ -48,7 +48,7 @@ it('selects the announced MetaMask provider when another wallet owns window.ethe
 
 it('connects from the primary local action and never authorizes or arms just from state updates',async()=>{
  dom.location.href='http://127.0.0.1:8766/#pilot';await import('./wallet-connection');const {publishWallet}=await import('./shared/wallet-store');const {publishRunner}=await import('./shared/runner-store');
- expect(el('next-step-title').textContent).toBe('Connecter MetaMask');
+ expect(el('next-step-title').textContent).toBe('Relier mon compte');
  (el('next-step-action') as any).click();await vi.dynamicImportSettled();expect((el('account-disclosure') as HTMLDetailsElement).open).toBe(true);expect(fake.connect).toHaveBeenCalledTimes(1);
  publishWallet({network:'testnet',address:'0x1111111111111111111111111111111111111111',busy:false,readAt:Date.now(),equity:1200,withdrawable:0,position:null,openOrders:0,message:'Compte lu',error:false});
  expect(el('next-step-title').textContent).toBe('Vérifier OMEGA local');
@@ -86,4 +86,10 @@ it('restores only a previously remembered session, without another connection re
 it('offers direct web connection without requiring a local installation',async()=>{
  await import('./wallet-connection');expect(el('next-step-action').dataset.target).toBe('wallet');
  (el('next-step-action') as any).click();await vi.dynamicImportSettled();expect(fake.connect).toHaveBeenCalledOnce();expect(el('connect-service-help').hidden).toBe(true);
+});
+
+it('continues to show confirmed Node activity when MetaMask is locked without implying a new connection is required',async()=>{
+ await import('./wallet-connection');const {publishRunner}=await import('./shared/runner-store');
+ publishRunner({connected:true,mode:'local',network:'testnet',owner:'0x1111111111111111111111111111111111111111',approved:true,active:true});
+ expect(el('next-step-action').dataset.target).toBe('active');expect(fake.connect).not.toHaveBeenCalled();expect(el('connect-step-wallet').dataset.complete).toBe('false');
 });

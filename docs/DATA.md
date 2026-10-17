@@ -12,8 +12,8 @@ OMEGA ne possède pas de base cloud personnelle. Le site public, le navigateur, 
 | Dernier replay et options | localStorage, séparé par réseau | Seul le dernier résultat est mémorisé ; erreur d’enregistrement affichée ; inclus dans l’export |
 | Préférence MetaMask | Adresse publique + préférence dans le navigateur | Aucune clé privée ; exclue de l’export de données |
 | Envois manuels non résolus | Journal local par compte/réseau | Conservé pour éviter un double envoi ; exclu de l’export et jamais remplacé par une sauvegarde de simulation |
-| Agent, clé déléguée, nonce, quota, pending et réglages web | IndexedDB de cette origine, chiffré AES-GCM | Transactions attendues, révisions vérifiées, copie chiffrée précédente ; hors export JSON |
-| Clés d’agents, nonces, quota, pending, protections et événements Node | `.omega-runtime/mainnet.json`, `.omega-runtime/testnet.json` | Écriture atomique, copie de la génération précédente `.bak`, schéma/réseau validés et révision/date enregistrées |
+| Agent, clé déléguée, nonce, quota, pending, préparation/confirmation d’agent et réglages web | IndexedDB de cette origine, chiffré AES-GCM | Transactions attendues, révisions vérifiées, copie chiffrée précédente ; hors export JSON |
+| Clés d’agents, nonces, quota, pending, protections, préparation/confirmation d’agent et événements Node | `.omega-runtime/mainnet.json`, `.omega-runtime/testnet.json` | Écriture atomique, copie de la génération précédente `.bak`, schéma/réseau validés et révision/date enregistrées |
 | Réglages du dernier armement Node réussi | Les mêmes ledgers Node | Rechargés après redémarrage ; le pilote reste désarmé |
 | Fonds, positions et ordres réels | Hyperliquid | Relus auprès de l’exchange ; le cache UI ou une simulation locale ne les remplace pas |
 

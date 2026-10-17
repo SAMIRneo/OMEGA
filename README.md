@@ -8,7 +8,7 @@ Le site public exécute le bot dans ton navigateur tant que l’onglet reste ouv
 
 ## Démarrer depuis le lien
 
-Ouvrir **[Bot OMEGA](https://omega.kairos-labspro.chatgpt.site/#pilot)** avec MetaMask. Connecter le compte, configurer Testnet + Mainnet (une signature par réseau manquant, 30 jours), choisir les réglages, puis démarrer explicitement le bot. Mainnet exige le consentement aux fonds réels. Garde l’onglet visible et l’appareil éveillé ; aucun rattrapage après une absence. Le [guide web](docs/WEB.md) décrit le coffre, les interruptions et les limites.
+Ouvrir **[Bot OMEGA](https://omega.kairos-labspro.chatgpt.site/#pilot)** avec MetaMask. Connecter le compte, configurer Testnet + Mainnet (une signature par réseau manquant, 180 jours maximum), choisir les réglages, puis démarrer explicitement le bot. Mainnet exige le consentement aux fonds réels. Au retour, le même compte et les agents valides sont repris sans nouvelle signature ; recharger exige seulement de redémarrer explicitement le bot. Garde l’onglet visible et l’appareil éveillé ; aucun rattrapage après une absence. Le [guide web](docs/WEB.md) décrit le coffre, les interruptions et les limites.
 
 Pour développer le projet :
 
@@ -28,7 +28,7 @@ npm run build
 npm run bot
 ```
 
-Ouvrir **http://127.0.0.1:8766/#pilot**. Le service démarre désarmé. Dans Bot, connecter MetaMask puis configurer Testnet et Mainnet ensemble : une signature par réseau manquant, valable 30 jours et révocable. Le compte est mémorisé sur ce navigateur et les agents encore autorisés sont réutilisés. Choisir ensuite le réseau et démarrer le pilote. Mainnet comporte une autorisation explicite de fonds réels. Les modalités sont dans le [guide d’exploitation](docs/OPERATIONS.md).
+Ouvrir **http://127.0.0.1:8766/#pilot**. Le service démarre désarmé. Dans Bot, connecter MetaMask puis configurer Testnet et Mainnet ensemble : une signature par réseau manquant, valable 180 jours maximum et révocable. Le compte est mémorisé sur ce navigateur et les agents encore autorisés sont réutilisés avec leur expiration actuelle. Le verrouillage conserve ce lien ; un changement de chaîne EVM ne l’efface plus. Choisir ensuite le réseau et démarrer le pilote. Mainnet comporte une autorisation explicite de fonds réels. Les modalités sont dans le [guide d’exploitation](docs/OPERATIONS.md).
 
 ## Modes d’exécution
 

@@ -141,3 +141,21 @@ it('does not restore a different account or request access to a locked wallet',a
  dom.localStorage.setItem('omega-wallet-session-v1',JSON.stringify({address:fake.accounts[0],reconnect:true}));fake.accounts=[];
  await module.restoreWallet();expect(el('testnet-action-status').textContent).toContain('Déverrouille');expect(request.mock.calls.every(args=>(args[0] as any).method==='eth_accounts')).toBe(true);
 });
+
+it('keeps the remembered session on an unchanged account and does not bind Hyperliquid to EVM chain changes',async()=>{
+ await start();const provider=(dom as any).ethereum,handler=provider.on.mock.calls.find((x:any)=>x[0]==='accountsChanged')[1];
+ handler(fake.accounts);await settle();expect(el('testnet-wallet').textContent).toBe(fake.accounts[0]);expect(dom.localStorage.getItem('omega-wallet-session-v1')).toContain(fake.accounts[0]);
+ expect(provider.on.mock.calls.some((x:any)=>x[0]==='chainChanged')).toBe(false);expect(fake.calls.some(x=>x[0]==='order')).toBe(false);
+});
+it('preserves the linked account when locked and restores it on unlock without a new permission or signature',async()=>{
+ await start();const provider=(dom as any).ethereum,handler=provider.on.mock.calls.find((x:any)=>x[0]==='accountsChanged')[1];
+ provider.request=vi.fn(async()=>fake.accounts);fake.accounts=[];handler([]);expect(el('testnet-wallet').textContent).toBe('Aucun wallet connecté');expect(dom.localStorage.getItem('omega-wallet-session-v1')).not.toBeNull();
+ fake.accounts=['0x1111111111111111111111111111111111111111'];handler(fake.accounts);await settle();
+ expect(el('testnet-wallet').textContent).toBe(fake.accounts[0]);expect(provider.request.mock.calls.every((args:any)=>args[0].method==='eth_accounts')).toBe(true);expect(fake.calls.some(x=>x[0]==='order'||x[0]==='leverage')).toBe(false);
+});
+it('forgets a genuinely changed account and never reconnects after explicit disconnect',async()=>{
+ await start();const handler=(dom as any).ethereum.on.mock.calls.find((x:any)=>x[0]==='accountsChanged')[1];
+ handler(['0x2222222222222222222222222222222222222222']);expect(dom.localStorage.getItem('omega-wallet-session-v1')).toBeNull();expect(el('testnet-wallet').textContent).toBe('Aucun wallet connecté');
+ const module=await import('./exchange');await module.connectWallet();module.disconnectWallet();dom.dispatchEvent(new dom.Event('focus'));handler(fake.accounts);await settle();
+ expect(el('testnet-wallet').textContent).toBe('Aucun wallet connecté');expect(dom.localStorage.getItem('omega-wallet-session-v1')).toBeNull();
+});

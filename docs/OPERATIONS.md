@@ -26,7 +26,7 @@ npm run bot
 1. Ouvrir l’interface locale dans le navigateur contenant MetaMask (ou un wallet EIP-1193 injecté).
 2. Choisir le réseau dans OMEGA ; le réseau sélectionné fixe REST, WebSocket et source de signature.
 3. En tête de Bot, cliquer « Connecter MetaMask », autoriser le partage de l’adresse, puis vérifier le compte Hyperliquid et les positions affichées. Cette étape ne signe aucun ordre.
-4. Dans les commandes du bot, conserver « Configurer Testnet + Mainnet ensemble » puis cliquer « Configurer dans MetaMask ». Deux signatures distinctes autorisent les agents pour 30 jours. Seuls les réseaux manquants demandent une signature ; une autorisation valide est réutilisée sans rotation de clé. Décocher permet de configurer seulement le réseau sélectionné.
+4. Dans les commandes du bot, conserver « Configurer Testnet + Mainnet ensemble » puis cliquer « Configurer dans MetaMask ». Deux signatures distinctes autorisent les agents pour 180 jours maximum. Seuls les réseaux manquants demandent une signature ; une autorisation valide est réutilisée sans rotation de clé. Décocher permet de configurer seulement le réseau sélectionné.
 5. Vérifier le compte/réseau effectivement affichés, puis régler profil et plafond de levier dans Réglages.
 6. Revenir à Suivi, autoriser explicitement les fonds réels si Mainnet, puis démarrer le pilote.
 
@@ -60,7 +60,7 @@ Les routes appartiennent au service local, pas au domaine public statique. Pas d
 | Méthode / chemin | Corps / responsabilité |
 |---|---|
 | GET `/api/live/status` | État du réseau : agent public, compte, flags, heartbeat, équité connue, événements et réglages |
-| POST `/api/live/configure` | `{owner}` : adresse du compte ; préparation/rotation de la clé locale si le moteur n’est pas occupé ou exposé |
+| POST `/api/live/configure` | `{owner}` : adresse du compte ; préparation idempotente ; réutilise l’agent valide ou la préparation récente inutilisée, sinon rotation ; refus si occupé, exposé ou pending |
 | POST `/api/live/verify` | `{}` : vérifie l’approbation de l’agent sur le réseau |
 | POST `/api/live/arm` | `{settings: {profile, leverage, dailyTarget?}, consent?}` ; `consent` doit être `MAINNET` sur mainnet |
 | POST `/api/live/stop` | `{}` : arrête les nouvelles entrées |
@@ -120,10 +120,10 @@ Le rapprochement Node refuse d’adopter une position inversée ou supérieure a
 
 Pour utiliser le service Node optionnel, commencer directement dans `http://127.0.0.1:8766/#pilot`. Les permissions MetaMask et le stockage du site public sont distincts de ceux de cette origine locale. Les changements en cours sont sur la branche `codex/modern-ui-2026-10-17` de la [PR #2](https://github.com/SAMIRneo/OMEGA/pull/2) tant qu’elle n’est pas fusionnée ; choisir cette branche pour une installation de cette version.
 
-Le navigateur mémorise uniquement l’adresse publique et la préférence de reconnexion. À la prochaine visite de Bot/Compte, `eth_accounts` vérifie passivement le compte primaire déjà autorisé. Aucun popup d’accès, signature, approbation d’agent ou armement n’est déclenché par cette reprise. Si MetaMask est verrouillé, il faut le déverrouiller puis cliquer Connecter. Si le compte change, la préférence est effacée et une connexion explicite est requise. Déconnecter oublie la préférence ; cela ne révoque pas les agents ni les ordres exchange.
+Le navigateur mémorise uniquement l’adresse publique et la préférence de reconnexion. À la prochaine visite de Bot/Compte, `eth_accounts` vérifie passivement le compte primaire déjà autorisé. Aucun popup d’accès, signature, approbation d’agent ou armement n’est déclenché par cette reprise. Si MetaMask est verrouillé, le compte reste mémorisé : au déverrouillage ou au retour sur la page, le même compte est repris passivement quand il est exposé par MetaMask. Un changement de chaîne EVM ne délie pas le compte. Si le compte change réellement, la préférence est effacée et une connexion explicite est requise. Déconnecter oublie la préférence ; cela ne révoque pas les agents ni les ordres exchange.
 
 Le service conserve ses clés distinctes et vérifie les approbations exchange au chargement puis environ chaque minute pendant les rafraîchissements visibles. La date confirmée apparaît pour chaque réseau. La configuration explicite saute les agents du bon compte encore valides ; un agent expiré/révoqué reçoit une nouvelle clé avant signature, afin de ne pas réutiliser un nonce potentiellement purgé. Si la seconde signature est refusée, « Compléter la configuration des réseaux » reprend uniquement les réseaux manquants. Les envois d’ordre incertains restent soumis à la réconciliation existante.
 
-Les autorisations durent 30 jours au plus selon la demande signée et restent révocables depuis Hyperliquid ; une expiration ou révocation exige une nouvelle signature. La reprise du compte n’est donc pas une connexion définitive sans limite. Un redémarrage du processus renouvelle automatiquement la session HTTP locale lors d’un refus 401, une seule fois. Les nouvelles entrées restent désarmées après redémarrage. Mainnet exige toujours le consentement fonds réels et un clic de démarrage séparé.
+Les nouvelles autorisations demandent 180 jours maximum selon la demande signée et restent révocables depuis Hyperliquid ; une expiration ou révocation exige une nouvelle signature. La reprise du compte n’est donc pas une connexion définitive sans limite. Un redémarrage du processus renouvelle automatiquement la session HTTP locale lors d’un refus 401, une seule fois. Les nouvelles entrées restent désarmées après redémarrage. Mainnet exige toujours le consentement fonds réels et un clic de démarrage séparé.
 
 Le fonctionnement des exports, copies automatiques, erreurs de stockage et récupérations est détaillé dans [DATA.md](DATA.md).

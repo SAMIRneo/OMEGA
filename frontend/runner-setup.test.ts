@@ -1,15 +1,15 @@
 import {it,expect,vi,beforeEach,afterEach} from 'vitest';
 import {Window} from 'happy-dom';
 import {readFileSync} from 'node:fs';
-const fake=vi.hoisted(()=>({signatures:[] as any[],rejectMain:false}));
-vi.mock('@nktkas/hyperliquid',()=>({HttpTransport:class{isTestnet:boolean;constructor(o:any){this.isTestnet=o.isTestnet}},ExchangeClient:class{options:any;constructor(o:any){this.options=o}async approveAgent(p:any){const n=this.options.transport.isTestnet?'testnet':'mainnet';fake.signatures.push({network:n,...p});if(n==='mainnet'&&fake.rejectMain)throw {code:4001};states[n].approved=true;states[n].approvedUntil=Date.now()+30*86400000;}}}));
-vi.mock('./web/runner',()=>({browserRequest:vi.fn(async(path:string,body:any,n:string)=>{calls.push({path:'web/'+path+'?network='+n,body});if(path==='configure'){states[n].owner=body.owner;states[n].approved=false;}if(path==='arm')states[n].active=true;return {...states[n],mode:'web'};})}));
+const fake=vi.hoisted(()=>({signatures:[] as any[],rejectMain:false,unavailableTest:false}));
+vi.mock('@nktkas/hyperliquid',()=>({HttpTransport:class{isTestnet:boolean;constructor(o:any){this.isTestnet=o.isTestnet}},ExchangeClient:class{options:any;constructor(o:any){this.options=o}async approveAgent(p:any){const n=this.options.transport.isTestnet?'testnet':'mainnet';fake.signatures.push({network:n,...p});if(n==='mainnet'&&fake.rejectMain)throw {code:4001};states[n].approved=true;states[n].approvedUntil=Number(p.agentName.split('valid_until ')[1]);}}}));
+vi.mock('./web/runner',()=>({browserRequest:vi.fn(async(path:string,body:any,n:string)=>{calls.push({path:'web/'+path+'?network='+n,body});if(n==='testnet'&&fake.unavailableTest)throw Error('Testnet offline');if(path==='configure'){states[n].owner=body.owner;states[n].approved=false;}if(path==='arm')states[n].active=true;return {...states[n],mode:'web'};})}));
 const owner='0x1111111111111111111111111111111111111111';
 let dom:Window,states:Record<string,any>,calls:{path:string;body:any}[],permission:ReturnType<typeof vi.fn>,restarted=false;
 const el=(id:string)=>dom.document.getElementById(id)!;
 async function settle(){await vi.dynamicImportSettled();for(let i=0;i<8;i++)await new Promise(r=>setTimeout(r,0));}
 beforeEach(()=>{
- vi.resetModules();fake.signatures=[];fake.rejectMain=false;calls=[];restarted=false;
+ vi.resetModules();fake.signatures=[];fake.rejectMain=false;fake.unavailableTest=false;calls=[];restarted=false;
  dom=new Window({url:'http://127.0.0.1:8766/#pilot'});dom.document.write(readFileSync(new URL('./index.html',import.meta.url),'utf8'));
  states=Object.fromEntries(['testnet','mainnet'].map((n,i)=>[n,{network:n,agent:'0x'+String(i+2).repeat(40),owner:null,approved:false,active:false,busy:false,events:[],reason:'À l’arrêt.'}]));
  permission=vi.fn(async()=>[owner]);(dom as any).ethereum={request:permission};(dom as any).BrowserAtelier={environment:{id:'testnet'},setAddress:vi.fn()};
@@ -28,7 +28,7 @@ afterEach(()=>{dom.happyDOM.abort();vi.unstubAllGlobals();});
 it('configures both networks once, then reuses verified agents without rotating or signing again',async()=>{
  await import('./runner-ui');await settle();(el('runner-authorize') as any).click();await settle();
  expect(fake.signatures.map(x=>x.network)).toEqual(['testnet','mainnet']);expect(calls.filter(x=>x.path.includes('/configure'))).toHaveLength(2);
- expect(fake.signatures.every(x=>Number(x.agentName.split('valid_until ')[1])>Date.now()+29*86400000)).toBe(true);
+ expect(fake.signatures.every(x=>Number(x.agentName.split('valid_until ')[1])>Date.now()+179*86400000)).toBe(true);
  expect(permission.mock.calls.every(x=>x[0].method==='eth_accounts')).toBe(true);expect(calls.some(x=>x.path.includes('/arm'))).toBe(false);
  (el('runner-authorize') as any).click();await settle();expect(fake.signatures).toHaveLength(2);expect(calls.filter(x=>x.path.includes('/configure'))).toHaveLength(2);
  expect(el('runner-network-mainnet').textContent).toContain('autorisé jusqu’au');
@@ -52,4 +52,11 @@ it('authorizes both networks and explicitly starts from the hosted page without 
  expect(fake.signatures.map(x=>x.network)).toEqual(['testnet','mainnet']);expect(fake.signatures.every(x=>x.agentName.startsWith('OMEGAweb-'))).toBe(true);expect(fetch).not.toHaveBeenCalled();
  expect((el('runner-start') as any).disabled).toBe(true);(el('runner-mainnet') as any).checked=true;el('runner-mainnet').dispatchEvent(new dom.Event('change'));(el('runner-start') as any).click();await settle();
  expect(calls.find(x=>x.path==='web/arm?network=mainnet')?.body.consent).toBe('MAINNET');expect(states.mainnet.active).toBe(true);expect(fetch).not.toHaveBeenCalled();
+});
+
+it('does not disconnect the selected mainnet runtime when only testnet verification is unavailable',async()=>{
+ dom.location.href='https://omega.test/#pilot';(dom as any).BrowserAtelier.environment.id='mainnet';states.mainnet.owner=owner;states.mainnet.approved=true;fake.unavailableTest=true;
+ await import('./runner-ui');await settle();expect(el('runner-service').textContent).toContain('Mode web · MAINNET');expect(el('runner-network-testnet').textContent).toContain('à vérifier');
+ (el('runner-mainnet') as any).checked=true;el('runner-mainnet').dispatchEvent(new dom.Event('change'));expect((el('runner-start') as any).disabled).toBe(false);
+ expect(fake.signatures).toHaveLength(0);expect(calls.some(x=>x.path.includes('/arm'))).toBe(false);
 });
