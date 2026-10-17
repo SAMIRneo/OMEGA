@@ -14,7 +14,7 @@ Une signature refusée sur le second réseau conserve le premier. Le bouton de c
 
 ## Exécution et interruptions
 
-Le mode web instancie le même [LiveEngine](../runner/engine.ts) que Node : données propres au moteur, Daily/1 h/15 min, revalidation après réglage du levier, jusqu’à quatre tentatives, marge ≤ 50 %, budget automatique ≤ min(100 USDC, 1 % de l’équité, 90 % du budget restant), IOC + SL/TP reduce-only et aucun renvoi automatique d’une entrée incertaine.
+Le mode web instancie le même [LiveEngine](../shared/engine.ts) que Node : données propres au moteur, Daily/1 h/15 min, revalidation après réglage du levier, jusqu’à quatre tentatives, marge ≤ 50 %, budget automatique ≤ min(100 USDC, 1 % de l’équité, 90 % du budget restant), IOC + SL/TP reduce-only et aucun renvoi automatique d’une entrée incertaine.
 
 Masquer l’onglet arrête les nouvelles entrées et interrompt un armement en cours. Le transport vérifie encore l’état de l’onglet et l’autorité du moteur au moment d’envoyer une entrée, après signature et sauvegarde du nonce. Une requête déjà partie vers l’exchange ne peut pas être annulée par la fermeture de la page : son pending durable reste à réconcilier.
 

@@ -1,10 +1,10 @@
 import {existsSync,readFileSync,openSync,writeFileSync,fsyncSync,closeSync,renameSync,unlinkSync,chmodSync} from 'node:fs';
 import {dirname} from 'node:path';
 import {randomUUID} from 'node:crypto';
-import type {Ledger} from './engine';
-import type {Network} from './policy';
-import {validateLedger} from './ledger';
-export {validateLedger} from './ledger';
+import type {Ledger} from '../shared/engine';
+import type {Network} from '../shared/policy';
+import {validateLedger} from '../shared/ledger';
+export {validateLedger} from '../shared/ledger';
 export function loadLedger(file:string,network:Network):Ledger|null{
  if(!existsSync(file)){if(existsSync(file+'.bak'))throw Error('État principal absent mais sauvegarde présente : récupération manuelle requise.');return null;}
  try{return validateLedger(JSON.parse(readFileSync(file,'utf8')),network);}catch{throw Error('État '+network+' illisible : démarrage bloqué. Conserve les fichiers et vérifie le compte.');}

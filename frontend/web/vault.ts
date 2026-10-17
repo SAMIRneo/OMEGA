@@ -1,6 +1,6 @@
-import {validateLedger} from '../../runner/ledger';
-import type {Ledger} from '../../runner/engine';
-import type {Network} from '../../runner/policy';
+import {validateLedger} from '../../shared/ledger';
+import type {Ledger} from '../../shared/engine';
+import type {Network} from '../../shared/policy';
 interface RecordData {version:1;network:Network;agent:`0x${string}`;owner:string;revision:number;savedAt:number;iv:ArrayBuffer;cipher:ArrayBuffer}
 const encoder=new TextEncoder(),aad=(r:RecordData)=>encoder.encode(['OMEGA-web-v1',r.network,r.agent.toLowerCase(),r.owner.toLowerCase(),r.revision].join(':'));
 export class BrowserVault {

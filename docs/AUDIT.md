@@ -1,5 +1,7 @@
 # Audit technique — 17 octobre 2026
 
+Rapport ponctuel antérieur au coffre et au bot web. Il décrit les corrections de cette passe, pas une certification de l’ensemble du checkout actuel. Voir [STATUS](STATUS.md) pour les preuves courantes et [WEB](WEB.md) pour le runtime navigateur.
+
 Audit du checkout OMEGA 1.2.0 : lecture des contrats et chemins critiques, tests automatisés et corrections. Il ne constitue pas un audit externe indépendant, une certification de sécurité ni une preuve de rentabilité. Aucun compte personnel, agent autorisé ou ordre exchange réel n’a servi aux vérifications.
 
 ## Corrections livrées

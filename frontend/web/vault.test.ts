@@ -3,7 +3,7 @@ import {IDBFactory,IDBObjectStore} from 'fake-indexeddb';
 import {webcrypto} from 'node:crypto';
 import {privateKeyToAccount} from 'viem/accounts';
 import {BrowserVault} from './vault';
-import type {Ledger} from '../../runner/engine';
+import type {Ledger} from '../../shared/engine';
 const owner='0x1111111111111111111111111111111111111111',key=('0x'+'2'.repeat(64)) as `0x${string}`,agent=privateKeyToAccount(key).address;
 const stores:BrowserVault[]=[];
 function fixture(){const factory=new IDBFactory(),name='test-vault',vault=new BrowserVault(factory,webcrypto as unknown as Crypto,name);stores.push(vault);const ledger:Ledger={network:'testnet',owner,key,nonce:123,attemptDay:'2026-10-17',attemptCount:2,pending:{cloid:('0x'+'3'.repeat(32)) as `0x${string}`,at:1000},owned:false,events:[]};return {factory,name,vault,ledger};}

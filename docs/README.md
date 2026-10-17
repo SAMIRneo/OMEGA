@@ -9,7 +9,7 @@ Documentation de la version logicielle `1.2.0`, revue le 17 octobre 2026. Elle v
 3. [ARCHITECTURE.md](ARCHITECTURE.md) : carte du code et circulation des données.
 4. [DEVELOPMENT.md](DEVELOPMENT.md) : installation, tests et recettes de modification.
 5. [STATUS.md](STATUS.md) : ce qui est vérifié et ce qui ne l’est pas.
-6. [OPERATIONS.md](OPERATIONS.md) ou [STRATEGY.md](STRATEGY.md) selon la tâche.
+6. [WEB.md](WEB.md) pour le parcours depuis le lien, [OPERATIONS.md](OPERATIONS.md) pour Node, [STRATEGY.md](STRATEGY.md) pour la décision ou [DATA.md](DATA.md) pour la persistance.
 
 ## Qui documente quoi ?
 
@@ -20,6 +20,7 @@ Documentation de la version logicielle `1.2.0`, revue le 17 octobre 2026. Elle v
 | ARCHITECTURE | Modules, responsabilités, unités, flux | Un module, contrat ou dépendance change |
 | DEVELOPMENT | Commandes, tests et tâches | Un script, build ou processus de validation change |
 | OPERATIONS | Exploitation et API locale | Le cycle de vie, un endpoint ou la persistance change |
+| [NETWORKS.md](NETWORKS.md) | Identités, endpoints, signatures et isolation des réseaux | Un contrat réseau ou de signature change |
 | STRATEGY | Décision et limites par mode | Un seuil, coût, profil ou chemin d’ordre change |
 | [WEB.md](WEB.md) | Parcours depuis le lien, coffre web et limites | Le runtime web ou son stockage change |
 | [DATA.md](DATA.md) | Données conservées, export, copies et récupération | Une politique de persistance ou son format change |

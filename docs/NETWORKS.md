@@ -41,7 +41,7 @@ Références : [API](https://hyperliquid.gitbook.io/hyperliquid-docs/for-develop
 
 ## Préparation commune, autorisations séparées
 
-L’assistant local peut préparer les deux réseaux dans une seule action explicite, mais produit une signature `approveAgent` distincte sur chacun d’eux. La durée demandée est 30 jours, affichée avant signature. Hyperliquid accepte une expiration personnalisée `valid_until` dans le nom de l’agent, dans sa limite officielle de 180 jours : [endpoint exchange](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/exchange-endpoint#approve-an-api-wallet).
+Le parcours Bot, en mode web ou Node, peut préparer les deux réseaux dans une seule action explicite, mais produit une signature `approveAgent` distincte sur chacun d’eux. La durée demandée est 30 jours, affichée avant signature. Hyperliquid accepte une expiration personnalisée `valid_until` dans le nom de l’agent, dans sa limite officielle de 180 jours : [endpoint exchange](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/exchange-endpoint#approve-an-api-wallet).
 
 Chaque réseau est interrogé et validé indépendamment ; une approbation n’est jamais copiée de l’autre réseau ou déduite du stockage navigateur. Une autorisation encore valide pour le même propriétaire est réutilisée. Une autorisation expirée/révoquée entraîne une nouvelle clé plutôt que le recyclage de l’ancienne, conformément aux précautions de nonce officielles. Un verrou de préparation par réseau complète le verrou de signature par propriétaire pour sérialiser deux assistants ouverts dans des onglets différents.
 

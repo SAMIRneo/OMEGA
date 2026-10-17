@@ -1,7 +1,7 @@
 import {ExchangeClient,HttpTransport,InfoClient} from '@nktkas/hyperliquid';
 import {generatePrivateKey,privateKeyToAccount} from 'viem/accounts';
-import {LiveEngine,type Ledger} from '../../runner/engine';
-import {networkConfig,type Network} from '../../runner/policy';
+import {LiveEngine,type Ledger} from '../../shared/engine';
+import {networkConfig,type Network} from '../../shared/policy';
 import {walletProvider} from '../shared/wallet-provider';
 import {subscribeWallet} from '../shared/wallet-store';
 import {BrowserVault} from './vault';
