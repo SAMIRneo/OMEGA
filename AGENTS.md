@@ -8,7 +8,8 @@ OMEGA is an ETH/Hyperliquid research terminal with browser paper trading, manual
 2. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): ownership, data flows, source map and contracts.
 3. [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): commands, checks and task recipes.
 4. [docs/STATUS.md](docs/STATUS.md): verified capabilities, gaps and next work.
-5. Read [docs/OPERATIONS.md](docs/OPERATIONS.md) for lifecycle/API changes, or [docs/STRATEGY.md](docs/STRATEGY.md) for rules/risk changes.
+5. For network/signing/account changes, read [docs/NETWORKS.md](docs/NETWORKS.md). Use `frontend/core/networks.js` as the only endpoint/signing-network configuration. Preserve session revision guards, explicit network response validation and per-network ledger identities.
+6. Read [docs/OPERATIONS.md](docs/OPERATIONS.md) for lifecycle/API changes, or [docs/STRATEGY.md](docs/STRATEGY.md) for rules/risk changes.
 
 `docs/archive/` is historical context only. Source code and the lockfile establish implemented behavior; update documentation when it disagrees. Do not change code to match an obsolete document.
 
@@ -29,6 +30,7 @@ The frontend is TypeScript + JavaScript + CSS, not React/Next.js. Do not introdu
 - Mainnet/testnet transports, signers and state must remain isolated. Display only confirmed runtime state; an unreachable service is not confirmation of an inactive service.
 - Never use a funded exchange account or arm a real runner to validate documentation, UI or refactoring. Automated checks use mocked transports and temporary runtime directories.
 - Preserve write-ahead pending orders/quota, uncertainty handling, nonce ownership, no automatic entry retries and reduce-only exit semantics. Do not weaken guards to make a test pass.
+- Intraday policy lives in `frontend/core/session.js`: four attempts, one position, 30-minute cooldown, realized daily target, consecutive-loss stop. Preserve durable attempt counters and uncertain-send handling on restart. Python compatibility remains a separate paper implementation.
 - Preserve the Daily limits and timing contracts described in STRATEGY.md; change them only as intentional strategy work with corresponding tests and docs.
 - Keys/tokens/runtime state stay outside source, bundles, screenshots and logs. Do not read or print `.omega-runtime/`, personal `config.json`, token files or environment secrets during routine work. Use examples and isolated fixtures.
 - `Snapshot.time`, `context.updatedAt`, `candleStatus.fetchedAt`: seconds. Candle `t/T`, `lastClosedTime`, book `time`, runner heartbeat/events: milliseconds. Confirm units before comparing timestamps.

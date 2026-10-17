@@ -1,6 +1,7 @@
+import {sessionBlock,sessionPolicy} from './session.js';
 import type {Evaluation,Snapshot,RustRisk,Candidate,Side,TradeIntent} from './types';
 import {quoteDepth,spreadBps} from './execution';
-export const OMEGA_PROFILE={capital:10000,allocation:0.5,maxLeverage:15,maxPlannedLoss:500,maxEntries:1,accountingTimezone:'UTC'} as const;
+export const OMEGA_PROFILE={capital:10000,allocation:0.5,maxLeverage:15,maxPlannedLoss:500,maxEntries:4,accountingTimezone:'UTC'} as const;
 export const STRATEGY_PROFILES={
  balanced:{label:'Équilibré',volume:1.2,rsiLow:45,rsiHigh:72,minConfirmations:2},
  selective:{label:'Sélectif',volume:1.4,rsiLow:48,rsiHigh:68,minConfirmations:3},
@@ -18,7 +19,7 @@ export function evaluateDaily(s:Snapshot,risk:RustRisk|null):Evaluation {
  if(metadataAt===undefined||!Number.isFinite(metadataAt)||s.time-metadataAt>120||metadataAt>s.time+5)return fail('Métadonnées exchange absentes ou anciennes.');
  if(spreadBps(s.market.book)>8)return fail('Spread supérieur au plafond de recherche de 8 bps.');
  if(s.paper.position)return fail('Une position est déjà ouverte.');
- if(entriesOnDay(s)>=1)return fail('Entrée quotidienne déjà consommée (UTC).');
+ let session;try{session=sessionPolicy(s.limits);const blocked=sessionBlock(s.paper,s.limits,s.time);if(blocked)return fail(blocked);}catch{return fail('Paramètres de session invalides.');}
  if(s.paper.dailyPnl<=-s.limits.daily_loss_limit)return fail('Limite de perte quotidienne atteinte.');
  const f=s.indicators['15m'],h=s.indicators['1h'],d=s.indicators['1d'];
  for(const [tf,age] of [['15m',180],['1h',300],['1d',1800]] as const){const indicator=s.indicators[tf],status=s.candleStatus[tf];if(!indicator?.ready||!status||status.error||s.time-status.fetchedAt>age||status.fetchedAt>s.time+5)return fail('Historique '+tf+' absent ou ancien.');const duration=tf==='15m'?900:tf==='1h'?3600:86400;if(!indicator.lastClosedTime||indicator.lastClosedTime>=s.time*1000||s.time-indicator.lastClosedTime/1000>duration+300)return fail('Bougie '+tf+' trop ancienne.');}
@@ -27,6 +28,9 @@ export function evaluateDaily(s:Snapshot,risk:RustRisk|null):Evaluation {
  const profileKey=s.limits.strategy_profile??'balanced';
  if(!Object.hasOwn(STRATEGY_PROFILES,profileKey))return fail('Profil de stratégie inconnu.');
  const profile=STRATEGY_PROFILES[profileKey];
+ if(!Number.isFinite(f.adx)||(f.adx??0)<18)return fail('Tendance trop faible : ADX 15 min inférieur à 18.','wait');
+ if(f.atr/f.close>.025)return fail('Volatilité excessive : ATR supérieur à 2,5 % du prix.','wait');
+ if(Math.abs(f.close-f.ema20)>f.atr*1.5)return fail('Mouvement trop avancé : distance EMA20 supérieure à 1,5 ATR.','wait');
  const dailyBias=d.close>d.ema20?'bullish':'bearish';base.dailyBias=dailyBias;
  const side:Side=dailyBias==='bullish'?'long':'short',direction=side==='long'?1:-1;
  if(h.trend!==dailyBias)return fail('Contexte daily et tendance 1 h désaccordés.','wait');
@@ -49,22 +53,34 @@ export function evaluateDaily(s:Snapshot,risk:RustRisk|null):Evaluation {
  const family=breakout?'breakout':pullback?'pullback':'momentum';
  // Rule score: a transparent ranking, not an estimated probability.
  const reasons=['Profil '+profile.label,'Contexte daily concordant','Tendance 1 h concordante','Structure 15 min concordante',breakout?'Cassure confirmée par volume':pullback?'Reprise de l’EMA20':'Croisement MACD sur clôture',...confirmed.map(x=>x.label),confirmed.length+'/4 confirmations (score de règles, pas une probabilité)'];
- const score=70+(breakout?15:10)+((f.relativeVolume??0)>=1.2?5:0)+(direction*(f.histogram??0)>0?5:0)+(f.rollingVwap&&direction*(f.close-f.rollingVwap)>0?5:0);
- if(score<80)return fail('Score de règles insuffisant.','wait');
+ const score=55+confirmed.length*8+(breakout?6:3)+((f.adx??0)>=25?5:0)+((f.relativeVolume??0)>=1.4?4:0);
+ if(score<(profileKey==='selective'?88:profileKey==='aggressive'?76:80))return fail('Score de règles insuffisant.','wait');
  const L=s.limits;if(!Number.isFinite(L.leverage)||L.leverage<1||L.leverage>15||L.leverage>(s.context.maxLeverage??0))return fail('Levier hors plafond 1–15 ou métadonnées indisponibles.');
  const best=Number(s.market.book.levels[side==='long'?1:0][0]?.px);if(!(best>0))return fail('Meilleur prix invalide.');
  if(![s.paper.equity,s.paper.cash,L.fee_bps,L.slippage_bps,L.max_risk,L.daily_loss_limit].every(Number.isFinite)||s.paper.equity<=0||L.fee_bps<0||L.slippage_bps<0||L.max_risk<=0)return fail('Capital ou paramètres de risque invalides.');
  if(Math.abs(best-f.close)>f.atr*1.25)return fail('Prix éloigné de plus de 1,25 ATR de la clôture du signal.');
- const margin=Math.floor(s.paper.equity*0.5*100)/100;
- let entry=best*(1+direction*L.slippage_bps/10000),stop=0,target=0;
- // Select the highest integer leverage inside the user's cap with a 10% risk reserve.
- let leverage=Math.floor(Math.min(15,L.leverage,s.context.maxLeverage??0)),quantity=0,plannedLoss=Infinity;
- let depthOK=false,impactBps=0;
- while(leverage>=1){quantity=margin*leverage/best;const quote=quoteDepth(s.market.book,side,quantity,L.slippage_bps);if(quote&&quote.impactBps<=8){depthOK=true;entry=quote.entry;impactBps=quote.impactBps;stop=entry-direction*f.atr*1.5;target=entry+direction*f.atr*3;plannedLoss=risk.planned_loss(direction,entry,stop,quantity,L.fee_bps,L.slippage_bps);if(Number.isFinite(plannedLoss)&&plannedLoss>0&&plannedLoss<=L.max_risk*.9&&stop>0&&target>0)break;}leverage--;}
- if(leverage<1)return fail(depthOK?'Même à ×1, le stop dépasse le budget de risque.':'Profondeur visible insuffisante ou impact supérieur à 8 bps.');
+ const remaining=Math.max(0,L.daily_loss_limit+Math.min(0,s.paper.dailyPnl));
+ const budget=Math.min(L.max_risk,session.tradeRisk,s.paper.equity*.01,remaining*.9);
+ const leverage=Math.floor(Math.min(15,L.leverage,s.context.maxLeverage??0));
+ let entry=best,stop=0,target=0,quantity=0,plannedLoss=Infinity,impactBps=0,margin=0;
+ // Size by stop distance and costs first, then cap margin. Never increase size to chase a target.
+ const perUnit=risk.planned_loss(direction,best,best-direction*f.atr*1.5,1,L.fee_bps,L.slippage_bps);
+ if(!Number.isFinite(perUnit)||perUnit<=0)return fail('Budget de risque non calculable.');
+ quantity=Math.min(budget/perUnit,s.paper.equity*.5*leverage/best);
+ for(let i=0;i<4;i++){
+  const quote=quoteDepth(s.market.book,side,quantity,L.slippage_bps);
+  if(!quote||quote.impactBps>8)return fail('Profondeur visible insuffisante ou impact supérieur à 8 bps.');
+  entry=quote.entry;impactBps=quote.impactBps;stop=entry-direction*f.atr*1.5;target=entry+direction*f.atr*3;
+  plannedLoss=risk.planned_loss(direction,entry,stop,quantity,L.fee_bps,L.slippage_bps);
+  margin=entry*quantity/leverage;
+  const scale=Math.min(1,budget/plannedLoss,(s.paper.equity*.5)/margin);
+  if(scale>=.999999)break;
+  quantity*=scale*.999;
+ }
+ if(stop<=0||target<=0||entry*quantity<10||!Number.isFinite(plannedLoss)||plannedLoss>budget+.001||margin>s.paper.equity*.5+.001)return fail('Aucune taille compatible avec le risque et le notionnel minimal.');
  const netReward=direction*(target-entry)*quantity-entry*quantity*L.fee_bps/10000-target*quantity*(L.fee_bps+L.slippage_bps)/10000;
  const rewardRisk=netReward/plannedLoss;
- if(!Number.isFinite(plannedLoss)||plannedLoss<=0||plannedLoss>L.max_risk)return fail('Risque prévu supérieur au plafond : aucune réduction cachée de la marge de 50 %.');
+ if(!Number.isFinite(plannedLoss)||plannedLoss<=0||plannedLoss>L.max_risk)return fail('Risque prévu supérieur au plafond : budget de session dépassé.');
  if(margin+entry*quantity*L.fee_bps/10000>s.paper.cash)return fail('Marge et frais incompatibles avec le capital disponible.');
  if(rewardRisk<1.5)return fail('Ratio gain/risque net inférieur à 1,5 dans ce modèle.');
  reasons.push('Profondeur visible vérifiée','Spread et distance au signal contrôlés');

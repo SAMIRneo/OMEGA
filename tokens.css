@@ -8,7 +8,7 @@
  --color-rule:oklch(29% .006 75);--color-control-rule:oklch(58% .008 75);
  --color-accent:oklch(82% .10 75);--color-accent-ink:oklch(16% .015 75);--color-focus:oklch(52% .07 75);
  --color-overlay:oklch(9% .004 75 / .96);--color-transparent:transparent;
- --color-error:oklch(80% .10 15);--color-success:oklch(83% .09 155);--color-testnet:oklch(80% .08 290);
+ --color-error:oklch(75% .18 15);--color-success:oklch(83% .17 160);--color-testnet:oklch(78% .15 290);
  --font-body:"OMEGA Sans","Segoe UI",sans-serif;--font-display:"OMEGA Mono",ui-monospace,monospace;--font-mono:var(--font-display);
  --space-xs:.25rem;--space-sm:.5rem;--space-md:.75rem;--space-lg:1rem;--space-xl:1.5rem;--space-2xl:2rem;--space-3xl:3rem;
  --text-xs:.75rem;--text-sm:.875rem;--text-md:1rem;--text-lg:1.25rem;--text-xl:1.5rem;--text-display:clamp(1.5rem,2.6vw,2rem);

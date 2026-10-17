@@ -13,3 +13,18 @@ it('checks the permanent runner before a network switch even before the Bot tab 
  await vi.dynamicImportSettled();await vi.advanceTimersByTimeAsync(0);
  expect(dom.document.getElementById('connection-detail')?.textContent).toContain('Arrête le pilote automatique');expect(request).not.toHaveBeenCalled();expect(stop).not.toHaveBeenCalled();expect(select.value).toBe('mainnet');
 });
+
+it.each([
+ {state:{pending:true},message:'reste à vérifier'},
+ {state:{owned:true},message:'reste à vérifier'},
+ {state:{busy:true},message:'reste à vérifier'},
+ {state:{network:'testnet'},message:'autre réseau'}
+])('blocks a switch for an unresolved or wrong-network runner response: $state',async({state,message})=>{
+ vi.resetModules();vi.useFakeTimers();dom=new Window({url:'http://127.0.0.1:8766/#terminal'});dom.document.write(readFileSync(new URL('./index.html',import.meta.url),'utf8'));
+ vi.stubGlobal('window',dom);vi.stubGlobal('document',dom.document);vi.stubGlobal('location',dom.location);vi.stubGlobal('navigator',{locks:{request:vi.fn()}});
+ const request=vi.fn(),stop=vi.fn();(dom as any).BrowserAtelier={environment:{id:'mainnet'},request};(dom as any).PaperPilot={stop};
+ vi.stubGlobal('fetch',vi.fn(async(path:string)=>({ok:true,json:async()=>path.includes('/session')?{token:'fixture'}:{network:'mainnet',active:false,owner:null,events:[],...state}})));
+ await import('./network');const select=dom.document.getElementById('network-select') as any;select.value='testnet';select.dispatchEvent(new dom.Event('change'));
+ await vi.dynamicImportSettled();await vi.advanceTimersByTimeAsync(0);
+ expect(dom.document.getElementById('connection-detail')?.textContent).toContain(message);expect(select.value).toBe('mainnet');expect(request).not.toHaveBeenCalled();expect(stop).not.toHaveBeenCalled();
+});

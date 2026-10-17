@@ -1,4 +1,5 @@
-import {evaluateDaily,intent,utcDay} from './daily';
+import {sessionBlock} from './session.js';
+import {evaluateDaily,intent} from './daily';
 import type {Snapshot,RustRisk,ControllerEvent,Evaluation,TradeIntent} from './types';
 const network=window.BrowserAtelier?.environment?.id??'mainnet',scope=network==='testnet'?'-testnet':'';
 const EVENT_KEY='axiom-daily-events-v1'+scope,BAR_KEY='axiom-daily-evaluation-v1'+scope;
@@ -7,7 +8,7 @@ let events:ControllerEvent[]=[];try{const parsed=JSON.parse(localStorage.getItem
 function log(kind:string,message:string){events.push({at:Date.now(),kind,message});events=events.slice(-200);try{localStorage.setItem(EVENT_KEY,JSON.stringify(events))}catch{}}
 function core():RustRisk|null{return window.RiskCore?.exports??null}
 export const controller={
- start(s:Snapshot){if(!navigator.locks)throw Error('Web Locks requis pour le contrôleur.');if(!s.market.fresh||!s.indicators['15m']?.ready||!s.indicators['1h']?.ready||!s.indicators['1d']?.ready)throw Error('Attends le carnet et les horizons 15 min / 1 h / 1 jour.');if(s.paper.position)throw Error('Une position est déjà ouverte.');if(s.paper.lastEntryDay===utcDay(s.time)&&s.paper.entriesToday>=1)throw Error('Entrée quotidienne déjà consommée.');active=true;paused=false;lastBar=s.indicators['15m'].lastClosedTime??0;resumeAfter=Date.now();reason='Daily armé · attente d’une nouvelle clôture 15 min.';log('ARMEMENT','Daily armé. Aucune entrée sur un signal passé.');},
+ start(s:Snapshot){if(!navigator.locks)throw Error('Web Locks requis pour le contrôleur.');if(!s.market.fresh||!s.indicators['15m']?.ready||!s.indicators['1h']?.ready||!s.indicators['1d']?.ready)throw Error('Attends le carnet et les horizons 15 min / 1 h / 1 jour.');if(s.paper.position)throw Error('Une position est déjà ouverte.');const blocked=sessionBlock(s.paper,s.limits,s.time);if(blocked)throw Error(blocked);active=true;paused=false;lastBar=s.indicators['15m'].lastClosedTime??0;resumeAfter=Date.now();reason='Daily armé · attente d’une nouvelle clôture 15 min.';log('ARMEMENT','Daily armé. Aucune entrée sur un signal passé.');},
  stop(){active=false;reason='Daily en observation · entrées arrêtées.';log('ARRÊT','Nouvelles entrées quotidiennes arrêtées.');},
  suspend(){if(active&&!paused){paused=true;reason='Suspendu · onglet masqué.';log('PAUSE','Entrées suspendues ; pas de rattrapage.');}},
  signal(s:Snapshot){const e=evaluateDaily(s,core()),args=intent(e,s.indicators['15m']?.lastClosedTime??0);return args?{args}:{blocked:e.reasons.join(' ')};},

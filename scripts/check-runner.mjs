@@ -21,7 +21,8 @@ try{
  const configure=async()=>{const response=await fetch(origin+'/api/live/configure?network=testnet',{method:'POST',headers,body:JSON.stringify({owner:'0x1111111111111111111111111111111111111111'})});assert.equal(response.status,200);return response.json();};
  const first=await configure(),second=await configure();assert.notEqual(first.agent,second.agent);assert.equal((await status('mainnet')).owner,null);
  const arm=await fetch(origin+'/api/live/arm?network=mainnet',{method:'POST',headers,body:JSON.stringify({settings:{profile:'balanced',leverage:15}})});assert.equal(arm.status,400);assert.match((await arm.json()).error,/MAINNET/);
- const invalid=await fetch(origin+'/api/live/status?network=other',{headers});assert.equal(invalid.status,400);
+ for(const query of ['', '?network=other','?network=mainnet&network=testnet']){const invalid=await fetch(origin+'/api/live/status'+query,{headers});assert.equal(invalid.status,400);}
+ assert.equal((await status('testnet')).network,'testnet');assert.equal((await status('mainnet')).network,'mainnet');
  assert.match(await (await fetch(origin+'/')).text(),/OMEGA test/);
  console.log('Local runner: auth, Origin/Host, network isolation, rotation, no secret exposure, mainnet consent and static serving passed. No exchange orders sent.');
 }finally{child.kill('SIGTERM');await new Promise(resolve=>child.once('exit',resolve));rmSync(temp,{recursive:true,force:true});}

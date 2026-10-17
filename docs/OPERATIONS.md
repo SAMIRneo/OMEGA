@@ -60,11 +60,11 @@ Les routes appartiennent au service local, pas au domaine public statique. Pas d
 | GET `/api/live/status` | État du réseau : agent public, compte, flags, heartbeat, équité connue, événements et réglages |
 | POST `/api/live/configure` | `{owner}` : adresse du compte ; préparation/rotation de la clé locale si le moteur n’est pas occupé ou exposé |
 | POST `/api/live/verify` | `{}` : vérifie l’approbation de l’agent sur le réseau |
-| POST `/api/live/arm` | `{settings: {profile, leverage}, consent?}` ; `consent` doit être `MAINNET` sur mainnet |
+| POST `/api/live/arm` | `{settings: {profile, leverage, dailyTarget?}, consent?}` ; `consent` doit être `MAINNET` sur mainnet |
 | POST `/api/live/stop` | `{}` : arrête les nouvelles entrées |
 | POST `/api/live/reconcile` | `{}` : rapproche un cloid enregistré avec les statuts/fills exchange, moteur désarmé |
 
-Profils : `balanced`, `selective`, `aggressive`. Levier : entier 1 à 15, soumis aussi aux métadonnées et au plan final. Les erreurs applicatives renvoient un objet `{error}` ; la présence d’une réponse HTTP n’est pas une preuve de fill ou de protection.
+Objectif `dailyTarget` : 100, 200 ou 500 USDC ; défaut 200. Il est relu au démarrage du pilote et ne constitue pas une promesse de résultat. Profils : `balanced`, `selective`, `aggressive`. Levier : entier 1 à 15, soumis aussi aux métadonnées et au plan final. Les erreurs applicatives renvoient un objet `{error}` ; la présence d’une réponse HTTP n’est pas une preuve de fill ou de protection.
 
 `status` n’expose pas la clé privée, le token ou le nonce. Un heartbeat est l’heure du dernier snapshot réussi du moteur ; ce n’est pas une preuve d’une décision ou d’un ordre récent. Les événements sont propres au service ; le journal paper se trouve dans Compte.
 
@@ -101,3 +101,9 @@ Ne pas effacer un runtime pour « débloquer » une erreur : cela efface aussi l
 Installer les dépendances Python dans un environnement virtuel. Copier manuellement `config.example.json` vers `config.json` **si le fichier personnel n’existe pas**, renseigner l’adresse publique, puis construire le frontend et lancer `python app.py`. `start.ps1` est le raccourci historique de ce serveur Python, pas un lanceur Node.
 
 `agent_bridge.py` est un serveur MCP stdio, pointé par `mcp-config.example.json`. Il utilise `ATELIER_URL` ou `http://127.0.0.1:8765`. Outils : `eth_state`, `eth_candles`, `paper_open`, `paper_close`. Les deux mutations sont des simulations ; elles utilisent le token local produit par Python. Ce MCP n’est pas une passerelle vers les ordres réels du runner Node.
+
+## Session intraday
+
+Jusqu’à quatre tentatives locales UTC, avec comptage conservateur des entrées exchange. Une position à la fois. Pause de 30 min après l’entrée ou la dernière sortie ; après deux ordres de clôture perdants consécutifs du compte, les nouvelles entrées sont bloquées jusqu’au lendemain UTC. Les fills partiels sont regroupés par oid pour ce calcul. Le P&L est réalisé, frais USDC déduits ; le funding et le latent ne sont pas intégrés.
+
+Un objectif atteint bloque les nouvelles entrées, sans supprimer les protections ni arrêter la surveillance. Le processus peut rester marqué actif pendant une pause de session. Un envoi incertain exige toujours un rapprochement et un réarmement explicites. L’expiration du pending ne restitue pas sa tentative consommée. Aucun martingale ou relèvement du budget après perte.

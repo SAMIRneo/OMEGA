@@ -1,8 +1,9 @@
+import {assertEnvironment,networkConfig} from './core/networks.js';
 import {publishRunner} from './shared/runner-store';
 import {walletProvider,walletError} from './shared/wallet-provider';
 const $=(id:string)=>document.getElementById(id)!;
 const local=location.origin==='http://127.0.0.1:8766';
-const network=window.BrowserAtelier.environment?.id??'mainnet';
+const network=assertEnvironment(window.BrowserAtelier.environment).id;
 let token='',current:any=null,busy=false,verified=false,reachable=false;
 const message=(text:string)=>{$('runner-status').textContent=text;};
 $('runner-mainnet-row').hidden=!local||network!=='mainnet';
@@ -11,7 +12,7 @@ async function request(path:string,body?:unknown){
  if(!local)throw Error('Service permanent non connecté. Ouvre OMEGA sur http://127.0.0.1:8766 après npm run bot.');
  if(!token){const response=await fetch('/api/live/session',{cache:'no-store'});if(!response.ok)throw Error('Session du service indisponible.');token=(await response.json()).token;}
  let response:Response;try{response=await fetch('/api/live/'+path+'?network='+network,{signal:AbortSignal.timeout(12000),method:body===undefined?'GET':'POST',headers:{'X-Omega-Session':token,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'});reachable=true;}catch(error){reachable=false;throw error;}
- const result=await response.json();if(!response.ok)throw Error(result.error??'Service indisponible.');return result;
+ const result=await response.json();if(!response.ok)throw Error(result.error??'Service indisponible.');if(result.network!==network){reachable=false;throw Error('Réponse du service reçue pour un autre réseau.');}return result;
 }
 function render(){
  const state=current;
@@ -20,7 +21,7 @@ function render(){
  $('runner-account').textContent=state?.owner?(Number.isFinite(state.equity)?Number(state.equity).toLocaleString('fr-FR',{maximumFractionDigits:2})+' USDC':state.approved?'Agent autorisé':'Autorisation à vérifier'):'Wallet à connecter';
  $('runner-agent').textContent=state?.agent?(state.approved?'Autorisé · ':'À autoriser · ')+state.agent.slice(0,8)+'…'+state.agent.slice(-6):'Agent distinct pour chaque réseau';
  $('runner-state').textContent=state&&!reachable?'État à vérifier':state?.active?'Automatique actif':state?.pending?'Envoi à vérifier':state?.owned?'Position sous surveillance':'À l’arrêt';
- $('runner-pulse').textContent=state?.heartbeat?'Dernier contrôle '+new Date(state.heartbeat).toLocaleTimeString('fr-FR'):'1 entrée max. / jour UTC · levier ≤ ×15';
+ $('runner-pulse').textContent=state?.heartbeat?'Dernier contrôle '+new Date(state.heartbeat).toLocaleTimeString('fr-FR'):'4 tentatives max. / jour UTC · levier ≤ ×15';
  for(const id of ['runner-authorize','runner-start','runner-stop','runner-reconcile']){
   const button=$(id) as HTMLButtonElement;button.disabled=busy||!local||!state||!reachable;
   if(id==='runner-authorize')button.disabled||=state?.active||state?.owned||state?.pending;
@@ -30,7 +31,7 @@ function render(){
  }
  publishRunner({...state,connected:!!state&&reachable});
  const log=$('runner-log');log.replaceChildren(...(state?.events??[]).slice(-15).reverse().map((event:any)=>{const row=document.createElement('p');row.textContent=new Date(event.at).toLocaleString('fr-FR')+' · '+event.message;return row;}));
- if(state?.settings)$('runner-config').textContent='Service : '+state.settings.profile+' · levier maximal ×'+state.settings.leverage+'. Les réglages du formulaire sont appliqués au prochain démarrage.';
+ if(state?.settings)$('runner-config').textContent='Service : '+state.settings.profile+' · levier maximal ×'+state.settings.leverage+' · objectif journalier +'+(state.settings.dailyTarget??200)+' USDC. Les réglages du formulaire sont appliqués au prochain démarrage.';
 }
 async function refresh(){current=await request('status');if(!verified&&current.owner){current=await request('verify',{});verified=true;}render();if(current.reason)message(current.reason);}
 async function run(fn:()=>Promise<void>){if(busy)return;busy=true;render();try{await fn();}catch(error){message(walletError(error));}finally{busy=false;render();}}
@@ -38,24 +39,29 @@ $('runner-refresh').addEventListener('click',()=>run(refresh));
 $('runner-mainnet').addEventListener('change',render);
 $('runner-authorize').addEventListener('click',()=>run(async()=>{
  const provider=walletProvider();if(!provider)throw Error('Ouvre OMEGA permanent dans un navigateur avec MetaMask ou Rabby.');
- const [address]=await provider.request({method:'eth_requestAccounts'});if(!address)throw Error('Aucun compte wallet autorisé.');
+ const [rawAddress]=await provider.request({method:'eth_requestAccounts'});const address=rawAddress?.toLowerCase();if(!/^0x[0-9a-fA-F]{40}$/.test(address??'')||/^0x0{40}$/.test(address))throw Error('Aucun compte wallet autorisé.');
+ if(!navigator.locks)throw Error('Verrouillage entre onglets requis pour autoriser un agent.');
+ await navigator.locks.request('omega-'+network+'-sign-'+address,async()=>{
  current=await request('configure',{owner:address});
  if(current.network!==network||!/^0x[0-9a-fA-F]{40}$/.test(current.agent)||current.agent.toLowerCase()===address.toLowerCase())throw Error('Agent du service incohérent.');
+ const expectedAgent=current.agent;
  const {createWalletClient,custom}=await import('viem');
  const {ExchangeClient,HttpTransport}=await import('@nktkas/hyperliquid');
- const signer=new ExchangeClient({wallet:createWalletClient({account:address,transport:custom(provider)}),transport:new HttpTransport({isTestnet:network==='testnet',apiUrl:network==='testnet'?'https://api.hyperliquid-testnet.xyz':'https://api.hyperliquid.xyz',timeout:12000})});
+ const signer=new ExchangeClient({wallet:createWalletClient({account:address as `0x${string}`,transport:custom(provider)}),transport:new HttpTransport(networkConfig(network))});
+ const selected=await provider.request({method:'eth_accounts'});if(selected[0]?.toLowerCase()!==address)throw Error('Compte actif modifié avant autorisation.');
  message('Signature wallet : autoriser l’agent OMEGA sur '+network.toUpperCase()+' pour 24 heures.');
  await signer.approveAgent({agentAddress:current.agent,agentName:'OMEGA-'+network+' valid_until '+(Date.now()+86400000)});
- current=await request('verify',{});if(!current.approved)throw Error('Autorisation non retrouvée sur Hyperliquid. Vérifie le réseau et le compte.');
+ current=await request('verify',{});const confirmed=await provider.request({method:'eth_accounts'});if(current.agent!==expectedAgent||current.owner?.toLowerCase()!==address||confirmed[0]?.toLowerCase()!==address)throw Error('Compte ou agent modifié pendant autorisation.');if(!current.approved)throw Error('Autorisation non retrouvée sur Hyperliquid. Vérifie le réseau et le compte.');
  await window.BrowserAtelier.setAddress(address,false);
  message('Agent API autorisé sur '+network.toUpperCase()+'. Tu peux démarrer le pilote automatique.');
+ });
 }));
 $('runner-start').addEventListener('click',()=>run(async()=>{
- const settings={profile:($('strategy-profile') as HTMLSelectElement).value,leverage:Number(($('leverage-cap') as HTMLSelectElement).value)};
+ const settings={dailyTarget:Number(($('daily-target') as HTMLSelectElement).value),profile:($('strategy-profile') as HTMLSelectElement).value,leverage:Number(($('leverage-cap') as HTMLSelectElement).value)};
  const consent=network==='mainnet'&&($('runner-mainnet') as HTMLInputElement).checked?'MAINNET':undefined;
  current=await request('arm',{settings,consent});($('runner-mainnet') as HTMLInputElement).checked=false;message(current.reason);
 }));
 $('runner-stop').addEventListener('click',()=>run(async()=>{current=await request('stop',{});message(current.reason);}));
 $('runner-reconcile').addEventListener('click',()=>run(async()=>{current=await request('reconcile',{});message(current.reason);}));
-window.OmegaRunnerGate=async()=>{if(!local)return;const state=await request('status');if(state.active)throw Error('Arrête le pilote automatique du réseau actuel avant de changer de réseau.');};
+window.OmegaRunnerGate=async()=>{if(!local)return;if(busy)throw Error('Une opération du service est en cours.');const state=await request('status');if(state.active)throw Error('Arrête le pilote automatique du réseau actuel avant de changer de réseau.');if(state.busy||state.pending||state.owned)throw Error('Une opération, un envoi ou une position du service reste à vérifier avant de changer de réseau.');};
 if(local){void run(refresh);setInterval(()=>{if(!busy&&!document.hidden)void run(refresh);},10000);}else render();
