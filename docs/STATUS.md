@@ -10,7 +10,7 @@ Revue documentaire : **16 octobre 2026**. Version logicielle : `1.2.0` dans `pac
 | Connexion wallet | Parcours Bot visible, MetaMask depuis en-tête/Compte, lecture partagée, choix réseau gardé, erreurs et guide local ; autorisation et armement séparés |
 | Hallmark / Bot | Première passe ciblée Workbench : colonne compte, espace de commande, polices locales dérivées d’IBM Plex, tokens partagés et progression native après lecture ; fonctions de trading conservées |
 | UI / couleurs | Fond noir, surfaces graphite, navigation cyan, actions ambre, recherche violet ; gains/pertes verts/rouges, réseaux distingués par texte et couleur ; contrôles tactiles et focus clavier |
-| Visualisations | Graphique financier incrémental, carnet L2 3D, orbites CSS illustratives ; pas de modèle de prédiction |
+| Visualisations | Graphique financier incrémental, carnet L2 3D ; horizons du Bot sans figure décorative ; pas de modèle de prédiction |
 | Recherche | Replay récent en Worker, deux hypothèses de coûts, CSV |
 | Paper web | Compte local et contrôleur de clôtures avec Web Locks |
 | Exchange manuel | Wallet EIP-1193, testnet/mainnet, lot IOC + SL/TP et rapprochement |
@@ -55,3 +55,9 @@ Ces lignes décrivent du travail restant, pas des capacités déjà acquises. Un
 ## Pour reprendre immédiatement
 
 Lire AGENTS → ARCHITECTURE → DEVELOPMENT, lancer `npm ci` si nécessaire puis `npm run check`. Choisir ensuite une tâche de portée bornée. Pour comprendre une décision, consulter STRATEGY et la source ; pour une panne de service, OPERATIONS. Ne pas utiliser les archives comme contrat actuel.
+
+## Nettoyage du 17 octobre 2026
+
+Suppression de la figure orbitale du Bot, de ses styles, contrôles et observateurs, ainsi que de l’ancien module de tore non importé et de son test devenu sans objet. La chaîne de décision redondante est retirée : le diagnostic conserve les motifs et contrôles détaillés. Les commandes, lectures des horizons, règles Daily et protections exchange sont conservées.
+
+Validation de cette passe : `npm run check` réussi (102 tests Vitest, 19 tests du moteur navigateur, builds web/Node et contrôle HTTP isolé). Aucun ordre envoyé. Le rendu visuel sur navigateur et iPhone reste non vérifié. Les deux anciens fichiers générés suivis sous dist sont retirés du suivi Git ; le build reste produit pour publication.
