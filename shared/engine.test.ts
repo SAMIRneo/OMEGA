@@ -102,3 +102,26 @@ it('awaits an asynchronous durable reservation and cancels the entry if stopped 
  const pending=f.engine.tick();for(let i=0;i<20&&!release;i++)await Promise.resolve();expect(release).toBeTypeOf('function');expect(f.exchange.order).not.toHaveBeenCalled();
  await f.engine.stop();release();await pending;expect(f.exchange.order).not.toHaveBeenCalled();expect(f.ledger.pending).not.toBeNull();
 });
+
+it('reuses an unused recent prepared identity after a refusal without clearing quota or calling the exchange',async()=>{
+ const f=setup();f.ledger.agentApproval={preparedAt:Date.now(),confirmed:false};f.ledger.attemptCount=2;
+ expect(await f.engine.prepareAgent(owner)).toBe(false);expect(f.info.extraAgents).not.toHaveBeenCalled();expect(f.ledger.attemptCount).toBe(2);expect(f.exchange.order).not.toHaveBeenCalled();
+});
+it('retains a confirmed valid agent, then requires rotation after revocation without resetting its nonce',async()=>{
+ const f=setup();f.ledger.agentApproval={preparedAt:Date.now(),confirmed:false};
+ expect(await f.engine.verifyApproval()).toBe(true);expect(f.ledger.agentApproval.confirmed).toBe(true);expect(f.save).toHaveBeenCalled();expect(await f.engine.prepareAgent(owner)).toBe(false);
+ f.ledger.nonce=123;f.info.extraAgents.mockResolvedValue([]);expect(await f.engine.prepareAgent(owner)).toBe(true);expect(f.ledger.nonce).toBe(123);
+});
+it('does not rotate on unavailable approval reads, stale sessions or unresolved execution',async()=>{
+ const f=setup();const key=f.ledger.key;f.info.extraAgents.mockRejectedValue(Error('offline'));await expect(f.engine.prepareAgent(owner)).rejects.toThrow('offline');expect(f.ledger.key).toBe(key);
+ f.ledger.pending={cloid:('0x'+'1'.repeat(32)) as `0x${string}`,at:Date.now()};await expect(f.engine.prepareAgent(owner)).rejects.toThrow('résous');expect(f.ledger.pending).not.toBeNull();
+});
+it('does not treat an old or already used preparation as reusable',async()=>{
+ const f=setup();f.info.extraAgents.mockResolvedValue([]);f.ledger.agentApproval={preparedAt:Date.now()-86400000,confirmed:false};expect(await f.engine.prepareAgent(owner)).toBe(true);
+ f.ledger.agentApproval.preparedAt=Date.now();f.ledger.nonce=1;expect(await f.engine.prepareAgent(owner)).toBe(true);
+});
+
+it('cancels agent preparation if stop interrupts approval verification',async()=>{
+ const f=setup();let finish!:(value:any)=>void;f.info.extraAgents.mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));
+ const preparation=f.engine.prepareAgent(owner);await f.engine.stop();finish([]);await expect(preparation).rejects.toThrow('interrompue');expect(f.engine.busy).toBe(false);expect(f.engine.active).toBe(false);
+});

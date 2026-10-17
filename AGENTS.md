@@ -38,7 +38,7 @@ The frontend is TypeScript + JavaScript + CSS, not React/Next.js. Do not introdu
 - `Snapshot.time`, `context.updatedAt`, `candleStatus.fetchedAt`: seconds. Candle `t/T`, `lastClosedTime`, book `time`, runner heartbeat/events: milliseconds. Confirm units before comparing timestamps.
 - Retain `axiom-*` storage/profile keys for compatibility. Branding changes are not data migrations.
 
-Browser agent keys may exist only in memory and the authenticated encrypted IndexedDB vault; never put them in localStorage, status responses, exports or logs. Await every durable checkpoint and nonce before transmission, preserve revision checks and the final transport/visibility/lock guard. A page restart must remain disarmed.
+Browser agent keys may exist only in memory and the authenticated encrypted IndexedDB vault; never put them in localStorage, status responses, exports or logs. Await every durable checkpoint and nonce before transmission, preserve revision checks and the final transport/visibility/lock guard. A page restart must remain disarmed. Preserve idempotent agent preparation and the confirmed-approval marker; only an unused, unconfirmed preparation younger than 24 hours may be reused before approval. Approval read failures must never rotate keys. The shared authorization module owns the explicit duration and names.
 
 For persistence, read [docs/DATA.md](docs/DATA.md). Preserve corrupted files/values, block mutations and never automatically restore a nonce, quota or pending from an older generation. Browser exports use an allowlist excluding keys, sessions and permissions.
 

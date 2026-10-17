@@ -58,7 +58,7 @@ Un changement purement visuel ne nécessite pas un nouvel essai sur un compte fi
 - `frontend/web/*.test.ts` : coffre Web Crypto avec fake-indexeddb (dépendance de test), CAS, échecs transactionnels et cycle de page avec transports simulés.
 - `frontend/exchange.test.ts` : wallet/transport simulés, signatures manuelles et lecture du compte.
 - `frontend/network.test.ts` : blocage du changement de réseau quand le runner est actif.
-- `frontend/workspace.test.ts`, `bot-dashboard.test.ts`, `runner-ui.test.ts` : DOM via happy-dom, états et navigation.
+- `frontend/workspace.test.ts`, `bot-dashboard.test.ts`, `runner-ui.test.ts` : DOM via happy-dom, états et navigation. La connexion couvre verrouillage/déverrouillage passif, chaîne EVM, compte changé, autorisations conservées et refus partiel des deux réseaux.
 - `frontend/charts/data-buffer.test.ts` : EMA et corrections de bougies.
 - `frontend/visuals/depth-model.test.ts` : données et géométrie pure.
 - `tests/browser.test.cjs` : moteur navigateur dans une VM Node.

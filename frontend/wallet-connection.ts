@@ -1,3 +1,4 @@
+import {AUTHORIZATION_DAYS} from '../shared/authorization';
 import {subscribeWallet,type WalletView} from './shared/wallet-store';
 import {subscribeRunner,type RunnerView} from './shared/runner-store';
 import {walletProvider,walletError} from './shared/wallet-provider';
@@ -15,7 +16,7 @@ function render(){
  const known=wallet?.network===network?wallet:null,read=!!known?.readAt,connected=!!known?.address,busy=loading||!!known?.busy||!!(runner.connected&&runner.network===network&&runner.busy),service=runner.connected&&runner.network===network,mismatch=!!(service&&known?.address&&runner.owner&&known.address.toLowerCase()!==runner.owner.toLowerCase());
  $('connect-network-name').textContent=label+(network==='testnet'?' · fonds de test':' · fonds réels');
  for(const button of document.querySelectorAll<HTMLButtonElement>('[data-connect-network]')){button.setAttribute('aria-pressed',String(button.dataset.connectNetwork===network));button.disabled=busy||!network;}
- for(const button of document.querySelectorAll<HTMLButtonElement>('[data-wallet-connect]')){button.disabled=busy||!network;(button.querySelector('[data-wallet-label]')??button).textContent=busy?'Patiente…':connected?'Reconnecter MetaMask':'Connecter MetaMask';}
+ for(const button of document.querySelectorAll<HTMLButtonElement>('[data-wallet-connect]')){button.disabled=busy||!network;(button.querySelector('[data-wallet-label]')??button).textContent=busy?'Patiente…':connected?'Vérifier MetaMask':'Connecter MetaMask';}
  $('connect-address').textContent=known?.address??'Ton compte apparaîtra ici';
  const accountCard=document.querySelector<HTMLElement>('.connect-account')!;accountCard.setAttribute('aria-busy',String(busy));accountCard.dataset.state=busy?'loading':known?.error||loadError?'error':read?'success':'idle';
  $('connect-account-summary').textContent=read&&!known?.error?(known?.equity!==null?formatNumber(known!.equity!,2)+' USDC':'Compte connecté'):'Non connecté';
@@ -41,15 +42,15 @@ function render(){
  const step=$('connect-step-wallet');step.dataset.complete=String(read&&!known?.error);$('connect-step-agent').dataset.complete=String(service&&!!runner.approved&&!mismatch);$('connect-step-start').dataset.complete=String(service&&!!runner.active&&!mismatch);
  $('connect-manual').textContent=known?.position||known?.openOrders?'Gérer la position ETH':'Ordre manuel';
  $('connect-next-label').textContent=mismatch?'Vérifier le compte':service?(runner.approved?'Voir les commandes':'Autoriser l’agent'):'Configurer le service';
- const state=!read||known?.error||loadError?'wallet':mismatch?'mismatch':!service?'service':runner.pending?'pending':runner.active?'active':runner.owned?'owned':!runner.approved?'authorize':'ready';
+ const state=mismatch?'mismatch':service&&runner.active?'active':service&&runner.pending?'pending':!read||known?.error||loadError?'wallet':!service?'service':runner.owned?'owned':!runner.approved?'authorize':'ready';
  const guidance={
-  wallet:['Connecter MetaMask','Lecture du compte uniquement. Aucun ordre à cette étape.','Connecter MetaMask'],
+  wallet:rememberedWallet()?['Reprendre mon compte','Le compte et les agents sont mémorisés. Déverrouille MetaMask ; aucune nouvelle autorisation si les agents sont valides.','Reprendre MetaMask']:['Relier mon compte','Une connexion MetaMask, puis une autorisation pour chaque réseau. Le compte sera mémorisé sur cet appareil.','Connecter MetaMask'],
   mismatch:['Vérifier le compte du service','Le service et le wallet utilisent des comptes différents.','Vérifier le compte'],
   service:[local?'Vérifier OMEGA local':'Vérifier le mode web',local?'Le service local doit être disponible.':'Les contrôles du navigateur doivent être disponibles pour autoriser le bot.','Vérifier la connexion'],
   pending:['Vérifier le dernier envoi','Un ordre attend un rapprochement. Vérifiez son état avant toute nouvelle entrée.','Voir la vérification'],
   active:['Le pilote est actif','Le service confirme son activité. Les événements sont disponibles dans Activité.','Voir l’activité'],
   owned:['Une position est sous surveillance','Les nouvelles entrées sont arrêtées ; le service surveille la position attribuée au bot.','Voir le compte'],
-  authorize:['Autoriser le bot','Configuration mémorisée · 30 jours, révocable. Choisis les réseaux ci-dessous.','Configurer dans MetaMask'],
+  authorize:['Autoriser le bot','Connexion mémorisée · '+AUTHORIZATION_DAYS+' jours maximum, révocable. Une signature par réseau manquant.','Configurer dans MetaMask'],
   ready:['Le bot est prêt','Vérifie les réglages. Le démarrage est une action séparée.','Démarrer le bot']
  }[state];
  $('next-step-title').textContent=guidance[0];$('next-step-detail').textContent=guidance[1];$('next-step-action').textContent=guidance[2]+' →';

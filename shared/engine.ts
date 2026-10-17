@@ -1,10 +1,11 @@
+import {reusablePreparation} from './authorization';
 import {sessionBlock} from '../frontend/core/session.js';
 import {evaluateDaily} from '../frontend/core/daily';
 import {features} from '../frontend/core/indicators.js';
 import {formatPrice,formatSize} from '@nktkas/hyperliquid/utils';
 import {reservedAttempts,canEvaluate,validBook,validCandles,exchangeDay,exchangePlan,exchangeStatus,bracketConfirmed,assertNoExposure,autoPlan,validateSettings,type Network} from './policy';
 import type {Snapshot,RustRisk,Indicator} from '../frontend/core/types';
-export interface Ledger {storageVersion?:1;revision?:number;savedAt?:number;settings?:{profile:string;leverage:number;dailyTarget:number};network?:Network;owner:`0x${string}`|null;key:`0x${string}`;nonce:number;attemptDay:string;attemptCount?:number;lastAttemptAt?:number;lastExitAt?:number;pending:{cloid:`0x${string}`;at:number}|null;owned:boolean;protectionIds?:number[];protectionCloids?:string[];ownedSide?:'long'|'short';ownedQuantity?:number;events:{at:number;message:string}[]}
+export interface Ledger {agentApproval?:{preparedAt:number;confirmed:boolean};storageVersion?:1;revision?:number;savedAt?:number;settings?:{profile:string;leverage:number;dailyTarget:number};network?:Network;owner:`0x${string}`|null;key:`0x${string}`;nonce:number;attemptDay:string;attemptCount?:number;lastAttemptAt?:number;lastExitAt?:number;pending:{cloid:`0x${string}`;at:number}|null;owned:boolean;protectionIds?:number[];protectionCloids?:string[];ownedSide?:'long'|'short';ownedQuantity?:number;events:{at:number;message:string}[]}
 export class LiveEngine {
  private candleCache=new Map<string,{at:number;bars:any[]}>();
  active=false;busy=false;generation=0;armedAt=0;lastBar=0;heartbeat=0;approved=false;approvedUntil:number|null=null;reason='À l’arrêt.';failures=0;retryAt=0;equity:number|null=null;
@@ -13,7 +14,22 @@ export class LiveEngine {
  private async persist(){try{await this.save();}catch(error){this.active=false;this.reason='Sauvegarde du service impossible : entrées arrêtées. Vérifie le disque et conserve le dossier d’état.';throw error;}}
  async log(message:string){this.reason=message;this.ledger.events.push({at:Date.now(),message});this.ledger.events=this.ledger.events.slice(-100);try{await this.persist();}catch{/* The in-memory failure reason remains visible; never turn logging into an unhandled tick failure. */}}
  async stop(){this.generation++;this.active=false;await this.log('Entrées arrêtées. Les protections exchange et la surveillance de la position du bot restent actives.');}
- async verifyApproval(){this.approved=false;this.approvedUntil=null;if(!this.ledger.owner)return false;const agents=await this.info.extraAgents({user:this.ledger.owner});const agent=agents.find((a:any)=>a.address.toLowerCase()===this.agent.toLowerCase()&&(a.validUntil===null||Number.isFinite(a.validUntil)&&a.validUntil>Date.now()+60000));this.approved=!!agent;this.approvedUntil=agent?.validUntil??null;return this.approved;}
+ async verifyApproval(){this.approved=false;this.approvedUntil=null;if(!this.ledger.owner)return false;const agents=await this.info.extraAgents({user:this.ledger.owner});const agent=agents.find((a:any)=>a.address.toLowerCase()===this.agent.toLowerCase()&&(a.validUntil===null||Number.isFinite(a.validUntil)&&a.validUntil>Date.now()+60000));this.approved=!!agent;this.approvedUntil=agent?.validUntil??null;if(this.approved&&this.ledger.agentApproval&&!this.ledger.agentApproval.confirmed){this.ledger.agentApproval.confirmed=true;await this.persist();}return this.approved;}
+ // Preparation is idempotent after a refusal/reload; used/revoked identities rotate.
+ async prepareAgent(owner:string){
+  if(this.busy||this.active||this.ledger.owned||this.ledger.pending)throw Error('Arrête le bot et résous sa position ou son envoi avant de configurer le compte.');
+  if(!/^0x[0-9a-fA-F]{40}$/.test(owner)||/^0x0{40}$/.test(owner))throw Error('Adresse de compte invalide.');
+  const generation=this.generation;this.busy=true;
+  try{
+   if(reusablePreparation(this.ledger,owner))return false;
+   if(this.ledger.owner?.toLowerCase()===owner.toLowerCase()){
+    const approved=await this.verifyApproval();
+    if(generation!==this.generation)throw Error('Préparation interrompue.');
+    if(approved)return false;
+   }
+   this.ledger.owner=owner.toLowerCase() as `0x${string}`;this.approved=false;this.approvedUntil=null;await this.persist();return true;
+  }finally{this.busy=false;}
+ }
  async configure(owner:`0x${string}`){if(this.busy||this.active||this.ledger.owned||this.ledger.pending)throw Error('Arrête le bot et résous sa position ou son envoi avant de changer de compte.');if(!/^0x[0-9a-fA-F]{40}$/.test(owner)||/^0x0{40}$/.test(owner))throw Error('Adresse de compte invalide.');this.ledger.owner=owner.toLowerCase() as `0x${string}`;this.approved=false;this.approvedUntil=null;await this.persist();}
  async arm(settings:unknown,consent:unknown){
   if(this.busy||this.active)throw Error('Moteur occupé.');if(this.ledger.pending||this.ledger.owned)throw Error('Position ou envoi du bot à vérifier.');

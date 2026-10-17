@@ -50,7 +50,7 @@ const server=createServer(async(req,res)=>{
    if(req.method!=='POST'){send(405,{error:'Méthode refusée.'});return;}
    let body='';for await(const chunk of req){body+=chunk;if(body.length>8192)throw Error('Requête trop grande.');}const input=JSON.parse(body||'{}');
    switch(url.pathname){
-    case '/api/live/configure':await engine.configure(input.owner);engine.ledger.key=generatePrivateKey();engine.ledger.nonce=0;register(network,engine.ledger);send(200,engines[network].status());return;
+    case '/api/live/configure':if(await engine.prepareAgent(input.owner)){engine.ledger.key=generatePrivateKey();engine.ledger.nonce=0;engine.ledger.agentApproval={preparedAt:Date.now(),confirmed:false};register(network,engine.ledger);}send(200,engines[network].status());return;
     case '/api/live/verify':await engine.verifyApproval();break;
     case '/api/live/arm':await engine.arm(input.settings,input.consent);break;
     case '/api/live/stop':await engine.stop();break;

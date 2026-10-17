@@ -45,8 +45,9 @@ export async function browserRequest(path:string,body:any,network:Network){
  if(path==='status')return engine?{...engine.status(),mode:'web'}:blank(network);
  if(path==='configure'){
   if(!/^0x[0-9a-fA-F]{40}$/.test(body?.owner)||/^0x0{40}$/.test(body.owner))throw Error('Compte MetaMask invalide.');
-  if(engine)await engine.configure(body.owner);
+  if(engine&&!await engine.prepareAgent(body.owner))return {...engine.status(),mode:'web'};
   const old=await vault.load(network),ledger:Ledger={network,owner:body.owner.toLowerCase(),key:generatePrivateKey(),nonce:0,attemptDay:engine?.ledger.attemptDay??'',attemptCount:engine?.ledger.attemptCount,lastAttemptAt:engine?.ledger.lastAttemptAt,lastExitAt:engine?.ledger.lastExitAt,pending:null,owned:false,events:engine?.ledger.events??[],settings:engine?.ledger.settings};
+  ledger.agentApproval={preparedAt:Date.now(),confirmed:false};
   const agent=privateKeyToAccount(ledger.key).address,result=await vault.save(ledger,agent,network,old?.ledger.revision??null,()=>held.has(network)&&generation===epoch);Object.assign(ledger,result);engine=await create(network,ledger,agent,generation);
  }else{
   if(!engine)throw Error('Configure d’abord l’agent avec MetaMask.');

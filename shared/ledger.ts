@@ -9,6 +9,7 @@ export function validateLedger(value:any,network:Network):Ledger{
  if(value.owned&&(!['long','short'].includes(value.ownedSide)||!Number.isFinite(value.ownedQuantity)||value.ownedQuantity<=0))throw Error('Propriété de position invalide. Vérifie le compte avant récupération.');
  if(value.protectionIds!==undefined&&(!Array.isArray(value.protectionIds)||value.protectionIds.some((x:any)=>!Number.isSafeInteger(x)||x<=0))||value.protectionCloids!==undefined&&(!Array.isArray(value.protectionCloids)||!value.protectionCloids.every(cloid)))throw Error('Protections persistantes invalides.');
  if(value.events.some((e:any)=>!e||!Number.isFinite(e.at)||typeof e.message!=='string'))throw Error('Journal persistant invalide.');
+ if(value.agentApproval!==undefined&&(!value.agentApproval||!Number.isSafeInteger(value.agentApproval.preparedAt)||value.agentApproval.preparedAt<0||typeof value.agentApproval.confirmed!=='boolean'))throw Error('Préparation d’agent invalide.');
  if(value.settings!==undefined)validateSettings(value.settings);
  return value;
 }

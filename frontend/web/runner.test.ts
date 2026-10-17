@@ -52,3 +52,12 @@ it('refuses another controlling tab and a changed MetaMask account',async()=>{
  const {browserRequest}=await configured();(dom as any).ethereum.request.mockResolvedValue(['0x2222222222222222222222222222222222222222']);await expect(browserRequest('arm',{settings:{profile:'balanced',leverage:15}},'testnet')).rejects.toThrow('propriétaire');
  vi.stubGlobal('navigator',{locks:{request:async(_n:string,_o:any,fn:any)=>fn(null)}});await expect(browserRequest('status',undefined,'mainnet')).rejects.toThrow('autre onglet');expect(fake.sent).toHaveLength(0);
 });
+
+it('keeps a prepared agent across refusal and page reopening, then preserves a confirmed valid authorization',async()=>{
+ const {browserRequest}=await import('./runner');const initial=await browserRequest('configure',{owner},'testnet');
+ expect((await browserRequest('configure',{owner},'testnet')).agent).toBe(initial.agent);
+ dom.dispatchEvent(new dom.Event('pagehide'));await new Promise(setImmediate);expect((await browserRequest('configure',{owner},'testnet')).agent).toBe(initial.agent);
+ fake.approved.testnet=true;await browserRequest('verify',{},'testnet');dom.dispatchEvent(new dom.Event('pagehide'));await new Promise(setImmediate);
+ const restored=await browserRequest('configure',{owner},'testnet');expect(restored.agent).toBe(initial.agent);expect(restored.approved).toBe(true);expect(restored.active).toBe(false);
+ fake.approved.testnet=false;const renewed=await browserRequest('configure',{owner},'testnet');expect(renewed.agent).not.toBe(initial.agent);expect(renewed.active).toBe(false);
+});
