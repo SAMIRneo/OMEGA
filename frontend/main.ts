@@ -15,8 +15,9 @@ async function start(){
  const research=lazyModule(()=>import('./research'));
  const runner=lazyModule(()=>import('./runner-ui'));
  const dashboard=lazyModule(()=>import('./bot-dashboard'));
- const depth=lazyModule(()=>import('./visuals/depth-scene'));
+ const depth=lazyModule(()=>import('./visuals/liquidity'));
  const exchange=lazyModule(()=>import('./exchange'));
+ const dataSettings=lazyModule(()=>import('./data-settings'));
  const connection=lazyModule(()=>import('./wallet-connection'));
  document.addEventListener('click',event=>{
   if(!(event.target instanceof Element)||!event.target.closest('[data-wallet-connect]'))return;
@@ -30,6 +31,7 @@ async function start(){
  const route=()=>{
   const view=location.hash.slice(1)||'terminal';
   if(view==='terminal'){void loadChart();void depth().catch(e=>report('Vue de liquidité indisponible',e));}
+  if(view==='wallet'||view==='journal')void dataSettings().catch(e=>report('Sauvegardes indisponibles',e));
   if(view==='pilot'||view==='wallet')void connection().catch(e=>report('Connexion wallet indisponible',e));
   if(view==='research')void research().catch(e=>report('Recherche indisponible',e));
   if(view==='pilot'){void dashboard().catch(e=>report('Vue du bot indisponible',e));void runner().catch(e=>report('Pilotage indisponible',e));loadExchange();}

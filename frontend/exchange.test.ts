@@ -1,7 +1,7 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {Window} from 'happy-dom';
 import {readFileSync} from 'node:fs';
-const fake=vi.hoisted(()=>({network:'testnet',calls:[] as any[],today:[] as any[],open:[] as any[],reject:false,accounts:['0x1111111111111111111111111111111111111111']}));
+const fake=vi.hoisted(()=>({network:'testnet',calls:[] as any[],today:[] as any[],open:[] as any[],reject:false,partial:false,accounts:['0x1111111111111111111111111111111111111111']}));
 vi.mock('@nktkas/hyperliquid',()=>({
  HttpTransport:class {isTestnet:boolean;constructor(o:any){this.isTestnet=o.isTestnet;fake.calls.push(['transport',o]);}},
  InfoClient:class {
@@ -9,13 +9,13 @@ vi.mock('@nktkas/hyperliquid',()=>({
   async frontendOpenOrders(){return fake.open;}
   async userFills(){return [];}
   async userFillsByTime(){return fake.today;}
-  async meta(){return {universe:[{name:'ETH',szDecimals:4,maxLeverage:20}]};}
+  async meta(){return {universe:[...Array.from({length:fake.network==='mainnet'?2:1},(_,i)=>({name:'OTHER'+i,szDecimals:2,maxLeverage:10})),{name:'ETH',szDecimals:4,maxLeverage:20}]};}
   async l2Book(){return {time:Date.now(),levels:[[{px:'2399.9',sz:'100'}],[{px:'2400',sz:'100'}]]};}
   async orderStatus(){return {status:'unknownOid'};}
  },
  ExchangeClient:class {
   async updateLeverage(p:any){fake.calls.push(['leverage',p]);return {status:'ok'};}
-  async order(p:any){fake.calls.push(['order',p]);if(fake.reject)throw Error('Transport lost');return {status:'ok',response:{data:{statuses:[{filled:{oid:1,totalSz:'.02',avgPx:'2400'}},{resting:{oid:2}},{resting:{oid:3}}]}}};}
+  async order(p:any){fake.calls.push(['order',p]);if(fake.reject)throw Error('Transport lost');if(fake.partial)return {status:'ok',response:{data:{statuses:['waitingForFill','waitingForFill','waitingForFill']}}};return {status:'ok',response:{data:{statuses:[{filled:{oid:1,totalSz:'.02',avgPx:'2400'}},{resting:{oid:2}},{resting:{oid:3}}]}}};}
   async cancel(){return {status:'ok',response:{data:{statuses:[{error:'already filled'}]}}};}
  }
 }));
@@ -33,14 +33,14 @@ async function start(network='testnet'){
  return form;
 }
 beforeEach(()=>{
- vi.resetModules();fake.calls=[];fake.today=[];fake.open=[];fake.reject=false;fake.accounts=['0x1111111111111111111111111111111111111111'];
+ vi.resetModules();fake.calls=[];fake.today=[];fake.open=[];fake.reject=false;fake.partial=false;fake.accounts=['0x1111111111111111111111111111111111111111'];
  dom=new Window({url:'https://omega.test/'});dom.document.write(readFileSync(new URL('./index.html',import.meta.url),'utf8'));
  vi.stubGlobal('window',dom);vi.stubGlobal('document',dom.document);vi.stubGlobal('localStorage',dom.localStorage);vi.stubGlobal('navigator',{locks:{request:async(_name:string,fn:()=>unknown)=>fn()}});
 });
 afterEach(()=>{dom.happyDOM.abort();vi.unstubAllGlobals();});
 it('preserves locked form values through both signing steps and sends an IOC bracket on testnet',async()=>{
  const form=await start();form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();
- const order=fake.calls.find(x=>x[0]==='order')?.[1];expect(order).toBeTruthy();expect(order.orders[0].s).toBe('0.02');expect(order.orders[0].t.limit.tif).toBe('Ioc');expect(order.orders.slice(1).every((x:any)=>x.r)).toBe(true);
+ const order=fake.calls.find(x=>x[0]==='order')?.[1];expect(order).toBeTruthy();expect(order.orders[0].a).toBe(1);expect(order.orders[0].s).toBe('0.02');expect(order.orders[0].t.limit.tif).toBe('Ioc');expect(order.orders.slice(1).every((x:any)=>x.r)).toBe(true);
  expect(fake.calls.find(x=>x[0]==='transport')[1].apiUrl).toBe('https://api.hyperliquid-testnet.xyz');
  expect(el('testnet-action-status').textContent).toContain('TESTNET');
 });
@@ -49,7 +49,7 @@ it('requires explicit mainnet consent, pins its transport and resets consent aft
  expect(fake.calls.some(x=>x[0]==='leverage')).toBe(false);
  (el('mainnet-consent') as any).checked=true;form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();
  expect(fake.calls.find(x=>x[0]==='transport')[1]).toMatchObject({isTestnet:false,apiUrl:'https://api.hyperliquid.xyz'});
- expect(fake.calls.some(x=>x[0]==='order')).toBe(true);expect((el('mainnet-consent') as any).checked).toBe(false);
+ expect(fake.calls.find(x=>x[0]==='order')[1].orders[0].a).toBe(2);expect(fake.calls.some(x=>x[0]==='order')).toBe(true);expect((el('mainnet-consent') as any).checked).toBe(false);
 });
 it('keeps uncertain sends pending, blocks duplicates and isolates the mainnet journal',async()=>{
  const form=await start('mainnet');fake.reject=true;(el('mainnet-consent') as any).checked=true;
@@ -62,7 +62,7 @@ it('keeps uncertain sends pending, blocks duplicates and isolates the mainnet jo
 it('enforces the exchange daily entry quota instead of resetting paper counters',async()=>{
  fake.today=[{coin:'ETH',time:Date.now(),dir:'Open Long',oid:1,closedPnl:'0',fee:'0.5',feeToken:'USDC'}];
  const form=await start();form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();
- expect(fake.calls.some(x=>x[0]==='leverage')).toBe(false);expect(el('testnet-action-status').textContent).toContain('déjà été exécutée');
+ expect(fake.calls.some(x=>x[0]==='leverage')).toBe(false);expect(el('testnet-action-status').textContent).toContain('Pause entre opérations');
 });
 it('stops before signing when the active wallet account changed',async()=>{
  const form=await start();fake.accounts=['0x2222222222222222222222222222222222222222'];
@@ -98,4 +98,64 @@ it('explains a rejected MetaMask connection and allows a retry without signing',
  expect(el('testnet-action-status').textContent).toContain('Demande refusée dans MetaMask');
  await module.connectWallet();expect(el('testnet-wallet').textContent).toBe(fake.accounts[0]);
  expect(fake.calls.some(x=>x[0]==='order'||x[0]==='leverage')).toBe(false);
+});
+
+it('refuses a secondary account and an inconsistent endpoint before signing',async()=>{
+ const form=await start();fake.accounts=['0x2222222222222222222222222222222222222222','0x1111111111111111111111111111111111111111'];
+ form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();expect(fake.calls.some(x=>x[0]==='leverage'||x[0]==='order')).toBe(false);
+ fake.accounts=['0x1111111111111111111111111111111111111111'];(dom as any).BrowserAtelier.environment.api='https://api.hyperliquid.xyz/info';
+ form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();expect(el('testnet-action-status').textContent).toContain('Endpoints incohérents');expect(fake.calls.some(x=>x[0]==='order')).toBe(false);
+});
+it('discards an in-flight account read after wallet disconnection',async()=>{
+ await start();const {InfoClient}=await import('@nktkas/hyperliquid');let resolve!:(value:any)=>void;
+ const original=InfoClient.prototype.clearinghouseState;
+ InfoClient.prototype.clearinghouseState=vi.fn(()=>new Promise(r=>{resolve=r;})) as any;
+ try{const module=await import('./exchange');const read=module.refreshWallet();await settle();module.disconnectWallet();resolve({marginSummary:{accountValue:'9999'},withdrawable:'9999',assetPositions:[]});await read;
+ const {subscribeWallet}=await import('./shared/wallet-store');let view:any;const off=subscribeWallet(s=>view=s);expect(view.address).toBeNull();expect(view.equity).toBeNull();expect(view.readAt).toBe(0);off();expect(fake.calls.some(x=>x[0]==='order')).toBe(false);
+ }finally{InfoClient.prototype.clearinghouseState=original;}
+});
+it('blocks a network change during a wallet read and rejects a malformed pending journal',async()=>{
+ await start();const key='omega-testnet-exchange-pending-'+fake.accounts[0];dom.localStorage.setItem(key,JSON.stringify({cloid:'bad',at:NaN}));
+ (el('testnet-preview') as any).click();await settle();expect(el('testnet-action-status').textContent).toContain('Journal d’envoi illisible');expect(fake.calls.some(x=>x[0]==='leverage'||x[0]==='order')).toBe(false);
+});
+
+it('retains a partial exchange acknowledgement until explicit reconciliation',async()=>{
+ const form=await start();fake.partial=true;form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();
+ const key='omega-testnet-exchange-pending-'+fake.accounts[0];expect(dom.localStorage.getItem(key)).toContain('cloid');
+ expect(el('testnet-action-status').textContent).toContain('réponse partielle');
+ form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();expect(fake.calls.filter(x=>x[0]==='order')).toHaveLength(1);
+});
+it('restores the remembered primary account without a permission request or signature',async()=>{
+ await start();expect(dom.localStorage.getItem('omega-wallet-session-v1')).toContain(fake.accounts[0]);
+ vi.resetModules();const request=vi.fn(async(_args:any)=>fake.accounts);(dom as any).ethereum={request,on:vi.fn()};
+ const module=await import('./exchange');fake.calls=[];await module.restoreWallet();
+ expect(request.mock.calls).toEqual([[{method:'eth_accounts'}]]);expect(el('testnet-wallet').textContent).toBe(fake.accounts[0]);
+ expect(fake.calls.some(x=>x[0]==='order'||x[0]==='leverage')).toBe(false);
+ module.disconnectWallet();expect(dom.localStorage.getItem('omega-wallet-session-v1')).toBeNull();
+});
+it('does not restore a different account or request access to a locked wallet',async()=>{
+ await start();vi.resetModules();fake.accounts=['0x2222222222222222222222222222222222222222'];
+ const request=vi.fn(async(_args:any)=>fake.accounts);(dom as any).ethereum={request,on:vi.fn()};
+ const module=await import('./exchange');await module.restoreWallet();expect(el('testnet-wallet').textContent).toBe('Aucun wallet connecté');
+ expect(el('testnet-action-status').textContent).toContain('compte actif');expect(dom.localStorage.getItem('omega-wallet-session-v1')).toBeNull();
+ dom.localStorage.setItem('omega-wallet-session-v1',JSON.stringify({address:fake.accounts[0],reconnect:true}));fake.accounts=[];
+ await module.restoreWallet();expect(el('testnet-action-status').textContent).toContain('Déverrouille');expect(request.mock.calls.every(args=>(args[0] as any).method==='eth_accounts')).toBe(true);
+});
+
+it('keeps the remembered session on an unchanged account and does not bind Hyperliquid to EVM chain changes',async()=>{
+ await start();const provider=(dom as any).ethereum,handler=provider.on.mock.calls.find((x:any)=>x[0]==='accountsChanged')[1];
+ handler(fake.accounts);await settle();expect(el('testnet-wallet').textContent).toBe(fake.accounts[0]);expect(dom.localStorage.getItem('omega-wallet-session-v1')).toContain(fake.accounts[0]);
+ expect(provider.on.mock.calls.some((x:any)=>x[0]==='chainChanged')).toBe(false);expect(fake.calls.some(x=>x[0]==='order')).toBe(false);
+});
+it('preserves the linked account when locked and restores it on unlock without a new permission or signature',async()=>{
+ await start();const provider=(dom as any).ethereum,handler=provider.on.mock.calls.find((x:any)=>x[0]==='accountsChanged')[1];
+ provider.request=vi.fn(async()=>fake.accounts);fake.accounts=[];handler([]);expect(el('testnet-wallet').textContent).toBe('Aucun wallet connecté');expect(dom.localStorage.getItem('omega-wallet-session-v1')).not.toBeNull();
+ fake.accounts=['0x1111111111111111111111111111111111111111'];handler(fake.accounts);await settle();
+ expect(el('testnet-wallet').textContent).toBe(fake.accounts[0]);expect(provider.request.mock.calls.every((args:any)=>args[0].method==='eth_accounts')).toBe(true);expect(fake.calls.some(x=>x[0]==='order'||x[0]==='leverage')).toBe(false);
+});
+it('forgets a genuinely changed account and never reconnects after explicit disconnect',async()=>{
+ await start();const handler=(dom as any).ethereum.on.mock.calls.find((x:any)=>x[0]==='accountsChanged')[1];
+ handler(['0x2222222222222222222222222222222222222222']);expect(dom.localStorage.getItem('omega-wallet-session-v1')).toBeNull();expect(el('testnet-wallet').textContent).toBe('Aucun wallet connecté');
+ const module=await import('./exchange');await module.connectWallet();module.disconnectWallet();dom.dispatchEvent(new dom.Event('focus'));handler(fake.accounts);await settle();
+ expect(el('testnet-wallet').textContent).toBe('Aucun wallet connecté');expect(dom.localStorage.getItem('omega-wallet-session-v1')).toBeNull();
 });

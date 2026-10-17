@@ -1,63 +1,47 @@
-# État réel et reprise de travail
+# État actuel d’OMEGA
 
-Revue documentaire : **16 octobre 2026**. Version logicielle : `1.2.0` dans `package.json`. La numérotation des versions publiées par l’hébergement est indépendante ; la version publiée et son historique se consultent dans Sites. Les modifications documentaires seules ne nécessitent pas une nouvelle publication de l’application.
+Revue du 17 octobre 2026, version `1.2.0`. Cette page décrit le checkout courant ; les [jalons successifs](archive/PROGRESS_2026-10-17.md) conservent les anciennes preuves et les parcours remplacés.
 
-## Implémenté
+## Capacités livrées
 
-| Domaine | État et source |
-|---|---|
-| Terminal statique | Marché, Bot, Compte, Recherche ; Vite, DOM TS/JS et CSS |
-| Connexion wallet | Parcours Bot visible, MetaMask depuis en-tête/Compte, lecture partagée, choix réseau gardé, erreurs et guide local ; autorisation et armement séparés |
-| Hallmark / Bot | Première passe ciblée Workbench : colonne compte, espace de commande, polices locales dérivées d’IBM Plex, tokens partagés et progression native après lecture ; fonctions de trading conservées |
-| UI / couleurs | Fond noir, surfaces graphite, navigation cyan, actions ambre, recherche violet ; gains/pertes verts/rouges, réseaux distingués par texte et couleur ; contrôles tactiles et focus clavier |
-| Visualisations | Graphique financier incrémental, carnet L2 3D ; horizons du Bot sans figure décorative ; pas de modèle de prédiction |
-| Recherche | Replay récent en Worker, deux hypothèses de coûts, CSV |
-| Paper web | Compte local et contrôleur de clôtures avec Web Locks |
-| Exchange manuel | Wallet EIP-1193, testnet/mainnet, lot IOC + SL/TP et rapprochement |
-| Automatisation Node | Agent dédié, session locale, armement, nouvelle clôture, réservation durable et surveillance |
-| Python/MCP | Compatibilité recherche/paper ; aucune mutation exchange réelle |
-| Documentation | README court, AGENTS, cinq guides actifs, archives identifiées et contrôle automatisé des liens/commandes |
-
-## Preuves disponibles
-
-Lors de la revue du 16 octobre 2026, `npm run check` a passé : contrôle de la documentation, **102 tests Vitest + 20 tests du moteur navigateur**, builds typés web/Node et test HTTP du service dans un répertoire temporaire. Environnement : Node 24.19.0. Aucun agent exchange n’a été autorisé ni aucun ordre envoyé par ces vérifications. Un contrôle documentaire supplémentaire a passé après l’ajout de la carte des modules Python. La passe connexion MetaMask ajoute des tests de refus/reconnexion, changement de compte, lecture sans ordre, sélection du fournisseur et parcours public. Son rendu graphique et les fenêtres réelles de l’extension restent à contrôler sur appareil.
-
-Les transports de signature/exécution des tests sont simulés. Ces résultats concernent le checkout vérifié ; ils ne constituent pas une certification durable du prochain commit.
-
-Des lectures L2 publiques ETH ont répondu HTTP 200 sur testnet et mainnet le 16 octobre 2026. Cela prouve l’accès aux données publiques à cet instant, pas une connexion à un portefeuille financé.
-
-Les tests Python/Rust demandent des toolchains séparées ; leur réussite n’est pas déduite de `npm run check`. Les nombres de tests peuvent évoluer : consulter la sortie actuelle plutôt que maintenir un nombre comme contrat logiciel.
-
-## Non validé / non livré
-
-- Aucun ordre signé depuis un wallet financé n’a validé cette version de bout en bout.
-- Aucun service cloud permanent n’est déployé ; le processus local dépend de l’ordinateur et de son état de veille.
-- Rendu final et fluidité Safari/iPhone physique non contrôlés dans cette session.
-- Aucune rentabilité, robustesse hors échantillon ou calibration de probabilité démontrée.
-- Historique profond et versionné avec liquidité, funding, liquidations et coûts de compte réels non intégré au replay.
-- Pas de quota transactionnel global commun à tous les logiciels/machines du même compte.
-- Clé d’agent locale sur disque, permissions système mais pas de coffre chiffré.
-- Attribution de propriété de position limitée face à des interventions externes ; les positions nettes peuvent être ambiguës.
-- Le frontend et le runtime comportent encore des ponts globaux et du JavaScript historique actif. L’étiquette « legacy » n’autorise pas leur suppression.
-
-## Prochaines tâches proposées
-
-| Priorité | Travail concret | Critère de fin |
+| Domaine | Comportement actuel | Référence |
 |---|---|---|
-| 1 | QA visuelle desktop/iPhone des sous-onglets, formulaires et scènes | Parcours, tailles, focus, gestes et réduction des mouvements réellement observés |
-| 2 | Validation end-to-end testnet dans un environnement dédié | Approbation, ordre, fill partiel/refus, protections et rapprochement constatés ; reçus sans secrets |
-| 3 | Durcir les transitions/reprises du service | Scénarios de crash, fin de jour, révocation et état incertain documentés/testés |
-| 4 | Améliorer l’infrastructure de recherche | Historique versionné, coûts/liquidité explicités, séparation chronologique indépendante |
-| 5 | Réduire progressivement les ponts globaux | Contrats typés et tests préservés ; migration ciblée, sans réécriture totale incidente |
+| Interface | Terminal DOM TypeScript/JS, thème graphite/ambre, graphique ETH et profondeur SVG ; aucune figure 3D | [Architecture](ARCHITECTURE.md) |
+| Bot web | Connexion MetaMask, configuration des deux réseaux, réglages et démarrage depuis le lien ; onglet visible et appareil éveillé requis | [Mode web](WEB.md) |
+| Service Node optionnel | Même LiveEngine, HTTP local sur 127.0.0.1:8766, indépendant de l’onglet tant que le processus fonctionne | [Exploitation](OPERATIONS.md) |
+| Simulation / manuel | Capital fictif séparé ; ordres manuels signés par le wallet, distincts du bot délégué | [README](../README.md) |
+| Stratégie | Règles Daily/1 h/15 min, jusqu’à quatre tentatives UTC, une position, pause, objectifs réalisés et budgets de risque | [Stratégie](STRATEGY.md) |
+| Réseaux / connexion | Agents distincts par réseau et mode ; connexion mémorisée, approbation de 180 jours maximum par réseau manquant ; jamais d’armement automatique | [Réseaux](NETWORKS.md) |
+| Persistance | Coffre web AES-GCM/IndexedDB ; ledgers Node atomiques ; écritures attendues avant envoi, corruption bloquante, copies précédentes sans restauration automatique | [Données](DATA.md) |
+| Export | Données navigateur autorisées en JSON avec vérification SHA-256 ; CSV de simulation/recherche ; aucun export des clés ou permissions | [Données](DATA.md) |
+| Recherche | Replay récent 7/14 jours en Worker ; coûts et liquidité simulés, sans preuve de rentabilité | [Stratégie](STRATEGY.md) |
+| Compatibilité | Python/MCP paper-only conservé à la racine sur le port 8765 | [Architecture](ARCHITECTURE.md) |
 
-Ces lignes décrivent du travail restant, pas des capacités déjà acquises. Une validation du compte de l’utilisateur relève de son exploitation avec son wallet, pas d’un effet de bord d’une contribution au code.
+## Organisation actuelle
 
-## Pour reprendre immédiatement
+`frontend/` possède l’interface et les adaptateurs navigateur ; `shared/` possède LiveEngine, sa politique et la validation du ledger ; `runner/` possède uniquement l’intégration Node. Les calculs purs Daily, indicateurs et réseaux restent canoniques dans `frontend/core/`, importés par le moteur partagé. Ils ne sont pas dupliqués. Les tests du moteur et de la persistance sont placés avec leur code et découverts par `vitest.config.ts`.
 
-Lire AGENTS → ARCHITECTURE → DEVELOPMENT, lancer `npm ci` si nécessaire puis `npm run check`. Choisir ensuite une tâche de portée bornée. Pour comprendre une décision, consulter STRATEGY et la source ; pour une panne de service, OPERATIONS. Ne pas utiliser les archives comme contrat actuel.
+Le parcours conserve la préférence wallet lors du verrouillage et des changements de chaîne EVM ; le même compte est repris passivement, un autre compte l’invalide. Les agents valides gardent leur expiration réelle, les nouvelles demandes affichent 180 jours maximum. Les préparations récentes inutilisées survivent au refus/rechargement, et les états des deux réseaux sont vérifiés séparément. Une activité Node confirmée reste affichée sans exiger une reconnexion MetaMask.
 
-## Nettoyage du 17 octobre 2026
+README et index orientent vers un guide par sujet. Les anciens jalons sont archivés ; leurs nombres de tests et leur parcours local obligatoire ne décrivent pas l’état actuel.
 
-Suppression de la figure orbitale du Bot, de ses styles, contrôles et observateurs, ainsi que de l’ancien module de tore non importé et de son test devenu sans objet. La chaîne de décision redondante est retirée : le diagnostic conserve les motifs et contrôles détaillés. Les commandes, lectures des horizons, règles Daily et protections exchange sont conservées.
+## Vérifications
 
-Validation de cette passe : `npm run check` réussi (102 tests Vitest, 19 tests du moteur navigateur, builds web/Node et contrôle HTTP isolé). Aucun ordre envoyé. Le rendu visuel sur navigateur et iPhone reste non vérifié. Les deux anciens fichiers générés suivis sous dist sont retirés du suivi Git ; le build reste produit pour publication.
+La passe de connexion du 17 octobre a validé `npm run check` : **185 tests Vitest sur 26 fichiers et 23 tests navigateur/VM**, builds typés web/Node et contrôle HTTP réel temporaire avec redémarrage. Les tests couvrent aussi la reprise après verrouillage, le compte inchangé/modifié, la déconnexion explicite, les autorisations 180 jours des agents web/Node via le vrai SDK, la préparation idempotente, la confirmation persistée, la révocation, l’interruption et la panne isolée de l’autre réseau. Les transports sont simulés ; aucune permission personnelle ni aucun ordre exchange n’est utilisé.
+
+Le contrôle documentaire passe sur 25 fichiers Markdown et 187 liens locaux. Le nouveau contrôle de structure vérifie 49 modules et leurs imports littéraux ; trois sondes temporaires ont confirmé le refus d’un import frontend → Node, shared → adaptateur web et shared → API Node. Il ne vérifie pas les globals dynamiques ou l’intérieur des dépendances tierces.
+
+Les 18 tests Python ont passé lors de l’audit antérieur ; ils ne sont pas inclus dans `npm run check`. Cargo était absent : aucun test Rust ni régénération WASM n’est revendiqué. Les lectures publiques et signatures SDK hors ligne antérieures ne prouvent pas un parcours MetaMask réel.
+
+## Limites et travail restant
+
+- Aucun parcours MetaMask/ordre financé de bout en bout validé pour cette version ; validation testnet dédiée à réaliser par l’exploitant.
+- QA graphique desktop/Safari/iPhone physique non réalisée dans cet environnement.
+- Aucun serveur cloud de trading permanent. Le bot web dépend de l’onglet ; Node dépend du processus et de l’ordinateur.
+- Aucune rentabilité, calibration probabiliste ou validation économique hors échantillon démontrée.
+- Pas de sauvegarde cloud personnelle, d’export des clés du coffre web ou de restauration automatique des états d’exécution.
+- Pas de quota transactionnel global entre logiciels/appareils ; attribution d’une position nette limitée face aux interventions externes.
+- Ledgers Node protégés par les permissions du système, sans chiffrement applicatif. Le coffre web ne protège pas d’un code compromis sur la même origine.
+- Ponts globaux et JavaScript historique encore actifs : réduction progressive, sans suppression incidente.
+
+Pour reprendre : lire [AGENTS](../AGENTS.md), [ARCHITECTURE](ARCHITECTURE.md) et [DEVELOPMENT](DEVELOPMENT.md), puis lancer les contrôles appropriés. Les preuves sont celles du checkout testé, pas une certification des futurs changements.

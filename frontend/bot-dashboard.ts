@@ -1,3 +1,4 @@
+import {sessionBlock} from './core/session.js';
 import {subscribeMarket} from './shared/market-store';
 import {subscribeRunner,type RunnerView} from './shared/runner-store';
 import {formatNumber} from './shared/format';
@@ -9,10 +10,16 @@ const put=(id:string,text:string)=>{const el=$(id);if(el.textContent!==text)el.t
 const names={bullish:'Haussier',bearish:'Baissier',neutral:'Neutre'};
 function render(){
  const status=executionLabel(runner);put('bot-execution-badge',status.label);$('bot-execution-badge').dataset.tone=status.tone;
- put('bot-activity-source',runner.connected?'SERVICE / '+(runner.network??'').toUpperCase():'SERVICE NON RELIÉ');
+ put('bot-activity-source',runner.connected?(runner.mode==='web'?'WEB / ':'LOCAL / ')+(runner.network??'').toUpperCase():'MOTEUR NON RELIÉ');
  const events=runner.connected?(runner.events??[]).slice(-30).reverse():[],key=JSON.stringify([runner.connected,events]);
- if(key!==eventsKey){eventsKey=key;const list=$('bot-activity-list');list.replaceChildren();if(!events.length){const row=document.createElement('li');row.className='activity-empty';row.textContent=runner.connected?'Aucun événement reçu pour ce service.':'Relie le service permanent pour consulter ses événements. Le journal de simulation reste dans Compte.';list.append(row);}else for(const event of events){const row=document.createElement('li'),time=document.createElement('time'),content=document.createElement('div'),dot=document.createElement('i'),text=document.createElement('p');time.dateTime=new Date(event.at).toISOString();time.textContent=new Date(event.at).toLocaleTimeString('fr-FR');text.textContent=event.message;content.append(dot,text);row.append(time,content);list.append(row);}}
+ if(key!==eventsKey){eventsKey=key;const list=$('bot-activity-list');list.replaceChildren();if(!events.length){const row=document.createElement('li');row.className='activity-empty';row.textContent=runner.connected?'Aucun événement du moteur.':'Connecte le moteur pour consulter ses événements. Le journal de simulation reste dans Compte.';list.append(row);}else for(const event of events){const row=document.createElement('li'),time=document.createElement('time'),content=document.createElement('div'),dot=document.createElement('i'),text=document.createElement('p');time.dateTime=new Date(event.at).toISOString();time.textContent=new Date(event.at).toLocaleTimeString('fr-FR');text.textContent=event.message;content.append(dot,text);row.append(time,content);list.append(row);}}
  if(!snapshot)return;const connected=window.ExchangeSnapshot?.(snapshot),s=connected??snapshot,e=window.PaperPilot.evaluate(s);
+ const target=s.limits.daily_profit_target??200,pnl=s.paper.dailyPnl;
+ put('session-pnl',(pnl>=0?'+':'')+formatNumber(pnl)+' USDC');$('session-pnl').className=pnl>=0?'positive':'negative';
+ put('session-goal','+'+target+' USDC');put('session-entries',s.paper.entriesToday+' / '+s.limits.max_entries_per_day);
+ put('session-source',connected?'Compte Hyperliquid consulté':'Simulation de cet appareil');
+ put('session-state',sessionBlock(s.paper,s.limits,s.time)??'Session disponible');
+ const progress=$('session-progress') as HTMLProgressElement;progress.max=target;progress.value=Math.max(0,pnl);
  const readings=(['1d','1h','15m'] as const).map(tf=>({tf,...horizonReading(s,tf)}));
  const first=readings[0],aligned=readings.filter(r=>r.fresh&&first.fresh&&first.trend!=='neutral'&&r.trend===first.trend).length;
  put('bot-observer-health',s.market.fresh?'Flux ETH en direct':'Flux ETH à vérifier');$('view-pilot').dataset.market=s.market.fresh?'live':'stale';

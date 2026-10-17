@@ -4,6 +4,7 @@ Ces documents sont conservés pour expliquer l’historique du projet. Lire la [
 
 | Document | Contexte historique |
 |---|---|
+| [PROGRESS_2026-10-17.md](PROGRESS_2026-10-17.md) | Jalons successifs UI, réseau, persistance et bot web ; anciens parcours remplacés |
 | [REVIEW.md](REVIEW.md) | Première passerelle et revue de sources, octobre 2026 |
 | [STATUS.md](STATUS.md) | Ancien état Python, 3 octobre |
 | [MULTIFRAME.md](MULTIFRAME.md) | Ancienne lecture multi-horizon |

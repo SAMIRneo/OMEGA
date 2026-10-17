@@ -2,6 +2,7 @@ import {formatPrice,formatSize} from '@nktkas/hyperliquid/utils';
 export interface TestnetPlanInput {network:string;asset:number;szDecimals:number;maxLeverage:number;side:'long'|'short';quantity:number;leverage:number;stop:number;target:number;bid:number;ask:number;bookTime:number;now:number;equity:number;available:number;cloid:`0x${string}`}
 export function exchangePlan(p:TestnetPlanInput & {expectedNetwork:'mainnet'|'testnet'}){
  if(!['mainnet','testnet'].includes(p.network)||p.network!==p.expectedNetwork)throw Error('Réseau du plan différent du réseau de signature.');
+ if(!Number.isInteger(p.asset)||p.asset<0||!Number.isInteger(p.szDecimals)||p.szDecimals<0||p.szDecimals>6||!Number.isInteger(p.maxLeverage)||p.maxLeverage<1||!['long','short'].includes(p.side)||!/^0x[0-9a-fA-F]{32}$/.test(p.cloid))throw Error('Métadonnées ou identité du plan invalides.');
  if(![p.quantity,p.leverage,p.stop,p.target,p.bid,p.ask,p.bookTime,p.now,p.equity,p.available].every(Number.isFinite))throw Error('Données de plan incomplètes.');
  if(p.now-p.bookTime>5000||p.now<p.bookTime-1500||p.bid<=0||p.ask<=p.bid)throw Error('Carnet trop ancien ou incohérent.');
  if(!Number.isInteger(p.leverage)||p.leverage<1||p.leverage>Math.min(15,p.maxLeverage))throw Error('Levier hors plafond.');
@@ -24,7 +25,9 @@ export function exchangeStatus(response:unknown){
  const r=response as {status?:string;response?:{data?:{statuses?:Array<string|{error?:string;filled?:{oid:number;totalSz:string;avgPx:string};resting?:{oid:number}}>}}};
  if(r.status!=='ok'||!Array.isArray(r.response?.data?.statuses))throw Error('Réponse exchange non confirmée.');
  const statuses=r.response.data.statuses,errors=statuses.flatMap(s=>typeof s==='object'&&s.error?[s.error]:[]);
- return {statuses,errors,entry:statuses[0],protected:statuses.length===3&&errors.length===0};
+ const filled=(s:typeof statuses[number])=>typeof s==='object'&&s!==null&&!!s.filled&&Number.isFinite(Number(s.filled.totalSz))&&Number(s.filled.totalSz)>0&&Number.isSafeInteger(s.filled.oid)&&s.filled.oid>0;
+ const protection=(s:typeof statuses[number])=>s==='waitingForFill'||s==='waitingForTrigger'||filled(s)||typeof s==='object'&&s!==null&&!!s.resting&&Number.isSafeInteger(s.resting.oid)&&s.resting.oid>0;
+ return {statuses,errors,entry:statuses[0],protected:statuses.length===3&&errors.length===0&&filled(statuses[0])&&statuses.slice(1).every(protection)};
 }
 
 // Compatibility wrapper: legacy testnet callers remain pinned to testnet.
@@ -33,12 +36,14 @@ export function testnetPlan(p:TestnetPlanInput){return exchangePlan({...p,expect
 /** Today's exchange fills are authoritative; never borrow the local paper quota. */
 export function exchangeDay(fills:Array<{coin:string;time:number;dir:string;oid:number;closedPnl:string;fee:string;feeToken:string}>,now:number){
  if(fills.length>=2000)throw Error('Historique quotidien trop long pour vérifier le quota. Consulte le compte Hyperliquid.');
- const start=Math.floor(now/86400000)*86400000,entries=new Set<number>();let pnl=0;
+ const start=Math.floor(now/86400000)*86400000,entries=new Set<number>(),closed=new Map<number,{pnl:number;at:number}>();let pnl=0,lastEntryAt=0,lastExitAt=0;
  for(const f of fills){
   if(f.coin!=='ETH'||f.time<start||f.time>now)continue;
   if(![Number(f.closedPnl),Number(f.fee)].every(Number.isFinite)||f.feeToken!=='USDC')throw Error('Frais ou résultats exchange incomplets.');
   pnl+=Number(f.closedPnl)-Number(f.fee);
-  if(f.dir.startsWith('Open')||f.dir.includes('>'))entries.add(f.oid);
+  if(f.dir.startsWith('Open')||f.dir.includes('>')){entries.add(f.oid);lastEntryAt=Math.max(lastEntryAt,f.time/1000);}
+  if(f.dir.startsWith('Close')||f.dir.includes('>')){const prev=closed.get(f.oid);closed.set(f.oid,{pnl:(prev?.pnl??0)+Number(f.closedPnl)-Number(f.fee),at:Math.max(prev?.at??0,f.time)});lastExitAt=Math.max(lastExitAt,f.time/1000);}
  }
- return {entries:entries.size,pnl};
+ let lossStreak=0;for(const exit of [...closed.values()].sort((a,b)=>a.at-b.at))lossStreak=exit.pnl<0?lossStreak+1:0;
+ return {entries:entries.size,pnl,lastEntryAt,lastExitAt,lossStreak};
 }

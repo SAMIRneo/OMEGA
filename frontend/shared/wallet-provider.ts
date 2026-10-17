@@ -1,5 +1,5 @@
 import type {EIP1193Provider} from 'viem';
-type Provider=EIP1193Provider & {isMetaMask?:boolean;providers?:Provider[];on?:(event:string,handler:()=>void)=>void;removeListener?:(event:string,handler:()=>void)=>void};
+type Provider=EIP1193Provider & {isMetaMask?:boolean;providers?:Provider[];on?:(event:string,handler:(...args:any[])=>void)=>void;removeListener?:(event:string,handler:(...args:any[])=>void)=>void};
 let announced:Provider|undefined;
 // Select MetaMask explicitly when more than one wallet extension is installed.
 window.addEventListener('eip6963:announceProvider',((event:CustomEvent<{info:{rdns:string};provider:Provider}>)=>{

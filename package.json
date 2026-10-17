@@ -17,7 +17,8 @@
     "start:bot": "node runner-dist/server.mjs",
     "check:docs": "node scripts/check-docs.mjs",
     "test:service": "npm run build:bot && node scripts/check-runner.mjs",
-    "check": "npm run check:docs && npm test && npm run test:browser && npm run build && npm run test:service"
+    "check": "npm run check:docs && npm run check:structure && npm test && npm run test:browser && npm run build && npm run test:service",
+    "check:structure": "node scripts/check-structure.mjs"
   },
   "dependencies": {
     "@nktkas/hyperliquid": "0.33.3",
@@ -25,6 +26,7 @@
     "viem": "2.57.7"
   },
   "devDependencies": {
+    "fake-indexeddb": "6.2.6",
     "happy-dom": "21.0.1",
     "typescript": "7.0.2",
     "vite": "8.3.4",

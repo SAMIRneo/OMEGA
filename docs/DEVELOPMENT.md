@@ -13,7 +13,7 @@ npm run dev
 
 Node 22.12+ ; vérifications courantes réalisées avec Node 24.19.0, aussi indiqué dans [.node-version](../.node-version). `package.json` déclare le gestionnaire et les versions ; `package-lock.json` verrouille l’installation. Ne pas remplacer `npm ci` par une mise à jour générale de dépendances pour une retouche de documentation/UI.
 
-Vite affiche son URL, généralement sur le port 5173. Il sert la source navigateur et ne remplace pas le serveur Node d’exécution. Le contrôle du runner est prévu sur l’interface buildée servie depuis `127.0.0.1:8766`.
+Vite affiche son URL, généralement sur le port 5173. Il sert la source et utilise le runtime web pour le bot. Le backend Node optionnel se contrôle depuis l’interface buildée servie sur `127.0.0.1:8766` ; Vite ne démarre pas ce processus.
 
 ## Commandes
 
@@ -23,17 +23,18 @@ Vite affiche son URL, généralement sur le port 5173. Il sert la source navigat
 | `npm run preview` | Aperçu local du build web déjà produit |
 | `npm run typecheck` | TypeScript frontend et dépendances importées |
 | `npm run typecheck:bot` | Contrôle TypeScript du service Node |
-| `npm test` | Vitest : tests co-localisés sous `frontend/` |
+| `npm test` | Vitest : tests co-localisés sous `frontend/`, `shared/` et `runner/` |
 | `npm run test:browser` | Contrats du moteur navigateur via Node/VM, sans navigateur graphique |
 | `npm run build` | Typecheck frontend puis build statique dans `dist/` |
 | `npm run build:bot` | Typecheck service puis bundle dans `runner-dist/` |
 | `npm run start:bot` | Lance le bundle Node déjà construit ; démarre désarmé |
 | `npm run bot` | Construit puis lance le service Node |
 | `npm run test:service` | Build du service et test HTTP isolé ; aucun ordre exchange |
+| `npm run check:structure` | Vérifie les frontières des imports frontend/shared/Node |
 | `npm run check:docs` | Vérifie liens locaux, chemins documentés et scripts npm cités |
 | `npm run check` | Vérification Node complète, documentation incluse |
 
-`check` exécute : documentation → Vitest → tests du moteur navigateur → build web → build/test HTTP du service. Il ne lance pas de wallet, ne signe pas d’agent et ne fait pas un backtest de rentabilité.
+`check` exécute : documentation → frontières d’import → Vitest → tests du moteur navigateur → build web → build/test HTTP du service. Il ne lance pas de wallet, ne signe pas d’agent et ne fait pas un backtest de rentabilité.
 
 ## Matrice de validation
 
@@ -42,7 +43,7 @@ Vite affiche son URL, généralement sur le port 5173. Il sert la source navigat
 | Documentation seule | `npm run check:docs` ; relire la source décrite |
 | UI, IDs, navigation, stores, imports différés | Vitest, tests navigateur, build web ; QA visuelle si navigateur disponible |
 | Graphique, cache, calcul d’EMA d’affichage | Tests ChartBuffer et build ; vérifier zoom/corrections historiques |
-| Géométrie ou données 3D | Tests du modèle ; QA visuelle des caméras, sélection, mobile et pause |
+| Liquidité SVG | Tests du modèle, données anciennes, cumul et responsive |
 | Règles/risque/ordres/session/persistance | `npm run check` ; tests ciblés des refus, interruptions et doubles envois |
 | Rust/WASM | Tests Rust, régénération, puis contrôles Node des consommateurs |
 | Python/MCP | Tests Python avec dépendances installées ; Node si contrat frontend partagé touché |
@@ -51,17 +52,22 @@ Un changement purement visuel ne nécessite pas un nouvel essai sur un compte fi
 
 ## Où sont les tests ?
 
-- `frontend/core/*.test.ts` : stratégie, contrôleur, plans, replay et moteur Node importé par les tests.
+- `frontend/core/*.test.ts` : stratégie, contrôleur, plans, replay, session et réseaux.
+- `shared/engine.test.ts` : moteur commun, revalidation, réservations durables et protections avec transports simulés.
+- `runner/persistence.test.ts` : fichiers Node, corruption, reprise et écritures atomiques.
+- `frontend/web/*.test.ts` : coffre Web Crypto avec fake-indexeddb (dépendance de test), CAS, échecs transactionnels et cycle de page avec transports simulés.
 - `frontend/exchange.test.ts` : wallet/transport simulés, signatures manuelles et lecture du compte.
 - `frontend/network.test.ts` : blocage du changement de réseau quand le runner est actif.
-- `frontend/workspace.test.ts`, `bot-dashboard.test.ts`, `runner-ui.test.ts` : DOM via happy-dom, états et navigation.
+- `frontend/workspace.test.ts`, `bot-dashboard.test.ts`, `runner-ui.test.ts` : DOM via happy-dom, états et navigation. La connexion couvre verrouillage/déverrouillage passif, chaîne EVM, compte changé, autorisations conservées et refus partiel des deux réseaux.
 - `frontend/charts/data-buffer.test.ts` : EMA et corrections de bougies.
 - `frontend/visuals/depth-model.test.ts` : données et géométrie pure.
 - `tests/browser.test.cjs` : moteur navigateur dans une VM Node.
 - `scripts/check-runner.mjs` : processus réel temporaire, authentification et séparation des réseaux, sans agent autorisé.
 - `tests/test_engine.py`, `tests/test_multiframe.py` : moteur Python historique.
 
-La configuration Vitest a `root: frontend`. Un nouveau test placé seulement dans `runner/` n’est pas automatiquement découvert : le placer selon les conventions existantes ou modifier explicitement la configuration.
+`vitest.config.ts` est indépendant de `vite.config.ts` et découvre `frontend/**/*.test.ts`, `shared/**/*.test.ts` et `runner/**/*.test.ts`. Placer les nouveaux tests avec le module propriétaire. Le build web conserve `frontend` comme racine.
+
+`npm run check:structure` parcourt les imports statiques/dynamiques des sources TypeScript/JavaScript. Il interdit frontend → runner et shared → adaptateurs/API Node. La liste des modules purs de frontend/core accessibles depuis shared est explicite, et ses dépendances transitives sont contrôlées. Ce contrôle ne remplace pas les tests de comportement.
 
 ## Recettes de modification
 
@@ -79,7 +85,7 @@ Lire STRATEGY.md, modifier la règle canonique et ses tests. Rechercher les copi
 
 ### Modifier un style
 
-`interface.css` est le point d’entrée et importe les [tokens de présentation](../tokens.css). La passe Hallmark est limitée à `#view-pilot` : sa palette nommée, ses polices locales et sa grille ne remplacent pas les anciens thèmes des autres vues. Les choix et limites de contrôle sont conservés dans `.hallmark/`. `layout.css` est la base structurelle en couche ; `obsidian.css` porte le thème et les priorités visuelles. Éviter d’ajouter une troisième cascade de corrections successives. Garder des classes sémantiques réutilisables et des règles responsive groupées. Les tokens `--accent` (cyan), `--action` (ambre), `--violet`, `--green` et `--red` distinguent navigation, action, recherche et données directionnelles. Les réseaux se distinguent aussi par leur libellé ; le point coloré du sélecteur ne confirme pas la santé de la connexion.
+`interface.css` est le point d’entrée et importe les [tokens de présentation](../tokens.css). La première passe Hallmark concernait `#view-pilot` ; les tokens et polices locales servent maintenant aussi à unifier les autres vues. Les choix et limites de contrôle sont conservés dans `.hallmark/`. `layout.css` est la base structurelle en couche ; `obsidian.css` porte le thème et les priorités visuelles. Éviter d’ajouter une troisième cascade de corrections successives. Garder des classes sémantiques réutilisables et des règles responsive groupées. Les tokens `--accent` (cyan), `--action` (ambre), `--violet`, `--green` et `--red` distinguent navigation, action, recherche et données directionnelles. Les réseaux se distinguent aussi par leur libellé ; le point coloré du sélecteur ne confirme pas la santé de la connexion.
 
 ## Toolchains optionnelles
 
