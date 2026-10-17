@@ -361,3 +361,5 @@ button:focus-visible,a:focus-visible,summary:focus-visible,select:focus-visible{
 .runner-setup .automation-consent{margin:0}.runner-network-summary{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .runner-network-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:12px;color:var(--muted)}
 .runner-network-summary span[data-ready="true"]{color:var(--green);border-color:color-mix(in srgb,var(--green) 35%,transparent)}
+
+.data-panel{margin:18px 0}.data-panel>summary{cursor:pointer;padding:18px;font-weight:600;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.data-panel>summary span{color:var(--muted);font-size:12px;font-weight:400}.data-panel-body{padding:0 18px 18px}.data-panel-body>p{color:var(--muted);line-height:1.6}.data-panel .detail-list{margin:16px 0}.data-panel dd{text-align:right}

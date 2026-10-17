@@ -6,6 +6,7 @@ export function sessionPolicy(limits={}){
  return {maxEntries,profitTarget,tradeRisk,cooldownSeconds:1800,maxLossStreak:2};
 }
 export function sessionBlock(paper,limits,now){
+ if(paper.storageBlocked)return 'Sauvegarde locale à vérifier : entrées de simulation bloquées.';
  if(!Number.isFinite(now)||!Number.isFinite(limits.daily_loss_limit??500)||(limits.daily_loss_limit??500)<=0)return 'État de session invalide.';
  const policy=sessionPolicy(limits),day=new Date(now*1000).toISOString().slice(0,10),same=paper.day===day,pnl=same?paper.dailyPnl:0,entries=paper.lastEntryDay===day?paper.entriesToday:0;
  if(!Number.isFinite(pnl)||!Number.isInteger(entries)||entries<0)return 'État de session invalide.';

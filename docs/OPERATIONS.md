@@ -72,12 +72,12 @@ Objectif `dailyTarget` : 100, 200 ou 500 USDC ; défaut 200. Il est relu au dém
 
 | Emplacement | Contenu |
 |---|---|
-| `.omega-runtime/testnet.json`, `.omega-runtime/mainnet.json` | Clé d’agent, compte, nonce, tentative UTC, envoi pending, propriété de position et événements |
+| `.omega-runtime/testnet.json`, `.omega-runtime/mainnet.json` | Clé d’agent, compte, nonce, tentative UTC, envoi pending, propriété de position, réglages et événements |
 | `.omega-runtime/runner.pid` | Verrou d’un processus sur cette installation |
 | localStorage navigateur | Paper, réglages et recherche séparés par réseau/origine/appareil |
 | `config.json`, `data/` | Configuration, token et état du moteur Python historique |
 
-Les fichiers Node sont écrits en temporaire, synchronisés puis renommés ; ils ne forment pas un coffre chiffré. Permissions POSIX : répertoire 0700, fichiers 0600. Protéger l’accès au compte système. Ne pas copier un runtime actif entre plusieurs ordinateurs et ne pas réutiliser une même clé dans deux processus de signature.
+Les fichiers Node sont versionnés, écrits en temporaire, synchronisés puis renommés ; une génération précédente `.bak` est conservée et les schémas sont validés au chargement. Une corruption bloque le démarrage, sans restauration aveugle ni remise à zéro. Ils ne forment pas un coffre chiffré. Permissions POSIX : répertoire 0700, fichiers 0600. Protéger l’accès au compte système. Ne pas copier un runtime actif entre plusieurs ordinateurs et ne pas réutiliser une même clé dans deux processus de signature.
 
 Ne pas effacer un runtime pour « débloquer » une erreur : cela efface aussi les informations de quota et de rapprochement. Les protections exchange peuvent survivre aux fichiers locaux.
 
@@ -123,3 +123,5 @@ Le navigateur mémorise uniquement l’adresse publique et la préférence de re
 Le service conserve ses clés distinctes et vérifie les approbations exchange au chargement puis environ chaque minute pendant les rafraîchissements visibles. La date confirmée apparaît pour chaque réseau. La configuration explicite saute les agents du bon compte encore valides ; un agent expiré/révoqué reçoit une nouvelle clé avant signature, afin de ne pas réutiliser un nonce potentiellement purgé. Si la seconde signature est refusée, « Compléter la configuration des réseaux » reprend uniquement les réseaux manquants. Les envois d’ordre incertains restent soumis à la réconciliation existante.
 
 Les autorisations durent 30 jours au plus selon la demande signée et restent révocables depuis Hyperliquid ; une expiration ou révocation exige une nouvelle signature. La reprise du compte n’est donc pas une connexion définitive sans limite. Un redémarrage du processus renouvelle automatiquement la session HTTP locale lors d’un refus 401, une seule fois. Les nouvelles entrées restent désarmées après redémarrage. Mainnet exige toujours le consentement fonds réels et un clic de démarrage séparé.
+
+Le fonctionnement des exports, copies automatiques, erreurs de stockage et récupérations est détaillé dans [DATA.md](DATA.md).

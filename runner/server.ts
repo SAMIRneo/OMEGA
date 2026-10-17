@@ -1,14 +1,15 @@
 import {createServer} from 'node:http';
-import {readFileSync,writeFileSync,renameSync,mkdirSync,existsSync,unlinkSync,openSync,closeSync,fsyncSync,statSync} from 'node:fs';
+import {readFileSync,writeFileSync,mkdirSync,existsSync,unlinkSync,statSync,chmodSync} from 'node:fs';
 import {resolve,extname,sep} from 'node:path';
 import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {generatePrivateKey,privateKeyToAccount} from 'viem/accounts';
 import {ExchangeClient,HttpTransport,InfoClient} from '@nktkas/hyperliquid';
 import {bindLedgerNetwork,assertDistinctAgents,networkConfig,type Network} from './policy';
 import {LiveEngine,type Ledger} from './engine';
+import {loadLedger,saveLedger} from './persistence';
 import {loadRisk} from './runtime-risk';
 const root=process.cwd(),dir=resolve(root,'.omega-runtime'),port=8766,origin='http://127.0.0.1:'+port;
-mkdirSync(dir,{recursive:true,mode:0o700});
+mkdirSync(dir,{recursive:true,mode:0o700});if(process.platform!=='win32')chmodSync(dir,0o700);
 // One process owns every signer, nonce and durable quota on this installation.
 const lock=resolve(dir,'runner.pid');
 if(existsSync(lock)){
@@ -20,13 +21,12 @@ process.on('exit',()=>{try{unlinkSync(lock)}catch{}});
 const token=randomBytes(32).toString('hex'),risk=await loadRisk(root),engines={} as Record<Network,LiveEngine>;
 for(const network of ['testnet','mainnet'] as const){
  const file=resolve(dir,network+'.json');let ledger:Ledger;
- if(existsSync(file)){ledger=JSON.parse(readFileSync(file,'utf8'));if(!ledger.key||!Array.isArray(ledger.events)||!Number.isFinite(ledger.nonce))throw Error('État du moteur invalide.');}
- else ledger={owner:null,key:generatePrivateKey(),nonce:0,attemptDay:'',pending:null,owned:false,events:[]};
+ ledger=loadLedger(file,network)??{owner:null,key:generatePrivateKey(),nonce:0,attemptDay:'',pending:null,owned:false,events:[]};
  bindLedgerNetwork(ledger,network);register(network,ledger);
 }
 function register(network:Network,ledger:Ledger){
  const file=resolve(dir,network+'.json');
- const save=()=>{const temp=file+'.tmp';const fd=openSync(temp,'w',0o600);try{writeFileSync(fd,JSON.stringify(ledger));fsyncSync(fd);}finally{closeSync(fd)}renameSync(temp,file);};save();
+ const save=()=>saveLedger(file,ledger,network);save();
  const wallet=privateKeyToAccount(ledger.key),transport=new HttpTransport(networkConfig(network));
  const exchange=new ExchangeClient({transport,wallet,defaultExpiresAfter:()=>Date.now()+60000,nonceManager:()=>{ledger.nonce=Math.max(Date.now(),ledger.nonce+1);save();return ledger.nonce;}});
  engines[network]=new LiveEngine(network,ledger,wallet.address,new InfoClient({transport}),exchange,risk,save);

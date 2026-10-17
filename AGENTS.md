@@ -36,6 +36,8 @@ The frontend is TypeScript + JavaScript + CSS, not React/Next.js. Do not introdu
 - `Snapshot.time`, `context.updatedAt`, `candleStatus.fetchedAt`: seconds. Candle `t/T`, `lastClosedTime`, book `time`, runner heartbeat/events: milliseconds. Confirm units before comparing timestamps.
 - Retain `axiom-*` storage/profile keys for compatibility. Branding changes are not data migrations.
 
+Pour la persistance : lire [docs/DATA.md](docs/DATA.md). Préserver les fichiers/valeurs corrompus, bloquer les mutations, et ne jamais restaurer automatiquement un nonce, quota ou pending depuis une ancienne copie. Les exports navigateur suivent une liste autorisée sans clés, sessions ou permissions.
+
 ## Implementation practice
 
 - Keep pure rules in `frontend/core/`; DOM/event handling belongs in UI modules. Share Daily rules/indicators/risk between replay, browser and runner rather than copying them.
