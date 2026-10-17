@@ -107,3 +107,9 @@ Installer les dépendances Python dans un environnement virtuel. Copier manuelle
 Jusqu’à quatre tentatives locales UTC, avec comptage conservateur des entrées exchange. Une position à la fois. Pause de 30 min après l’entrée ou la dernière sortie ; après deux ordres de clôture perdants consécutifs du compte, les nouvelles entrées sont bloquées jusqu’au lendemain UTC. Les fills partiels sont regroupés par oid pour ce calcul. Le P&L est réalisé, frais USDC déduits ; le funding et le latent ne sont pas intégrés.
 
 Un objectif atteint bloque les nouvelles entrées, sans supprimer les protections ni arrêter la surveillance. Le processus peut rester marqué actif pendant une pause de session. Un envoi incertain exige toujours un rapprochement et un réarmement explicites. L’expiration du pending ne restitue pas sa tentative consommée. Aucun martingale ou relèvement du budget après perte.
+
+## Rapprochement et données indisponibles
+
+Un accusé de réception partiel du lot manuel conserve son journal pending. Aucune nouvelle entrée n’est permise avant la vérification explicite. La confirmation exige un fill d’entrée valide et deux statuts de protection reconnus ; elle ne garantit pas leur maintien ultérieur.
+
+Le rapprochement Node refuse d’adopter une position inversée ou supérieure aux fills attribuables à l’ordre enregistré. Ne pas effacer le pending pour contourner ce refus : examiner les interventions externes et le compte. La surveillance des positions ne charge pas les bougies ou fills quotidiens et ne dépend pas d’un budget disponible pour une nouvelle entrée. Elle nécessite toujours les données de compte, ordres, métadonnées et carnet.

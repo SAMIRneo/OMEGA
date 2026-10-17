@@ -89,7 +89,7 @@ Le dossier `docs/archive/` archive des textes ; il ne déplace pas ces modules d
 
 À chaque tick pertinent : snapshot propre au service → `evaluateDaily` → plan exchange → réglage du levier → nouveau snapshot et nouvelle évaluation → réservation durable quota/cloid → envoi du lot IOC + SL/TP. Une réponse incertaine conserve un envoi à réconcilier ; elle ne provoque pas une relance d’entrée.
 
-La surveillance de la position attribuée au bot est distincte de l’armement des entrées. Pour les transitions, paramètres HTTP et fichiers personnels, voir [OPERATIONS.md](OPERATIONS.md).
+La surveillance de la position attribuée au bot est distincte de l’armement des entrées. Son snapshot ne charge ni bougies ni fills quotidiens et ne valide pas le quota d’entrée : une panne de ces données ne doit pas bloquer le contrôle des protections. Le rapprochement borne l’attribution au sens et aux quantités exécutées de l’ordre enregistré ; une exposition agrandie ou inversée reste bloquée. Pour les transitions, paramètres HTTP et fichiers personnels, voir [OPERATIONS.md](OPERATIONS.md).
 
 ## Unités et identités
 

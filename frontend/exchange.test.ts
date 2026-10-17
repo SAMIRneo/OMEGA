@@ -1,7 +1,7 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {Window} from 'happy-dom';
 import {readFileSync} from 'node:fs';
-const fake=vi.hoisted(()=>({network:'testnet',calls:[] as any[],today:[] as any[],open:[] as any[],reject:false,accounts:['0x1111111111111111111111111111111111111111']}));
+const fake=vi.hoisted(()=>({network:'testnet',calls:[] as any[],today:[] as any[],open:[] as any[],reject:false,partial:false,accounts:['0x1111111111111111111111111111111111111111']}));
 vi.mock('@nktkas/hyperliquid',()=>({
  HttpTransport:class {isTestnet:boolean;constructor(o:any){this.isTestnet=o.isTestnet;fake.calls.push(['transport',o]);}},
  InfoClient:class {
@@ -15,7 +15,7 @@ vi.mock('@nktkas/hyperliquid',()=>({
  },
  ExchangeClient:class {
   async updateLeverage(p:any){fake.calls.push(['leverage',p]);return {status:'ok'};}
-  async order(p:any){fake.calls.push(['order',p]);if(fake.reject)throw Error('Transport lost');return {status:'ok',response:{data:{statuses:[{filled:{oid:1,totalSz:'.02',avgPx:'2400'}},{resting:{oid:2}},{resting:{oid:3}}]}}};}
+  async order(p:any){fake.calls.push(['order',p]);if(fake.reject)throw Error('Transport lost');if(fake.partial)return {status:'ok',response:{data:{statuses:['waitingForFill','waitingForFill','waitingForFill']}}};return {status:'ok',response:{data:{statuses:[{filled:{oid:1,totalSz:'.02',avgPx:'2400'}},{resting:{oid:2}},{resting:{oid:3}}]}}};}
   async cancel(){return {status:'ok',response:{data:{statuses:[{error:'already filled'}]}}};}
  }
 }));
@@ -33,7 +33,7 @@ async function start(network='testnet'){
  return form;
 }
 beforeEach(()=>{
- vi.resetModules();fake.calls=[];fake.today=[];fake.open=[];fake.reject=false;fake.accounts=['0x1111111111111111111111111111111111111111'];
+ vi.resetModules();fake.calls=[];fake.today=[];fake.open=[];fake.reject=false;fake.partial=false;fake.accounts=['0x1111111111111111111111111111111111111111'];
  dom=new Window({url:'https://omega.test/'});dom.document.write(readFileSync(new URL('./index.html',import.meta.url),'utf8'));
  vi.stubGlobal('window',dom);vi.stubGlobal('document',dom.document);vi.stubGlobal('localStorage',dom.localStorage);vi.stubGlobal('navigator',{locks:{request:async(_name:string,fn:()=>unknown)=>fn()}});
 });
@@ -117,4 +117,11 @@ it('discards an in-flight account read after wallet disconnection',async()=>{
 it('blocks a network change during a wallet read and rejects a malformed pending journal',async()=>{
  await start();const key='omega-testnet-exchange-pending-'+fake.accounts[0];dom.localStorage.setItem(key,JSON.stringify({cloid:'bad',at:NaN}));
  (el('testnet-preview') as any).click();await settle();expect(el('testnet-action-status').textContent).toContain('Journal d’envoi illisible');expect(fake.calls.some(x=>x[0]==='leverage'||x[0]==='order')).toBe(false);
+});
+
+it('retains a partial exchange acknowledgement until explicit reconciliation',async()=>{
+ const form=await start();fake.partial=true;form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();
+ const key='omega-testnet-exchange-pending-'+fake.accounts[0];expect(dom.localStorage.getItem(key)).toContain('cloid');
+ expect(el('testnet-action-status').textContent).toContain('réponse partielle');
+ form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();expect(fake.calls.filter(x=>x[0]==='order')).toHaveLength(1);
 });

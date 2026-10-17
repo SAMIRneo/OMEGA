@@ -103,7 +103,7 @@ form.addEventListener('submit',event=>{event.preventDefault();run(async()=>{
  consent.checked=false;const id=fresh.cloid,storageKey=pendingKey();localStorage.setItem(storageKey,JSON.stringify({cloid:id,at:Date.now()}));
  status('Signature 2/2 : entrée IOC et stop / objectif sur Hyperliquid '+networkLabel+'.');
  try{const response=await exchange!.order({orders:fresh.orders,grouping:fresh.grouping});const result=exchangeStatus(response);
-  localStorage.removeItem(storageKey);
+  if(result.protected)localStorage.removeItem(storageKey);
   localStorage.setItem('omega-'+network+'-last-receipt-'+expected,JSON.stringify({at:Date.now(),cloid:id,response}));
   status(result.protected?'Réponse '+networkLabel+' reçue pour l’entrée et les deux protections. Vérifie les exécutions et les ordres ci-dessous.':'Attention : réponse partielle, vérifie immédiatement la position et les protections. '+result.errors.join(' · '));
  }catch(error){status('Envoi non confirmé ou partiellement refusé. Ne renvoie pas l’ordre : vérifie le dernier envoi et les protections. '+(error instanceof Error?error.message:String(error)));}

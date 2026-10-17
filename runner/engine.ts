@@ -26,26 +26,27 @@ export class LiveEngine {
   return {...s.snapshot,limits:{...s.snapshot.limits,max_entries_per_day:4,daily_profit_target:this.settings.dailyTarget,trade_risk:100},paper:{...s.snapshot.paper,day,dailyPnl:daily.pnl,entriesToday:Math.max(daily.entries,reservedAttempts(this.ledger,day)),lastEntryDay:day,lastEntryAt:Math.max(daily.lastEntryAt,this.ledger.lastAttemptAt??0),lastExitAt:Math.max(daily.lastExitAt,this.ledger.lastExitAt??0),lossStreak:daily.lossStreak}};
  }
  async candles(interval:string,duration:number,now:number){const cached=this.candleCache.get(interval);if(cached&&now-cached.at<60000&&Math.floor(cached.at/duration)===Math.floor(now/duration))return cached.bars;const bars=await this.info.candleSnapshot({coin:'ETH',interval,startTime:now-duration*350,endTime:now});validCandles(bars,duration,Date.now());this.candleCache.set(interval,{at:Date.now(),bars});return bars;}
- async snapshot(){
+ // Position supervision must not wait for candle history or daily fills.
+ async snapshot(includeStrategy=true){
   const user=this.ledger.owner;if(!user)throw Error('Wallet non configuré.');
   const now=Date.now(),dayStart=Math.floor(now/86400000)*86400000;
   const [account,orders,today,metadata,book,...series]=await Promise.all([
-   this.info.clearinghouseState({user}),this.info.frontendOpenOrders({user}),this.info.userFillsByTime({user,startTime:dayStart,aggregateByTime:true}),this.info.meta(),this.info.l2Book({coin:'ETH'}),
-   ...(['15m','1h','1d'] as const).map((interval,i)=>this.candles(interval,[900000,3600000,86400000][i],now))
+   this.info.clearinghouseState({user}),this.info.frontendOpenOrders({user}),includeStrategy?this.info.userFillsByTime({user,startTime:dayStart,aggregateByTime:true}):Promise.resolve([]),this.info.meta(),this.info.l2Book({coin:'ETH'}),
+   ...(includeStrategy?(['15m','1h','1d'] as const).map((interval,i)=>this.candles(interval,[900000,3600000,86400000][i],now)):[])
   ]);
   const time=Date.now(),valid=validBook(book,time),asset=metadata.universe.findIndex((x:any)=>x.name==='ETH');if(asset<0)throw Error('ETH absent des métadonnées.');
   const meta={asset,...metadata.universe[asset]},equity=Number(account.marginSummary.accountValue),available=Number(account.withdrawable);
-  if(![equity,available].every(Number.isFinite)||equity<0||available<0)throw Error('Solde Hyperliquid invalide.');
+  if(![equity,available].every(Number.isFinite)||includeStrategy&&(equity<0||available<0))throw Error('Solde Hyperliquid invalide.');
   const daily=exchangeDay(today,time),day=new Date(time).toISOString().slice(0,10),indicators:Snapshot['indicators']={},candleStatus:Snapshot['candleStatus']={},candlesByTimeframe:Snapshot['candlesByTimeframe']={};
-  (['15m','1h','1d'] as const).forEach((tf,i)=>{const candles=validCandles(series[i],[900000,3600000,86400000][i],time);candlesByTimeframe[tf]=candles;indicators[tf]=features(candles,time) as Indicator;candleStatus[tf]={fetchedAt:(this.candleCache.get(tf)?.at??time)/1000};});
+  if(includeStrategy)(['15m','1h','1d'] as const).forEach((tf,i)=>{const candles=validCandles(series[i],[900000,3600000,86400000][i],time);candlesByTimeframe[tf]=candles;indicators[tf]=features(candles,time) as Indicator;candleStatus[tf]={fetchedAt:(this.candleCache.get(tf)?.at??time)/1000};});
   const p=account.assetPositions.find((x:any)=>x.position.coin==='ETH'&&+x.position.szi!==0)?.position;
-  const snapshot:Snapshot={time:time/1000,runtime:'local',market:{fresh:true,mid:(+valid.levels[0][0].px + +valid.levels[1][0].px)/2,sourceAgeSeconds:(time-valid.time)/1000,book:valid},context:{maxLeverage:meta.maxLeverage,updatedAt:time/1000},limits:{strategy_profile:this.settings.profile,leverage:this.settings.leverage,max_leverage:15,max_margin:equity*.5,max_risk:500,daily_loss_limit:500,fee_bps:4.5,slippage_bps:2,allocation_fraction:.5,daily_mode:true,max_entries_per_day:4,daily_profit_target:this.settings.dailyTarget,trade_risk:100},paper:{initial:equity,cash:equity,equity,unrealized:0,position:p?{side:+p.szi>0?'long':'short',entry:+p.entryPx,quantity:Math.abs(+p.szi),stop:0,target:0,margin:+p.marginUsed,leverage:+p.leverage.value,openedAt:0,entryFee:0}:null,history:[],day,dailyPnl:daily.pnl,entriesToday:Math.max(daily.entries,reservedAttempts(this.ledger,day)),lastEntryDay:day,lastEntryAt:Math.max(daily.lastEntryAt,this.ledger.lastAttemptAt??0),lastExitAt:Math.max(daily.lastExitAt,this.ledger.lastExitAt??0),lossStreak:daily.lossStreak},indicators,candleStatus,candlesByTimeframe};
+  const snapshot:Snapshot={time:time/1000,runtime:'local',market:{fresh:true,mid:(+valid.levels[0][0].px + +valid.levels[1][0].px)/2,sourceAgeSeconds:(time-valid.time)/1000,book:valid},context:{maxLeverage:meta.maxLeverage,updatedAt:time/1000},limits:{strategy_profile:this.settings.profile,leverage:this.settings.leverage,max_leverage:15,max_margin:equity*.5,max_risk:500,daily_loss_limit:500,fee_bps:4.5,slippage_bps:2,allocation_fraction:.5,daily_mode:true,max_entries_per_day:4,daily_profit_target:this.settings.dailyTarget,trade_risk:100},paper:{initial:equity,cash:equity,equity,unrealized:0,position:p?{side:+p.szi>0?'long':'short',entry:+p.entryPx,quantity:Math.abs(+p.szi),stop:0,target:0,margin:+p.marginUsed,leverage:+p.leverage.value,openedAt:0,entryFee:0}:null,history:[],day,dailyPnl:daily.pnl,entriesToday:includeStrategy?Math.max(daily.entries,reservedAttempts(this.ledger,day)):0,lastEntryDay:day,lastEntryAt:Math.max(daily.lastEntryAt,this.ledger.lastAttemptAt??0),lastExitAt:Math.max(daily.lastExitAt,this.ledger.lastExitAt??0),lossStreak:daily.lossStreak},indicators,candleStatus,candlesByTimeframe};
   this.equity=equity;return {snapshot,account,orders,today,meta,book:valid,equity,available,position:p};
  }
  async tick(){
   if(this.busy||Date.now()<this.retryAt||(!this.active&&!this.ledger.owned))return;this.busy=true;
   try{
-   const s=await this.snapshot();this.heartbeat=Date.now();this.failures=0;
+   const s=await this.snapshot(!this.ledger.owned);this.heartbeat=Date.now();this.failures=0;
    if(this.ledger.owned){
     if(!s.position){this.log('Position du bot clôturée sur Hyperliquid. Vérification des protections restantes.');
      const ownOrders=s.orders.filter((o:any)=>o.coin==='ETH'&&o.reduceOnly&&(this.ledger.protectionIds?.includes(o.oid)||this.ledger.protectionCloids?.includes(o.cloid)));if(ownOrders.length){const receipt=exchangeStatus(await this.exchange.cancel({cancels:ownOrders.map((o:any)=>({a:s.meta.asset,o:o.oid}))}));if(receipt.errors.length)throw Error(receipt.errors.join(' · '));this.log('Annulation des protections restantes du bot confirmée.');}this.ledger.lastExitAt=Date.now()/1000;this.ledger.owned=false;this.save();return;}
@@ -93,12 +94,20 @@ export class LiveEngine {
  }
  async reconcile(){
   if(this.busy||this.active)throw Error('Arrête les entrées avant la réconciliation.');this.busy=true;
-  try{const s=await this.snapshot(),pending=this.ledger.pending;if(!pending){this.log('Aucun envoi en attente.');return;}
+  try{const s=await this.snapshot(false),pending=this.ledger.pending;if(!pending){this.log('Aucun envoi en attente.');return;}
    const receipt=await this.info.orderStatus({user:this.ledger.owner,oid:pending.cloid});
    if(receipt.status==='order'){
     // Only adopt a position if a fill is attributable to our recorded order.
     const fills=await this.info.userFillsByTime({user:this.ledger.owner,startTime:pending.at-1000,aggregateByTime:true});
-    if(fills.some((f:any)=>f.oid===receipt.order.order.oid&&f.dir.startsWith('Open'))){this.ledger.owned=!!s.position;this.ledger.ownedSide=s.position&&+s.position.szi>0?'long':'short';this.ledger.ownedQuantity=s.position?Math.abs(+s.position.szi):0;this.ledger.protectionIds=[];this.ledger.pending=null;this.save();this.log('Envoi retrouvé dans les fills exchange. Entrées arrêtées ; surveillance de la position attribuée au bot.');return;}
+    const order=receipt.order.order,side=order.side==='B'?'long':order.side==='A'?'short':null;
+    if(fills.length>=2000)throw Error('Historique incomplet : attribution de position impossible.');
+    const ownFills=fills.filter((f:any)=>f.coin==='ETH'&&f.oid===order.oid&&f.dir===(side==='long'?'Open Long':'Open Short'));
+    if(side&&ownFills.length){
+     const filled=ownFills.reduce((total:number,f:any)=>{const quantity=Number(f.sz);if(!Number.isFinite(quantity)||quantity<=0)throw Error('Quantité exécutée invalide.');return total+quantity;},0);
+     const size=s.position?Number(s.position.szi):0,ceiling=this.ledger.owned?Math.min(filled,this.ledger.ownedQuantity??0):filled;
+     if(!Number.isFinite(size)||s.position&&((size>0?'long':'short')!==side||Math.abs(size)>ceiling+1e-8))throw Error('Position ETH modifiée hors du bot : attribution ambiguë. Vérifie le compte.');
+     this.ledger.owned=!!s.position;this.ledger.ownedSide=side;this.ledger.ownedQuantity=Math.abs(size);this.ledger.protectionIds=[];this.ledger.pending=null;this.save();this.log('Envoi retrouvé dans les fills exchange. Entrées arrêtées ; surveillance de la position attribuée au bot.');return;
+    }
    }
    if(Date.now()-pending.at>90000&&!s.position&&!s.orders.some((o:any)=>o.coin==='ETH')){this.ledger.pending=null;this.save();this.log('Envoi expiré sans exposition. Tentative conservée dans le quota UTC.');}else throw Error('Envoi ou exposition non résolu : vérifie Hyperliquid.');
   }finally{this.busy=false;}

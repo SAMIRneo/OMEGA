@@ -62,3 +62,26 @@ it('permits another intraday session after cooldown but retains attempted quota 
  await expect(restored.arm({profile:'balanced',leverage:15},null)).rejects.toThrow('Pause');
  f.ledger.attemptCount=4;await expect(restored.arm({profile:'balanced',leverage:15},null)).rejects.toThrow('Quota');expect(f.exchange.order).not.toHaveBeenCalled();
 });
+
+it('supervises an owned position without requesting candles or fills',async()=>{
+ const f=setup();vi.mocked(f.engine.snapshot).mockRestore();
+ Object.assign(f.info,{
+  clearinghouseState:vi.fn(async()=>({marginSummary:{accountValue:'-10'},withdrawable:'0',assetPositions:[{position:{coin:'ETH',szi:'1',entryPx:'2500',marginUsed:'200',leverage:{value:15}}}]})),
+  frontendOpenOrders:vi.fn(async()=>[]),meta:vi.fn(async()=>({universe:[{name:'ETH',szDecimals:4,maxLeverage:20}]})),
+  l2Book:vi.fn(async()=>({...f.s.book,coin:'ETH',time:Date.now()})),
+  candleSnapshot:vi.fn(async()=>{throw Error('Candle service unavailable')}),userFillsByTime:vi.fn(async()=>{throw Error('Fill service unavailable')})
+ });
+ f.ledger.owned=true;f.ledger.ownedSide='long';f.ledger.ownedQuantity=1;f.ledger.attemptDay='2026-10-14';f.ledger.attemptCount=0;
+ await f.engine.tick();expect(f.exchange.order).toHaveBeenCalledOnce();expect(f.exchange.order.mock.calls[0][0].orders[0].r).toBe(true);
+ expect((f.info as any).candleSnapshot).not.toHaveBeenCalled();expect((f.info as any).userFillsByTime).not.toHaveBeenCalled();
+});
+it.each(['2','-1'])('does not adopt an external or reversed position during reconciliation (%s ETH)',async(size)=>{
+ const f=setup();f.ledger.pending={cloid:'0x11111111111111111111111111111111',at:Date.now()-10000};f.s.position={szi:size};
+ Object.assign(f.info,{orderStatus:vi.fn(async()=>({status:'order',order:{order:{oid:1,side:'B'}}})),userFillsByTime:vi.fn(async()=>[{coin:'ETH',oid:1,dir:'Open Long',sz:'1'}])});
+ await expect(f.engine.reconcile()).rejects.toThrow('attribution ambiguë');expect(f.ledger.pending).not.toBeNull();expect(f.ledger.owned).toBe(false);expect(f.exchange.order).not.toHaveBeenCalled();
+});
+it('adopts only a compatible position bounded by attributable partial fills',async()=>{
+ const f=setup();f.ledger.pending={cloid:'0x11111111111111111111111111111111',at:Date.now()-10000};f.s.position={szi:'.4'};
+ Object.assign(f.info,{orderStatus:vi.fn(async()=>({status:'order',order:{order:{oid:1,side:'B'}}})),userFillsByTime:vi.fn(async()=>[{coin:'ETH',oid:1,dir:'Open Long',sz:'.2'},{coin:'ETH',oid:1,dir:'Open Long',sz:'.3'}])});
+ await f.engine.reconcile();expect(f.engine.snapshot).toHaveBeenCalledWith(false);expect(f.ledger.owned).toBe(true);expect(f.ledger.ownedQuantity).toBe(.4);expect(f.ledger.pending).toBeNull();expect(f.exchange.order).not.toHaveBeenCalled();
+});
