@@ -2,13 +2,17 @@
 
 ## Frontières du système
 
-OMEGA contient un frontend statique et deux services locaux distincts. Le moteur d’exécution actuel est Node ; Python reste une voie de compatibilité pour recherche, simulation et MCP. Ni le site statique ni un Worker de replay ne constituent un service exchange permanent.
+OMEGA contient un frontend statique capable d’exécution web et deux services locaux distincts. Le moteur LiveEngine est partagé entre le navigateur et Node ; Python reste une voie de compatibilité pour recherche, simulation et MCP. Ni le site statique ni un Worker de replay ne constituent un service exchange permanent.
 
 ```mermaid
 flowchart TD
     API["Hyperliquid / réseau choisi"] --> Browser["Adaptateur navigateur"]
     Browser --> Store["Snapshots / stores"]
     Store --> UI["Terminal, Bot et visuels"]
+    UI --> Web["Moteur web / onglet"]
+    Web --> Vault["Coffre IndexedDB chiffré"]
+    Web --> Agent
+    Rules --> Web
     UI --> Manual["Wallet / signature manuelle"]
     Manual --> API
     API --> Runner["Service Node local"]
@@ -20,7 +24,7 @@ flowchart TD
     Agent --> API
 ```
 
-Le graphe montre les responsabilités, pas une séquence d’envoi automatique déclenchée par le navigateur. Le runner relit ses propres données et autorisations avant une entrée. Le frontend de commande parle au runner uniquement sur l’origine locale prévue.
+Le graphe montre les responsabilités, pas une séquence d’envoi automatique déclenchée par le navigateur. Le runner relit ses propres données et autorisations avant une entrée. Sur le site publié, les commandes utilisent le moteur web ; sur l’origine Node prévue, elles utilisent l’API locale. Les deux modes relisent leurs données propres.
 
 ## Carte des sources
 
@@ -44,6 +48,7 @@ Le graphe montre les responsabilités, pas une séquence d’envoi automatique d
 | Recherche | [research.ts](../frontend/research.ts), [research.worker.ts](../frontend/research.worker.ts), [replay.ts](../frontend/core/replay.ts) | Acquisition, calcul en Worker, résultats locaux et CSV |
 | Persistance | [paper-storage.js](../frontend/core/paper-storage.js), [data-archive.ts](../frontend/core/data-archive.ts), [data-settings.ts](../frontend/data-settings.ts), [persistence.ts](../runner/persistence.ts) | Validation, versions, générations précédentes, export et état du stockage |
 | Service Node | [server.ts](../runner/server.ts) | HTTP, session, clés, nonces, persistance, verrou de processus |
+| Exécution web | [web/runner.ts](../frontend/web/runner.ts), [web/vault.ts](../frontend/web/vault.ts) | Même LiveEngine, coffre IndexedDB chiffré, lock d’onglet et contrôle au transport |
 | Automatisation | [engine.ts](../runner/engine.ts), [policy.ts](../runner/policy.ts) | État du pilote, revalidation, plan IOC, gestion de position |
 | Risque | [lib.rs](../rust-core/src/lib.rs), [runtime-risk.ts](../runner/runtime-risk.ts) | Noyau Rust/WASM et chargement Node |
 | Styles | [interface.css](../frontend/interface.css), [layout.css](../frontend/layout.css), [obsidian.css](../frontend/obsidian.css) | Point d’import, base en couche CSS et thème/priorités visuelles ; tokens.css et polices locales pour la vue Bot |
@@ -56,7 +61,7 @@ Le graphe montre les responsabilités, pas une séquence d’envoi automatique d
 2. `legacy/ui.js` demande `/api/state` à l’adaptateur, pilote la simulation et publie `axiom-state`.
 3. `workspace.ts` transmet le snapshot à `market-store`, puis construit les diagnostics et, si visible, le journal.
 4. Les consommateurs différés reçoivent immédiatement le dernier snapshot lorsqu’ils s’abonnent. Ils n’ouvrent pas chacun un flux Hyperliquid.
-5. `runner-store` est indépendant : son contenu vient des réponses du service local, pas d’un score navigateur. Le store wallet publie uniquement la session de signature/lecture établie par `exchange.ts` ; il ne transforme ni une adresse consultée ni une lecture du compte en autorisation d’agent.
+5. `runner-store` est indépendant : son contenu vient du moteur web ou du service local, pas d’un score descriptif navigateur. Le store wallet publie uniquement la session de signature/lecture établie par `exchange.ts` ; il ne transforme ni une adresse consultée ni une lecture du compte en autorisation d’agent.
 
 `window.BrowserAtelier`, `window.PaperPilot`, `window.TradingChart` et les hooks `ExchangeSnapshot`/`OmegaRunnerGate` sont des ponts actifs typés dans [globals.d.ts](../frontend/globals.d.ts). Leur suppression demande une migration de leurs consommateurs.
 
@@ -145,3 +150,5 @@ La matrice des réseaux, schémas de signature et garde-fous de concurrence est 
 `wallet-memory.ts` conserve l’adresse publique et la préférence de reconnexion sur l’origine courante. `wallet-connection.ts` peut charger `exchange.ts` pour restaurer passivement le compte primaire via `eth_accounts` ; aucune mutation exchange n’est incluse. `runner-ui.ts` lit et vérifie séparément les deux réseaux, affiche `approvedUntil`, et n’appelle `configure`/`approveAgent` qu’après clic et pour un agent manquant. Les clés restent dans les ledgers locaux du service. La session HTTP est renouvelée une fois après un 401 ; aucune relance automatique n’est ajoutée pour les autres erreurs ou envois incertains.
 
 La politique de conservation, les données exclues des exports et les limites de récupération sont dans [DATA.md](DATA.md). Le drapeau `paper.storageBlocked` bloque la session de simulation quand l’état ne peut pas être validé ou enregistré ; il ne réinitialise pas le compte.
+
+La validation pure des ledgers est extraite dans [runner/ledger.ts](../runner/ledger.ts) pour les deux persistances. Les callbacks de sauvegarde de LiveEngine acceptent une Promise et sont attendus avant transmission. Le protocole du coffre et les limites de cycle de page sont dans [WEB.md](WEB.md).

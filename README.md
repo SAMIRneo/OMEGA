@@ -1,12 +1,16 @@
 # OMEGA — ETH Intelligence
 
-Un terminal ETH/Hyperliquid, une stratégie Daily et un pilote local à signature déléguée. Interface sombre, graphique financier, profondeur cumulée, recherche historique et suivi du compte.
+Un terminal ETH/Hyperliquid, une stratégie Daily et un pilote à signature déléguée utilisable depuis le lien. Interface sombre, graphique financier, profondeur cumulée, recherche historique et suivi du compte.
 
 **[Ouvrir OMEGA](https://omega.kairos-labspro.chatgpt.site) · [Dépôt GitHub](https://github.com/SAMIRneo/OMEGA)**
 
-Le site public est statique. Il observe le marché et permet la simulation ou la signature manuelle. L’automatisation continue demande le service Node sur un ordinateur actif et un agent autorisé par le wallet. Aucun moteur cloud permanent ni modèle IA entraîné n’est déployé. La présence d’un compte financé ou d’un pilote actif n’est jamais déduite du seul chargement de la page.
+Le site public exécute le bot dans ton navigateur tant que l’onglet reste ouvert et visible. MetaMask autorise deux agents distincts ; leurs clés sont conservées chiffrées sur cet appareil. Aucun moteur de trading cloud permanent ni modèle IA entraîné n’est déployé. Le service Node reste une option pour fonctionner indépendamment de l’onglet.
 
-## Démarrer
+## Démarrer depuis le lien
+
+Ouvrir **[Bot OMEGA](https://omega.kairos-labspro.chatgpt.site/#pilot)** avec MetaMask. Connecter le compte, configurer Testnet + Mainnet (une signature par réseau manquant, 30 jours), choisir les réglages, puis démarrer explicitement le bot. Mainnet exige le consentement aux fonds réels. Garde l’onglet visible et l’appareil éveillé ; aucun rattrapage après une absence. Le [guide web](docs/WEB.md) décrit le coffre, les interruptions et les limites.
+
+Pour développer le projet :
 
 Depuis la racine du dépôt, avec Node.js **22.12+** ; Node 24 a été utilisé pour les vérifications. Utiliser le gestionnaire npm déclaré par `package.json` et conserver `package-lock.json`.
 
@@ -17,7 +21,7 @@ npm run dev
 
 Ouvrir l’adresse affichée par Vite. Ce mode sert au développement du terminal et à la simulation navigateur.
 
-Pour utiliser le service permanent :
+Pour utiliser le service Node optionnel :
 
 ```sh
 npm run build
@@ -26,15 +30,16 @@ npm run bot
 
 Ouvrir **http://127.0.0.1:8766/#pilot**. Le service démarre désarmé. Dans Bot, connecter MetaMask puis configurer Testnet et Mainnet ensemble : une signature par réseau manquant, valable 30 jours et révocable. Le compte est mémorisé sur ce navigateur et les agents encore autorisés sont réutilisés. Choisir ensuite le réseau et démarrer le pilote. Mainnet comporte une autorisation explicite de fonds réels. Les modalités sont dans le [guide d’exploitation](docs/OPERATIONS.md).
 
-## Trois modes, trois responsabilités
+## Modes d’exécution
 
 | Mode | Où il fonctionne | Conditions |
 |---|---|---|
 | Simulation | Navigateur, capital fictif de référence 10 000 USDC | Onglet visible ; journal propre à l’appareil et à l’origine |
 | Exchange manuel | Navigateur + wallet, testnet/mainnet | Compte exchange, signature du levier puis du lot d’ordres |
-| Pilote automatique | Service Node local, agent API, testnet/mainnet | Compte financé, agent autorisé, armement explicite, processus actif |
+| Bot web | Page publiée, agent chiffré, testnet/mainnet | Onglet visible, appareil éveillé, armement explicite |
+| Pilote Node | Service Node local, agent API, testnet/mainnet | Compte financé, agent autorisé, armement explicite, processus actif |
 
-Les fonds testnet, le solde mainnet et le capital paper sont distincts. Fermer la page ne coupe pas le service Node ; arrêter le processus ou mettre l’ordinateur en veille interrompt sa surveillance. Les SL/TP déjà acceptés restent sur Hyperliquid. Aucun retrait/transfert n’est implémenté.
+Les fonds testnet, le solde mainnet et le capital paper sont distincts. Fermer ou masquer la page arrête les nouvelles entrées du bot web. Fermer la page ne coupe pas le service Node ; arrêter le processus ou mettre l’ordinateur en veille interrompt sa surveillance. Les SL/TP déjà acceptés restent sur Hyperliquid. Aucun retrait/transfert n’est implémenté.
 
 ## Interface
 
@@ -51,7 +56,7 @@ ETH perpétuel ; contexte 1 jour, tendance 1 heure, déclenchement 15 minutes. J
 
 Taille adaptée au stop : perte automatique prévue ≤ min(100 USDC, 1 % de l’équité, 90 % du budget de perte restant). Marge ≤ 50 %, levier isolé ≤ ×15, stop 1,5 ATR et cible 3 ATR, ratio net ≥ 1,5. La limite de pertes réalisées du jour reste 500 USDC. Une journée peut rester sans entrée ou finir négative.
 
-Les détails et différences entre les trois modes sont dans [STRATEGY.md](docs/STRATEGY.md). Ces budgets ne garantissent pas la perte maximale en cas de gap, panne ou liquidation. Aucune rentabilité n’est établie ; les tests logiciels ne constituent pas une validation de performance.
+Les détails et différences entre les modes sont dans [STRATEGY.md](docs/STRATEGY.md). Ces budgets ne garantissent pas la perte maximale en cas de gap, panne ou liquidation. Aucune rentabilité n’est établie ; les tests logiciels ne constituent pas une validation de performance.
 
 ## Reprendre avec un autre agent
 
@@ -62,6 +67,7 @@ Donner à l’agent **le dépôt complet**, puis lui demander de commencer par [
 | Ordre de lecture, index et responsabilités documentaires | [docs/README.md](docs/README.md) |
 | Carte des fichiers, flux et contrats | [Architecture](docs/ARCHITECTURE.md) |
 | Développer, tester, modifier une fonctionnalité | [Développement](docs/DEVELOPMENT.md) |
+| Tout configurer et lancer depuis la page | [Mode web](docs/WEB.md) |
 | Lancer, connecter, arrêter, diagnostiquer le service | [Exploitation](docs/OPERATIONS.md) |
 | Garanties et limites mainnet/testnet | [Réseaux](docs/NETWORKS.md) |
 | Comprendre les règles, unités et différences d’exécution | [Stratégie](docs/STRATEGY.md) |

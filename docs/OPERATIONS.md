@@ -5,11 +5,13 @@
 | Runtime | Démarrage | Adresse | Capacité |
 |---|---|---|---|
 | Vite | `npm run dev` | URL affichée par Vite | Développement, données publiques, paper navigateur |
-| Site publié | Ouvrir le site public | Domaine OMEGA | Même frontend statique ; aucun processus permanent hébergé |
+| Site publié | Ouvrir le site public | Domaine OMEGA | Connexion, réglages et bot web dans un onglet visible ; aucun processus permanent hébergé |
 | Node permanent | `npm run build` puis `npm run bot` | `http://127.0.0.1:8766/#pilot` | Signature déléguée et surveillance tant que le processus tourne |
 | Python historique | Dépendances + `config.json`, build web, `python app.py` | `http://127.0.0.1:8765` | Recherche/paper/MCP, pas d’ordres exchange |
 
 Pour Node, employer exactement `127.0.0.1:8766`, pas un domaine personnalisé ni `localhost` : le contrôle Host du service est strict. Ouvrir l’interface sur le même ordinateur. Le site public ne sonde pas automatiquement le localhost du visiteur.
+
+Le parcours sans installation est dans [WEB.md](WEB.md). Les sections Node ci-dessous concernent le service optionnel.
 
 ## Mise en route Node
 
@@ -114,9 +116,9 @@ Un accusé de réception partiel du lot manuel conserve son journal pending. Auc
 
 Le rapprochement Node refuse d’adopter une position inversée ou supérieure aux fills attribuables à l’ordre enregistré. Ne pas effacer le pending pour contourner ce refus : examiner les interventions externes et le compte. La surveillance des positions ne charge pas les bougies ou fills quotidiens et ne dépend pas d’un budget disponible pour une nouvelle entrée. Elle nécessite toujours les données de compte, ordres, métadonnées et carnet.
 
-## Connexion mémorisée et configuration des deux réseaux
+## Connexion mémorisée du service Node
 
-Pour éviter une double connexion, commencer directement dans `http://127.0.0.1:8766/#pilot`. Les permissions MetaMask et le stockage du site public sont distincts de ceux de cette origine locale. Le guide du site propose l’archive de la branche à jour de la PR #2, tant que ses changements ne sont pas fusionnés dans main.
+Pour utiliser le service Node optionnel, commencer directement dans `http://127.0.0.1:8766/#pilot`. Les permissions MetaMask et le stockage du site public sont distincts de ceux de cette origine locale. Le guide du site propose l’archive de la branche à jour de la PR #2, tant que ses changements ne sont pas fusionnés dans main.
 
 Le navigateur mémorise uniquement l’adresse publique et la préférence de reconnexion. À la prochaine visite de Bot/Compte, `eth_accounts` vérifie passivement le compte primaire déjà autorisé. Aucun popup d’accès, signature, approbation d’agent ou armement n’est déclenché par cette reprise. Si MetaMask est verrouillé, il faut le déverrouiller puis cliquer Connecter. Si le compte change, la préférence est effacée et une connexion explicite est requise. Déconnecter oublie la préférence ; cela ne révoque pas les agents ni les ordres exchange.
 

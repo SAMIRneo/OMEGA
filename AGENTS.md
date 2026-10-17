@@ -16,7 +16,8 @@ OMEGA is an ETH/Hyperliquid research terminal with browser paper trading, manual
 ## Orientation
 
 - `frontend/`: canonical Vite frontend, DOM UI, pure strategy modules, replay worker and visualizations.
-- `runner/`: local Node HTTP service and actual delegated exchange execution.
+- `runner/`: shared LiveEngine and pure policy/ledger validation, plus the local Node HTTP service.
+- `frontend/web/`: browser delegated execution, encrypted IndexedDB vault and per-network execution locks; read docs/WEB.md before changes.
 - `rust-core/`: risk math; its generated WASM is embedded in `frontend/legacy/risk-core.js`.
 - Root Python modules: retained paper/MCP compatibility implementation. They do not execute live exchange orders.
 - `docs/`: current documentation; `docs/archive/`: superseded notes.
@@ -35,6 +36,8 @@ The frontend is TypeScript + JavaScript + CSS, not React/Next.js. Do not introdu
 - Keys/tokens/runtime state stay outside source, bundles, screenshots and logs. Do not read or print `.omega-runtime/`, personal `config.json`, token files or environment secrets during routine work. Use examples and isolated fixtures.
 - `Snapshot.time`, `context.updatedAt`, `candleStatus.fetchedAt`: seconds. Candle `t/T`, `lastClosedTime`, book `time`, runner heartbeat/events: milliseconds. Confirm units before comparing timestamps.
 - Retain `axiom-*` storage/profile keys for compatibility. Branding changes are not data migrations.
+
+Browser agent keys may exist only in memory and the authenticated encrypted IndexedDB vault; never put them in localStorage, status responses, exports or logs. Await every durable checkpoint and nonce before transmission, preserve revision checks and the final transport/visibility/lock guard. A page restart must remain disarmed.
 
 Pour la persistance : lire [docs/DATA.md](docs/DATA.md). Préserver les fichiers/valeurs corrompus, bloquer les mutations, et ne jamais restaurer automatiquement un nonce, quota ou pending depuis une ancienne copie. Les exports navigateur suivent une liste autorisée sans clés, sessions ou permissions.
 

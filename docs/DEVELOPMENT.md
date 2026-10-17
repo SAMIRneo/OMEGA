@@ -52,6 +52,7 @@ Un changement purement visuel ne nécessite pas un nouvel essai sur un compte fi
 ## Où sont les tests ?
 
 - `frontend/core/*.test.ts` : stratégie, contrôleur, plans, replay et moteur Node importé par les tests.
+- `frontend/web/*.test.ts` : coffre Web Crypto avec fake-indexeddb (dépendance de test), CAS, échecs transactionnels et cycle de page avec transports simulés.
 - `frontend/exchange.test.ts` : wallet/transport simulés, signatures manuelles et lecture du compte.
 - `frontend/network.test.ts` : blocage du changement de réseau quand le runner est actif.
 - `frontend/workspace.test.ts`, `bot-dashboard.test.ts`, `runner-ui.test.ts` : DOM via happy-dom, états et navigation.

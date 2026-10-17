@@ -9,7 +9,7 @@ La configuration canonique est [networks.js](../frontend/core/networks.js). Les 
 | Application exchange | `https://app.hyperliquid.xyz/` | `https://app.hyperliquid-testnet.xyz/` |
 | Ordres L1 signés par le SDK | source `a` | source `b` |
 | Autorisation d’agent signée par le SDK | `hyperliquidChain: Mainnet` | `hyperliquidChain: Testnet` |
-| Agent / nonce / état local | Agent propre, fichier mainnet | Agent propre, fichier testnet |
+| Agent / nonce / état | Agent propre, coffre web ou fichier mainnet Node | Agent propre, coffre web ou fichier testnet Node |
 | Consentement au démarrage automatique | `MAINNET` explicite | Pas de consentement fonds réels |
 
 ## Identités et signatures
@@ -46,3 +46,5 @@ L’assistant local peut préparer les deux réseaux dans une seule action expli
 Chaque réseau est interrogé et validé indépendamment ; une approbation n’est jamais copiée de l’autre réseau ou déduite du stockage navigateur. Une autorisation encore valide pour le même propriétaire est réutilisée. Une autorisation expirée/révoquée entraîne une nouvelle clé plutôt que le recyclage de l’ancienne, conformément aux précautions de nonce officielles. Un verrou de préparation par réseau complète le verrou de signature par propriétaire pour sérialiser deux assistants ouverts dans des onglets différents.
 
 La préférence de reconnexion ne contient qu’une adresse publique, commune aux sélections mainnet/testnet de la même origine. Elle ne transporte aucune clé, session HTTP ou autorisation exchange entre origines. La restauration utilise seulement `eth_accounts` puis des lectures publiques du compte.
+
+En mode web, les agents `OMEGAweb-mainnet` et `OMEGAweb-testnet` sont distincts de Node. Le coffre chiffre le ledger complet et lie l’identité/réseau/révision via AES-GCM. Le transport bloque une entrée si l’onglet a perdu son lock, est masqué ou si le moteur a été arrêté pendant les opérations asynchrones. Voir [WEB.md](WEB.md).

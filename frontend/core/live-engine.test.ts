@@ -97,3 +97,8 @@ it('halts entries on a durable-write failure without sending or retrying an orde
  const f=setup();eligible(f);f.save.mockImplementation(()=>{throw Error('Disk full')});
  await expect(f.engine.tick()).resolves.toBeUndefined();expect(f.engine.active).toBe(false);expect(f.engine.reason).toContain('Sauvegarde du service impossible');expect(f.ledger.pending).not.toBeNull();expect(f.exchange.order).not.toHaveBeenCalled();await f.engine.tick();expect(f.exchange.order).not.toHaveBeenCalled();
 });
+it('awaits an asynchronous durable reservation and cancels the entry if stopped before its commit',async()=>{
+ const f=setup();eligible(f);let release!:()=>void;f.save.mockImplementationOnce(()=>new Promise<void>(resolve=>{release=resolve}));
+ const pending=f.engine.tick();for(let i=0;i<20&&!release;i++)await Promise.resolve();expect(release).toBeTypeOf('function');expect(f.exchange.order).not.toHaveBeenCalled();
+ await f.engine.stop();release();await pending;expect(f.exchange.order).not.toHaveBeenCalled();expect(f.ledger.pending).not.toBeNull();
+});

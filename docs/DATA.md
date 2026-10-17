@@ -12,6 +12,7 @@ OMEGA ne possède pas de base cloud personnelle. Le site public, le navigateur, 
 | Dernier replay et options | localStorage, séparé par réseau | Seul le dernier résultat est mémorisé ; erreur d’enregistrement affichée ; inclus dans l’export |
 | Préférence MetaMask | Adresse publique + préférence dans le navigateur | Aucune clé privée ; exclue de l’export de données |
 | Envois manuels non résolus | Journal local par compte/réseau | Conservé pour éviter un double envoi ; exclu de l’export et jamais remplacé par une sauvegarde de simulation |
+| Agent, clé déléguée, nonce, quota, pending et réglages web | IndexedDB de cette origine, chiffré AES-GCM | Transactions attendues, révisions vérifiées, copie chiffrée précédente ; hors export JSON |
 | Clés d’agents, nonces, quota, pending, protections et événements Node | `.omega-runtime/mainnet.json`, `.omega-runtime/testnet.json` | Écriture atomique, copie de la génération précédente `.bak`, schéma/réseau validés et révision/date enregistrées |
 | Réglages du dernier armement Node réussi | Les mêmes ledgers Node | Rechargés après redémarrage ; le pilote reste désarmé |
 | Fonds, positions et ordres réels | Hyperliquid | Relus auprès de l’exchange ; le cache UI ou une simulation locale ne les remplace pas |
@@ -47,3 +48,5 @@ Avant toute récupération, examiner l’état actuel du compte Hyperliquid, ses
 ## Preuves
 
 Tests avec stockages simulés et répertoires temporaires : corruption préservée, quota de stockage, génération précédente, clé de réseau incorrecte, schéma inconnu, échec de copie, archive altérée ou contenant une clé étrangère et permissions POSIX. Le contrôle HTTP redémarre le vrai service sur des états synthétiques et vérifie agent identique, pending/quota/réglages conservés, token renouvelé et entrées désarmées. Aucun compte financé ni ordre exchange utilisé. Voir [STATUS.md](STATUS.md) pour les résultats datés et les limites.
+
+Le mode web possède désormais son coffre sur cet appareil ; aucun export JSON ne le remplace. Le chiffrement et les limites de sécurité/reprise sont détaillés dans [WEB.md](WEB.md).

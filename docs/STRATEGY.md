@@ -1,62 +1,50 @@
-# Stratégie intraday et contrats de risque
+# Mainnet et testnet — contrats et validation
 
-Règles canoniques : [daily.ts](../frontend/core/daily.ts), [session.js](../frontend/core/session.js), [indicateurs](../frontend/core/indicators.js), [exécution](../frontend/core/execution.ts), [plan exchange](../frontend/core/testnet-plan.ts), [politique du service](../runner/policy.ts).
+La configuration canonique est [networks.js](../frontend/core/networks.js). Les transports du navigateur, de la signature manuelle, de l’autorisation d’agent et du service Node en dépendent. Un réseau absent/inconnu ou des endpoints contradictoires bloquent la signature ; aucune conversion implicite d’un identifiant invalide vers mainnet.
 
-OMEGA sélectionne des configurations avec des règles explicites. Aucun modèle entraîné, apprentissage continu ou rentabilité démontrée. Les seuils ci-dessous sont des hypothèses à évaluer, pas une optimisation statistique prouvée. Un score de règles n’est pas une probabilité.
+| Élément | Mainnet | Testnet |
+|---|---|---|
+| REST | `https://api.hyperliquid.xyz` | `https://api.hyperliquid-testnet.xyz` |
+| WebSocket | `wss://api.hyperliquid.xyz/ws` | `wss://api.hyperliquid-testnet.xyz/ws` |
+| Application exchange | `https://app.hyperliquid.xyz/` | `https://app.hyperliquid-testnet.xyz/` |
+| Ordres L1 signés par le SDK | source `a` | source `b` |
+| Autorisation d’agent signée par le SDK | `hyperliquidChain: Mainnet` | `hyperliquidChain: Testnet` |
+| Agent / nonce / état | Agent propre, coffre web ou fichier mainnet Node | Agent propre, coffre web ou fichier testnet Node |
+| Consentement au démarrage automatique | `MAINNET` explicite | Pas de consentement fonds réels |
 
-## Décision
+## Identités et signatures
 
-1. Carnet, métadonnées et historiques clôturés récents ; séries continues dans le service.
-2. Contexte : clôture journalière au-dessus/sous EMA20, tendance horaire concordante, structure EMA20/EMA50 en 15 min dans le même sens.
-3. Régime : ADX 15 min ≥ 18, ATR/prix ≤ 2,5 %, distance clôture/EMA20 ≤ 1,5 ATR. Les mouvements trop avancés ou sans force sont écartés.
-4. Déclenchement : cassure d’un extrême des 20 bougies précédentes avec volume, reprise EMA20, ou croisement MACD précoce en Offensif.
-5. Confirmations : MACD, CMF/OBV, ADX/DI, VWAP/volume. Elles sont partiellement corrélées.
-6. Score : 55 + 8 par confirmation + 6 pour cassure (3 sinon) + 5 si ADX ≥ 25 + 4 si volume relatif ≥ 1,4. Affichage plafonné à 100.
-7. Coûts/exécution : spread ≤ 8 bps, impact visible ≤ 8 bps, distance du prix au signal ≤ 1,25 ATR, ratio gain/risque net ≥ 1,5. Revalidation après réglage du levier, signal de moins de 60 s dans le runner.
+Les lectures utilisent l’adresse du compte propriétaire, pas celle de l’agent. L’agent ne représente que le signataire délégué. L’index ETH et sa précision sont relus depuis les métadonnées du réseau choisi ; aucun index mainnet n’est réutilisé sur testnet.
 
-| Profil | Volume relatif requis pour cassure/VWAP | RSI long | Confirmations | Score minimal |
-|---|---|---|---|---|
-| Équilibré | 1,2 | 45–72 | 2 | 80 |
-| Sélectif | 1,4 | 48–68 | 3 et ADX ≥ 20 | 88 |
-| Offensif | 1,0 | 42–76 | 2 ; croisement MACD supplémentaire autorisé | 76 |
+Les signatures d’ordres L1 et celles d’autorisation d’agent sont deux schémas distincts gérés par le SDK verrouillé. Le réseau EVM affiché dans MetaMask ne sélectionne pas à lui seul le réseau Hyperliquid : le transport et les champs signés ci-dessus font autorité. Le `signatureChainId` de l’action d’autorisation doit correspondre au domaine EIP-712 ; il ne remplace pas `hyperliquidChain`. Aucun transfert, bridge ou retrait n’est implémenté.
 
-Le RSI short est symétrique autour de 50. Le volume minimal ne s’applique pas séparément à toutes les reprises EMA20 : seules les confirmations admissibles comptent.
+Le compte sélectionné en première position dans `eth_accounts` doit rester le propriétaire attendu avant signature. Une modification du compte ferme la session. Une génération de session invalide les réponses de lecture antérieures ; un ancien solde ne peut pas réapparaître après déconnexion. Les autorisations d’agent sont également revérifiées sur le compte et l’agent attendus après la signature.
 
-## Gestion de session UTC
+## Isolation et concurrence
 
-- Jusqu’à quatre tentatives/entrées quotidiennes ; une position à la fois.
-- Pause de 30 min après l’entrée ou la dernière sortie. Une nouvelle clôture admissible reste requise ; aucun rattrapage.
-- Objectif réalisé 100 / 200 / 500 USDC, défaut 200. Dès qu’il est atteint, les nouvelles entrées sont bloquées. Il ne fixe pas un gain garanti par trade et ne force aucune entrée.
-- Deux pertes consécutives : nouvelles entrées bloquées jusqu’au prochain jour UTC. Dans le service, le calcul regroupe les fills de clôture par oid et inclut les frais de ces clôtures. Les frais d’entrée participent au P&L journalier mais ne sont pas attribués à ce compteur de pertes par ordre.
-- Limite de perte réalisée du jour : 500 USDC. Les gains antérieurs n’élargissent pas le budget de perte des prochaines entrées.
-- Pas d’entrée après 23:30 UTC ; clôture reduce-only visée à partir de 23:55 UTC et à la reprise d’une position du jour précédent.
+- Le journal d’envoi manuel est isolé par réseau et adresse. Un journal malformé bloque les nouvelles entrées au lieu d’être ignoré.
+- Les signatures manuelles et les autorisations d’agent partagent un verrou Web Locks par réseau/propriétaire dans le navigateur.
+- Le service exige exactement un paramètre `network` valide dans chaque requête de contrôle. Une réponse appartenant à l’autre réseau n’est pas publiée comme état connecté.
+- Le changement de réseau est refusé pendant une signature/autorisation, une opération du service, une position attribuée au bot ou un pending non résolu.
+- Les fichiers runtime sont liés à leur réseau. Un ancien fichier sans marqueur conserve son état lors du marquage. Un fichier marqué pour l’autre réseau ou un agent partagé entre les deux réseaux bloque le démarrage.
+- La rotation d’un agent n’efface pas les compteurs d’essai, positions ou informations de rapprochement. Elle reste interdite tant qu’une opération, exposition ou incertitude n’est pas résolue.
 
-Le runner utilise les fills ETH du compte : P&L réalisé moins frais USDC. Funding, P&L latent et autres actifs ne sont pas reconstruits. Les interventions manuelles sur ETH peuvent donc modifier les conditions de session. Paper et replay ont leur comptabilité propre.
+Les clés, tokens et nonces restent hors interface et hors dépôt. Aucun auto-armement au chargement, à la connexion wallet ou après redémarrage. Les SL/TP reduce-only et les réservations durables restent indépendants de la vue affichée.
 
-## Dimensionnement
+## Preuves et limites
 
-La marge de 50 % devient un **plafond**, et non une allocation obligatoire. Le moteur calcule d’abord une quantité compatible avec le stop et les coûts, puis la borne par ce plafond de marge.
+Les tests exécutent les deux modes avec transports simulés et le véritable code de signature du SDK : sources L1, autorisation d’agent, domaine, nonces, ordres IOC et protections. Les tests DOM vérifient un index ETH différent sur chaque réseau, les comptes secondaires, réponses tardives, endpoints contradictoires, journaux illisibles et refus de changement de réseau. Le contrôle HTTP réel utilise un dossier temporaire, des agents non financés et aucune autorisation exchange.
 
-Budget automatique = min(100 USDC, 1 % de l’équité, 90 % du budget de perte restant). Le budget restant vaut 500 + min(0, P&L réalisé du jour), borné à zéro. Stop 1,5 ATR, cible 3 ATR. Le levier entier reste sous les plafonds utilisateur/exchange et ×15 ; la quantité dépend du risque, pas d’un gain à rattraper. Aucune martingale.
+Le 17 octobre 2026, une lecture publique `l2Book` ETH a répondu HTTP 200 avec achats et ventes sur chacun des deux endpoints. Cela ne valide ni un wallet financé, ni une approbation réelle MetaMask, ni l’exécution de bout en bout d’un ordre testnet/mainnet. Ces dernières étapes restent à constater dans un environnement d’exploitation dédié avant d’affirmer une validation complète.
 
-Le candidat navigateur modélise frais et slippage configurés, par défaut 4,5 et 2 bps par côté. Le plan IOC exchange utilise une borne d’entrée de 10 bps, des frais de 4,5 bps par côté et une hypothèse de glissement de sortie de 10 bps. Le service réduit encore la quantité si ce plan plus conservateur l’exige. L’ordre final peut donc être refusé malgré un candidat navigateur admissible.
+Références : [API](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api), [signatures](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/signing), [nonces et API wallets](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/nonces-and-api-wallets), [identifiants des actifs](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/asset-ids).
 
-La signature manuelle utilise un plan générique plafonné à 500 USDC de perte prévue et 50 % de marge ; elle applique les conditions de session mais ne sélectionne pas obligatoirement une configuration Daily. Les simulations manuelles navigateur restent plafonnées à 100 USDC et 1 % de l’équité. Python/MCP conserve son ancien moteur paper, distinct de cette nouvelle politique intraday.
+## Préparation commune, autorisations séparées
 
-Ces montants sont des pertes **prévues**, pas des garanties de perte maximale en cas de gap, panne, liquidation ou glissement réel.
+L’assistant local peut préparer les deux réseaux dans une seule action explicite, mais produit une signature `approveAgent` distincte sur chacun d’eux. La durée demandée est 30 jours, affichée avant signature. Hyperliquid accepte une expiration personnalisée `valid_until` dans le nom de l’agent, dans sa limite officielle de 180 jours : [endpoint exchange](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/exchange-endpoint#approve-an-api-wallet).
 
-## Persistance et incertitude
+Chaque réseau est interrogé et validé indépendamment ; une approbation n’est jamais copiée de l’autre réseau ou déduite du stockage navigateur. Une autorisation encore valide pour le même propriétaire est réutilisée. Une autorisation expirée/révoquée entraîne une nouvelle clé plutôt que le recyclage de l’ancienne, conformément aux précautions de nonce officielles. Un verrou de préparation par réseau complète le verrou de signature par propriétaire pour sérialiser deux assistants ouverts dans des onglets différents.
 
-Le runner réserve le compteur quotidien, la date, l’heure et le cloid avant l’envoi du lot IOC + SL/TP reduce-only. Un refus ou timeout conserve la tentative. Un pending n’est jamais relancé automatiquement. Après rapprochement et absence d’exposition, le pending peut être levé ; la tentative reste consommée et un réarmement explicite est nécessaire.
+La préférence de reconnexion ne contient qu’une adresse publique, commune aux sélections mainnet/testnet de la même origine. Elle ne transporte aucune clé, session HTTP ou autorisation exchange entre origines. La restauration utilise seulement `eth_accounts` puis des lectures publiques du compte.
 
-Un ancien ledger avec `attemptDay` mais sans `attemptCount` conserve une tentative. Les compteurs invalides bloquent le service. Le nombre retenu est le maximum entre les tentatives locales et les ordres d’entrée exchange du jour : ce n’est pas un quota transactionnel global sur plusieurs logiciels ou machines.
-
-Protections incomplètes : la position attribuée au bot reste surveillée et une sortie reduce-only est visée. La propriété de position reste limitée face aux modifications externes de l’exposition nette ETH.
-
-## Recherche
-
-[replay.ts](../frontend/core/replay.ts) réutilise les règles et la session avec les données connues à chaque instant. Entrée à l’ouverture suivant la clôture 15 min ; sorties en 5 min. Stop prioritaire si stop et cible touchés dans la même bougie ; gaps possibles. Carnet synthétique, coûts standard/renforcés ; aucune reconstruction du funding, des liquidations ou de la vraie profondeur historique.
-
-Le replay utilise actuellement l’objectif par défaut de 200 USDC ; les objectifs live personnalisés doivent faire l’objet de comparaisons dédiées. Périodes récentes 7/14 jours. Les segments 70/30 partagent le même capital ; aucune validation hors échantillon indépendante n’est établie. Les tests logiciels vérifient les contrats, sans démontrer une meilleure performance financière.
-
-Références : [API exchange Hyperliquid](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/exchange-endpoint), [frais Hyperliquid](https://hyperliquid.gitbook.io/hyperliquid-docs/trading/fees).
+En mode web, les agents `OMEGAweb-mainnet` et `OMEGAweb-testnet` sont distincts de Node. Le coffre chiffre le ledger complet et lie l’identité/réseau/révision via AES-GCM. Le transport bloque une entrée si l’onglet a perdu son lock, est masqué ou si le moteur a été arrêté pendant les opérations asynchrones. Voir [WEB.md](WEB.md).

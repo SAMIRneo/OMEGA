@@ -18,7 +18,7 @@ else{
    // Read storage under the same lock as entries: no network change across an in-flight trade.
    if(!navigator.locks)throw Error('Changement de réseau indisponible sur ce navigateur.');
    // A permanent runner may be active even when Bot has never been visited in this tab.
-   if(location.origin==='http://127.0.0.1:8766'&&!window.OmegaRunnerGate)await import('./runner-ui');
+   if(!window.OmegaRunnerGate)await import('./runner-ui');
    await window.OmegaRunnerGate?.();
    await window.TestnetGate?.();
    window.PaperPilot.stop();

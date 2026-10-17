@@ -35,3 +35,8 @@ it.each(['testnet','mainnet'] as const)('produces recoverable offline signatures
  expect(signed[0].data.message.source).toBe(network==='testnet'?'b':'a');expect(signed[1].data.message.hyperliquidChain).toBe(network==='testnet'?'Testnet':'Mainnet');
  for(const {data,signature} of signed)expect((await recoverTypedDataAddress({...data,signature})).toLowerCase()).toBe(account.address.toLowerCase());
 });
+it.each(['testnet','mainnet'] as const)('accepts the web agent name and 30-day expiry in the real SDK on %s',async network=>{
+ let payload:any;const wallet={address:'0x1111111111111111111111111111111111111111' as const,getChainId:async()=>1,signTypedData:async(_data:unknown)=>('0x'+'11'.repeat(32)+'22'.repeat(32)+'1b') as `0x${string}`};
+ const client=new ExchangeClient({wallet,transport:{isTestnet:network==='testnet',request:async<T>(_endpoint:string,data:any)=>{payload=data;return {status:'ok',response:{type:'default'}} as T;}}});
+ const name='OMEGAweb-'+network;expect(name.length).toBeLessThanOrEqual(16);await client.approveAgent({agentAddress:'0x2222222222222222222222222222222222222222',agentName:name+' valid_until '+(Date.now()+30*86400000)});expect(payload.action.hyperliquidChain).toBe(network==='testnet'?'Testnet':'Mainnet');
+});
