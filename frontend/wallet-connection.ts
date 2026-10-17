@@ -1,6 +1,7 @@
 import {subscribeWallet,type WalletView} from './shared/wallet-store';
 import {subscribeRunner,type RunnerView} from './shared/runner-store';
 import {walletProvider,walletError} from './shared/wallet-provider';
+import {rememberedWallet} from './shared/wallet-memory';
 import {lazyModule} from './shared/lazy';
 import {formatNumber} from './shared/format';
 const $=(id:string)=>document.getElementById(id)!;
@@ -26,7 +27,7 @@ function render(){
  $('connect-equity').textContent=read&&known?.equity!==null?formatNumber(known!.equity!,2)+' USDC':'—';
  $('connect-position').textContent=read?(known?.position?(known.position.size<0?'Short':'Long')+' · '+formatNumber(Math.abs(known.position.size),4)+' ETH':'Aucune position ETH'):'Connecte MetaMask pour consulter';
  $('connect-read-time').textContent=read?'Dernière lecture '+new Date(known!.readAt).toLocaleTimeString('fr-FR')+' · '+label:'Compte perpétuel · lecture seule';
- $('connect-feedback').textContent=loadError||known?.message||'Autorise uniquement l’accès à ton adresse dans MetaMask. Aucun ordre ni autorisation de trading à cette étape.';
+ $('connect-feedback').textContent=loadError||known?.message||(local?'Le compte est mémorisé sur ce navigateur. La reprise ne signe ni ne démarre le bot.':'Pour le bot automatique, connecte-toi dans OMEGA local : les permissions du site public et du service local sont distinctes.');
  $('connect-feedback').dataset.tone=loadError||known?.error?'error':'info';
  $('connect-wallet-help').hidden=!!walletProvider();
  ($('connect-refresh') as HTMLButtonElement).disabled=busy||!read;
@@ -40,15 +41,15 @@ function render(){
  const step=$('connect-step-wallet');step.dataset.complete=String(read&&!known?.error);$('connect-step-agent').dataset.complete=String(service&&!!runner.approved&&!mismatch);$('connect-step-start').dataset.complete=String(service&&!!runner.active&&!mismatch);
  $('connect-manual').textContent=known?.position||known?.openOrders?'Gérer la position ETH':'Ordre manuel';
  $('connect-next-label').textContent=mismatch?'Vérifier le compte':service?(runner.approved?'Voir les commandes':'Autoriser l’agent'):'Configurer le service';
- const state=!read||known?.error||loadError?'wallet':mismatch?'mismatch':!service?'service':runner.pending?'pending':runner.active?'active':runner.owned?'owned':!runner.approved?'authorize':'ready';
+ const state=!local&&!read?'service':!read||known?.error||loadError?'wallet':mismatch?'mismatch':!service?'service':runner.pending?'pending':runner.active?'active':runner.owned?'owned':!runner.approved?'authorize':'ready';
  const guidance={
   wallet:['Connecter MetaMask','Lecture du compte uniquement. Aucun ordre à cette étape.','Connecter MetaMask'],
   mismatch:['Vérifier le compte du service','Le service et le wallet utilisent des comptes différents.','Vérifier le compte'],
-  service:['Ouvrir OMEGA local','Compte connecté. Pour autoriser le bot, ouvre OMEGA sur ton ordinateur.','Installer ou ouvrir OMEGA local'],
+  service:['Ouvrir OMEGA local',read?'Compte connecté. Pour autoriser le bot, ouvre OMEGA sur ton ordinateur.':'Pour une seule connexion et les deux réseaux, commence dans OMEGA local.','Installer ou ouvrir OMEGA local'],
   pending:['Vérifier le dernier envoi','Un ordre attend un rapprochement. Vérifiez son état avant toute nouvelle entrée.','Voir la vérification'],
   active:['Le pilote est actif','Le service confirme son activité. Les événements sont disponibles dans Activité.','Voir l’activité'],
   owned:['Une position est sous surveillance','Les nouvelles entrées sont arrêtées ; le service surveille la position attribuée au bot.','Voir le compte'],
-  authorize:['Autoriser le bot','Une signature MetaMask autorise l’agent. Le bot reste à l’arrêt.','Autoriser dans MetaMask'],
+  authorize:['Autoriser le bot','Configuration mémorisée · 30 jours, révocable. Choisis les réseaux ci-dessous.','Configurer dans MetaMask'],
   ready:['Le bot est prêt','Vérifie les réglages. Le démarrage est une action séparée.','Démarrer le bot']
  }[state];
  $('next-step-title').textContent=guidance[0];$('next-step-detail').textContent=guidance[1];$('next-step-action').textContent=guidance[2]+' →';
@@ -58,7 +59,7 @@ function render(){
  $('next-step-action').setAttribute('aria-busy',String(busy));
  $('next-step-action').dataset.target=state;($('next-step-action') as HTMLButtonElement).disabled=busy;
  document.querySelector<HTMLElement>('.next-step')!.dataset.state=state;
- const currentStep=state==='wallet'||state==='mismatch'?0:state==='service'||state==='authorize'?1:2;
+ const currentStep=!read||state==='wallet'||state==='mismatch'?0:state==='service'||state==='authorize'?1:2;
  ['connect-step-wallet','connect-step-agent','connect-step-start'].forEach((id,i)=>{const step=$(id);step.querySelector('.connect-step-number')!.textContent=step.dataset.complete==='true'?'✓':String(i+1);if(i===currentStep&&step.dataset.complete!=='true')step.setAttribute('aria-current','step');else step.removeAttribute('aria-current');});
 
 }
@@ -103,4 +104,5 @@ $('connect-local-guide').addEventListener('click',()=>{
  if(runner.connected&&runner.network===network){document.querySelector('.runner-panel')?.scrollIntoView({block:'start'});($(runner.approved?'runner-start':'runner-authorize') as HTMLButtonElement).focus();return;}
  const details=$('connect-service-help') as HTMLDetailsElement;details.hidden=false;details.open=true;details.scrollIntoView({block:'nearest'});
 });
+if(rememberedWallet()){loading=true;render();void exchange().then(module=>module.restoreWallet()).catch(failure).finally(()=>{loading=false;render();});}
 if(import.meta.hot)import.meta.hot.dispose(()=>{offWallet();offRunner();});

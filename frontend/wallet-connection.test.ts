@@ -1,8 +1,8 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {Window} from 'happy-dom';
 import {readFileSync} from 'node:fs';
-const fake=vi.hoisted(()=>({connect:vi.fn(),refresh:vi.fn(),disconnect:vi.fn()}));
-vi.mock('./exchange',()=>({connectWallet:fake.connect,refreshWallet:fake.refresh,disconnectWallet:fake.disconnect}));
+const fake=vi.hoisted(()=>({connect:vi.fn(),refresh:vi.fn(),disconnect:vi.fn(),restore:vi.fn()}));
+vi.mock('./exchange',()=>({connectWallet:fake.connect,refreshWallet:fake.refresh,disconnectWallet:fake.disconnect,restoreWallet:fake.restore}));
 let dom:Window;
 const el=(id:string)=>dom.document.getElementById(id)! as unknown as HTMLElement;
 beforeEach(()=>{
@@ -46,8 +46,8 @@ it('selects the announced MetaMask provider when another wallet owns window.ethe
  dom.dispatchEvent(new dom.CustomEvent('eip6963:announceProvider',{detail:{info:{rdns:'io.metamask'},provider:metamask}}));expect(walletProvider()).toBe(metamask);
 });
 
-it('connects from the primary action and never authorizes or arms just from state updates',async()=>{
- await import('./wallet-connection');const {publishWallet}=await import('./shared/wallet-store');const {publishRunner}=await import('./shared/runner-store');
+it('connects from the primary local action and never authorizes or arms just from state updates',async()=>{
+ dom.location.href='http://127.0.0.1:8766/#pilot';await import('./wallet-connection');const {publishWallet}=await import('./shared/wallet-store');const {publishRunner}=await import('./shared/runner-store');
  expect(el('next-step-title').textContent).toBe('Connecter MetaMask');
  (el('next-step-action') as any).click();await vi.dynamicImportSettled();expect((el('account-disclosure') as HTMLDetailsElement).open).toBe(true);expect(fake.connect).toHaveBeenCalledTimes(1);
  publishWallet({network:'testnet',address:'0x1111111111111111111111111111111111111111',busy:false,readAt:Date.now(),equity:1200,withdrawable:0,position:null,openOrders:0,message:'Compte lu',error:false});
@@ -75,4 +75,16 @@ it('keeps mainnet start explicit and requires the visible real-funds consent',as
 it('disables the primary connection action while the service is busy',async()=>{
  await import('./wallet-connection');const {publishRunner}=await import('./shared/runner-store');publishRunner({connected:true,network:'testnet',busy:true});
  expect((el('next-step-action') as HTMLButtonElement).disabled).toBe(true);expect(el('next-step-action').textContent).toContain('Action en cours');expect(fake.connect).not.toHaveBeenCalled();
+});
+
+it('restores only a previously remembered session, without another connection request',async()=>{
+ dom.localStorage.setItem('omega-wallet-session-v1',JSON.stringify({address:'0x1111111111111111111111111111111111111111',reconnect:true}));
+ await import('./wallet-connection');await vi.dynamicImportSettled();
+ expect(fake.restore).toHaveBeenCalledOnce();expect(fake.connect).not.toHaveBeenCalled();expect(fetch).not.toHaveBeenCalled();
+});
+
+it('guides first-time public visitors to local setup before requesting MetaMask access',async()=>{
+ await import('./wallet-connection');expect(el('next-step-action').dataset.target).toBe('service');
+ (el('next-step-action') as any).click();expect((el('connect-service-help') as HTMLDetailsElement).open).toBe(true);
+ expect(fake.connect).not.toHaveBeenCalled();expect(fake.restore).not.toHaveBeenCalled();
 });

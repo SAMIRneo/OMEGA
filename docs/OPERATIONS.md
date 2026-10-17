@@ -24,9 +24,9 @@ npm run bot
 1. Ouvrir l’interface locale dans le navigateur contenant MetaMask (ou un wallet EIP-1193 injecté).
 2. Choisir le réseau dans OMEGA ; le réseau sélectionné fixe REST, WebSocket et source de signature.
 3. En tête de Bot, cliquer « Connecter MetaMask », autoriser le partage de l’adresse, puis vérifier le compte Hyperliquid et les positions affichées. Cette étape ne signe aucun ordre.
-4. Dans les commandes du bot, cliquer « Autoriser dans MetaMask ». Le service prépare une nouvelle clé dédiée ; le wallet du propriétaire signe son approbation pour 24 h.
+4. Dans les commandes du bot, conserver « Configurer Testnet + Mainnet ensemble » puis cliquer « Configurer dans MetaMask ». Deux signatures distinctes autorisent les agents pour 30 jours. Seuls les réseaux manquants demandent une signature ; une autorisation valide est réutilisée sans rotation de clé. Décocher permet de configurer seulement le réseau sélectionné.
 5. Vérifier le compte/réseau effectivement affichés, puis régler profil et plafond de levier dans Réglages.
-6. Revenir à Vue d’ensemble, autoriser explicitement les fonds réels si Mainnet, puis démarrer le pilote.
+6. Revenir à Suivi, autoriser explicitement les fonds réels si Mainnet, puis démarrer le pilote.
 
 Le bouton de connexion est aussi accessible dans l’en-tête et dans Compte. Sur le site public, il établit la session wallet/lecture pour les ordres manuels ; un guide visible explique comment lancer et ouvrir le service local. Les commandes d’automatisation locales y restent masquées. Une erreur de changement de réseau remonte dans le parcours de connexion, sans contourner les gardes. Si plusieurs extensions sont installées, OMEGA privilégie MetaMask annoncé via EIP-6963, puis le fournisseur injecté compatible.
 
@@ -72,12 +72,12 @@ Objectif `dailyTarget` : 100, 200 ou 500 USDC ; défaut 200. Il est relu au dém
 
 | Emplacement | Contenu |
 |---|---|
-| `.omega-runtime/testnet.json`, `.omega-runtime/mainnet.json` | Clé d’agent, compte, nonce, tentative UTC, envoi pending, propriété de position et événements |
+| `.omega-runtime/testnet.json`, `.omega-runtime/mainnet.json` | Clé d’agent, compte, nonce, tentative UTC, envoi pending, propriété de position, réglages et événements |
 | `.omega-runtime/runner.pid` | Verrou d’un processus sur cette installation |
 | localStorage navigateur | Paper, réglages et recherche séparés par réseau/origine/appareil |
 | `config.json`, `data/` | Configuration, token et état du moteur Python historique |
 
-Les fichiers Node sont écrits en temporaire, synchronisés puis renommés ; ils ne forment pas un coffre chiffré. Permissions POSIX : répertoire 0700, fichiers 0600. Protéger l’accès au compte système. Ne pas copier un runtime actif entre plusieurs ordinateurs et ne pas réutiliser une même clé dans deux processus de signature.
+Les fichiers Node sont versionnés, écrits en temporaire, synchronisés puis renommés ; une génération précédente `.bak` est conservée et les schémas sont validés au chargement. Une corruption bloque le démarrage, sans restauration aveugle ni remise à zéro. Ils ne forment pas un coffre chiffré. Permissions POSIX : répertoire 0700, fichiers 0600. Protéger l’accès au compte système. Ne pas copier un runtime actif entre plusieurs ordinateurs et ne pas réutiliser une même clé dans deux processus de signature.
 
 Ne pas effacer un runtime pour « débloquer » une erreur : cela efface aussi les informations de quota et de rapprochement. Les protections exchange peuvent survivre aux fichiers locaux.
 
@@ -113,3 +113,15 @@ Un objectif atteint bloque les nouvelles entrées, sans supprimer les protection
 Un accusé de réception partiel du lot manuel conserve son journal pending. Aucune nouvelle entrée n’est permise avant la vérification explicite. La confirmation exige un fill d’entrée valide et deux statuts de protection reconnus ; elle ne garantit pas leur maintien ultérieur.
 
 Le rapprochement Node refuse d’adopter une position inversée ou supérieure aux fills attribuables à l’ordre enregistré. Ne pas effacer le pending pour contourner ce refus : examiner les interventions externes et le compte. La surveillance des positions ne charge pas les bougies ou fills quotidiens et ne dépend pas d’un budget disponible pour une nouvelle entrée. Elle nécessite toujours les données de compte, ordres, métadonnées et carnet.
+
+## Connexion mémorisée et configuration des deux réseaux
+
+Pour éviter une double connexion, commencer directement dans `http://127.0.0.1:8766/#pilot`. Les permissions MetaMask et le stockage du site public sont distincts de ceux de cette origine locale. Le guide du site propose l’archive de la branche à jour de la PR #2, tant que ses changements ne sont pas fusionnés dans main.
+
+Le navigateur mémorise uniquement l’adresse publique et la préférence de reconnexion. À la prochaine visite de Bot/Compte, `eth_accounts` vérifie passivement le compte primaire déjà autorisé. Aucun popup d’accès, signature, approbation d’agent ou armement n’est déclenché par cette reprise. Si MetaMask est verrouillé, il faut le déverrouiller puis cliquer Connecter. Si le compte change, la préférence est effacée et une connexion explicite est requise. Déconnecter oublie la préférence ; cela ne révoque pas les agents ni les ordres exchange.
+
+Le service conserve ses clés distinctes et vérifie les approbations exchange au chargement puis environ chaque minute pendant les rafraîchissements visibles. La date confirmée apparaît pour chaque réseau. La configuration explicite saute les agents du bon compte encore valides ; un agent expiré/révoqué reçoit une nouvelle clé avant signature, afin de ne pas réutiliser un nonce potentiellement purgé. Si la seconde signature est refusée, « Compléter la configuration des réseaux » reprend uniquement les réseaux manquants. Les envois d’ordre incertains restent soumis à la réconciliation existante.
+
+Les autorisations durent 30 jours au plus selon la demande signée et restent révocables depuis Hyperliquid ; une expiration ou révocation exige une nouvelle signature. La reprise du compte n’est donc pas une connexion définitive sans limite. Un redémarrage du processus renouvelle automatiquement la session HTTP locale lors d’un refus 401, une seule fois. Les nouvelles entrées restent désarmées après redémarrage. Mainnet exige toujours le consentement fonds réels et un clic de démarrage séparé.
+
+Le fonctionnement des exports, copies automatiques, erreurs de stockage et récupérations est détaillé dans [DATA.md](DATA.md).

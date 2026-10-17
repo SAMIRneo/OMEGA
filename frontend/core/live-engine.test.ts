@@ -85,3 +85,15 @@ it('adopts only a compatible position bounded by attributable partial fills',asy
  Object.assign(f.info,{orderStatus:vi.fn(async()=>({status:'order',order:{order:{oid:1,side:'B'}}})),userFillsByTime:vi.fn(async()=>[{coin:'ETH',oid:1,dir:'Open Long',sz:'.2'},{coin:'ETH',oid:1,dir:'Open Long',sz:'.3'}])});
  await f.engine.reconcile();expect(f.engine.snapshot).toHaveBeenCalledWith(false);expect(f.ledger.owned).toBe(true);expect(f.ledger.ownedQuantity).toBe(.4);expect(f.ledger.pending).toBeNull();expect(f.exchange.order).not.toHaveBeenCalled();
 });
+it('reports confirmed approval expiry and clears it when the agent is revoked',async()=>{
+ const f=setup(),until=Date.now()+86400000;await f.engine.verifyApproval();expect(f.engine.status()).toMatchObject({approved:true,approvedUntil:until});
+ f.info.extraAgents.mockResolvedValue([]);await f.engine.verifyApproval();expect(f.engine.status()).toMatchObject({approved:false,approvedUntil:null});
+});
+it('restores the last armed settings after restart but keeps entries disarmed',async()=>{
+ const f=setup();await f.engine.arm({profile:'selective',leverage:3,dailyTarget:100},null);f.engine.stop();
+ const restored=new LiveEngine('testnet',f.ledger,agent,f.info,f.exchange,risk,f.save);expect(restored.settings).toEqual({profile:'selective',leverage:3,dailyTarget:100});expect(restored.active).toBe(false);expect(f.exchange.order).not.toHaveBeenCalled();
+});
+it('halts entries on a durable-write failure without sending or retrying an order',async()=>{
+ const f=setup();eligible(f);f.save.mockImplementation(()=>{throw Error('Disk full')});
+ await expect(f.engine.tick()).resolves.toBeUndefined();expect(f.engine.active).toBe(false);expect(f.engine.reason).toContain('Sauvegarde du service impossible');expect(f.ledger.pending).not.toBeNull();expect(f.exchange.order).not.toHaveBeenCalled();await f.engine.tick();expect(f.exchange.order).not.toHaveBeenCalled();
+});

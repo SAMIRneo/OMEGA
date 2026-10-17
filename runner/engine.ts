@@ -4,21 +4,22 @@ import {features} from '../frontend/core/indicators.js';
 import {formatPrice,formatSize} from '@nktkas/hyperliquid/utils';
 import {reservedAttempts,canEvaluate,validBook,validCandles,exchangeDay,exchangePlan,exchangeStatus,bracketConfirmed,assertNoExposure,autoPlan,validateSettings,type Network} from './policy';
 import type {Snapshot,RustRisk,Indicator} from '../frontend/core/types';
-export interface Ledger {network?:Network;owner:`0x${string}`|null;key:`0x${string}`;nonce:number;attemptDay:string;attemptCount?:number;lastAttemptAt?:number;lastExitAt?:number;pending:{cloid:`0x${string}`;at:number}|null;owned:boolean;protectionIds?:number[];protectionCloids?:string[];ownedSide?:'long'|'short';ownedQuantity?:number;events:{at:number;message:string}[]}
+export interface Ledger {storageVersion?:1;revision?:number;savedAt?:number;settings?:{profile:string;leverage:number;dailyTarget:number};network?:Network;owner:`0x${string}`|null;key:`0x${string}`;nonce:number;attemptDay:string;attemptCount?:number;lastAttemptAt?:number;lastExitAt?:number;pending:{cloid:`0x${string}`;at:number}|null;owned:boolean;protectionIds?:number[];protectionCloids?:string[];ownedSide?:'long'|'short';ownedQuantity?:number;events:{at:number;message:string}[]}
 export class LiveEngine {
  private candleCache=new Map<string,{at:number;bars:any[]}>();
- active=false;busy=false;generation=0;armedAt=0;lastBar=0;heartbeat=0;approved=false;reason='À l’arrêt.';failures=0;retryAt=0;equity:number|null=null;
+ active=false;busy=false;generation=0;armedAt=0;lastBar=0;heartbeat=0;approved=false;approvedUntil:number|null=null;reason='À l’arrêt.';failures=0;retryAt=0;equity:number|null=null;
  settings=validateSettings({profile:'balanced',leverage:15});
- constructor(public network:Network,public ledger:Ledger,public agent:`0x${string}`,private info:any,private exchange:any,private risk:RustRisk,private save:()=>void){}
- log(message:string){this.reason=message;this.ledger.events.push({at:Date.now(),message});this.ledger.events=this.ledger.events.slice(-100);this.save();}
+ constructor(public network:Network,public ledger:Ledger,public agent:`0x${string}`,private info:any,private exchange:any,private risk:RustRisk,private save:()=>void){if(ledger.settings)this.settings=validateSettings(ledger.settings);}
+ private persist(){try{this.save();}catch(error){this.active=false;this.reason='Sauvegarde du service impossible : entrées arrêtées. Vérifie le disque et conserve le dossier d’état.';throw error;}}
+ log(message:string){this.reason=message;this.ledger.events.push({at:Date.now(),message});this.ledger.events=this.ledger.events.slice(-100);try{this.persist();}catch{/* The in-memory failure reason remains visible; never turn logging into an unhandled tick failure. */}}
  stop(){this.generation++;this.active=false;this.log('Entrées arrêtées. Les protections exchange et la surveillance de la position du bot restent actives.');}
- async verifyApproval(){if(!this.ledger.owner){this.approved=false;return false;}const agents=await this.info.extraAgents({user:this.ledger.owner});this.approved=agents.some((a:any)=>a.address.toLowerCase()===this.agent.toLowerCase()&&(a.validUntil===null||a.validUntil>Date.now()+60000));return this.approved;}
- async configure(owner:`0x${string}`){if(this.busy||this.active||this.ledger.owned||this.ledger.pending)throw Error('Arrête le bot et résous sa position ou son envoi avant de changer de compte.');if(!/^0x[0-9a-fA-F]{40}$/.test(owner)||/^0x0{40}$/.test(owner))throw Error('Adresse de compte invalide.');this.ledger.owner=owner.toLowerCase() as `0x${string}`;this.approved=false;this.save();}
+ async verifyApproval(){this.approved=false;this.approvedUntil=null;if(!this.ledger.owner)return false;const agents=await this.info.extraAgents({user:this.ledger.owner});const agent=agents.find((a:any)=>a.address.toLowerCase()===this.agent.toLowerCase()&&(a.validUntil===null||Number.isFinite(a.validUntil)&&a.validUntil>Date.now()+60000));this.approved=!!agent;this.approvedUntil=agent?.validUntil??null;return this.approved;}
+ async configure(owner:`0x${string}`){if(this.busy||this.active||this.ledger.owned||this.ledger.pending)throw Error('Arrête le bot et résous sa position ou son envoi avant de changer de compte.');if(!/^0x[0-9a-fA-F]{40}$/.test(owner)||/^0x0{40}$/.test(owner))throw Error('Adresse de compte invalide.');this.ledger.owner=owner.toLowerCase() as `0x${string}`;this.approved=false;this.approvedUntil=null;this.persist();}
  async arm(settings:unknown,consent:unknown){
   if(this.busy||this.active)throw Error('Moteur occupé.');if(this.ledger.pending||this.ledger.owned)throw Error('Position ou envoi du bot à vérifier.');
   if(this.network==='mainnet'&&consent!=='MAINNET')throw Error('Autorisation MAINNET requise.');
   this.settings=validateSettings(settings);this.busy=true;const generation=this.generation;
-  try{if(!await this.verifyApproval())throw Error('Agent API non autorisé ou expiré sur ce réseau.');const s=await this.snapshot();assertNoExposure(s.account,s.orders);if(s.equity<=0||s.available<=0)throw Error('Compte Hyperliquid non financé.');const session=this.sessionState(s);const blocked=sessionBlock(session.paper,session.limits,Date.now()/1000);if(blocked)throw Error(blocked);if(generation!==this.generation)throw Error('Armement interrompu.');this.armedAt=Date.now();this.lastBar=s.snapshot.indicators['15m']!.lastClosedTime!;this.active=true;this.log('Pilote automatique '+this.network.toUpperCase()+' armé. Attente d’une nouvelle clôture 15 min.');}
+  try{if(!await this.verifyApproval())throw Error('Agent API non autorisé ou expiré sur ce réseau.');const s=await this.snapshot();assertNoExposure(s.account,s.orders);if(s.equity<=0||s.available<=0)throw Error('Compte Hyperliquid non financé.');const session=this.sessionState(s);const blocked=sessionBlock(session.paper,session.limits,Date.now()/1000);if(blocked)throw Error(blocked);if(generation!==this.generation)throw Error('Armement interrompu.');this.armedAt=Date.now();this.lastBar=s.snapshot.indicators['15m']!.lastClosedTime!;this.active=true;this.ledger.settings={...this.settings};this.log('Pilote automatique '+this.network.toUpperCase()+' armé. Attente d’une nouvelle clôture 15 min.');}
   finally{this.busy=false;}
  }
  sessionState(s:{snapshot:Snapshot;today:any[]}){
@@ -49,9 +50,9 @@ export class LiveEngine {
    const s=await this.snapshot(!this.ledger.owned);this.heartbeat=Date.now();this.failures=0;
    if(this.ledger.owned){
     if(!s.position){this.log('Position du bot clôturée sur Hyperliquid. Vérification des protections restantes.');
-     const ownOrders=s.orders.filter((o:any)=>o.coin==='ETH'&&o.reduceOnly&&(this.ledger.protectionIds?.includes(o.oid)||this.ledger.protectionCloids?.includes(o.cloid)));if(ownOrders.length){const receipt=exchangeStatus(await this.exchange.cancel({cancels:ownOrders.map((o:any)=>({a:s.meta.asset,o:o.oid}))}));if(receipt.errors.length)throw Error(receipt.errors.join(' · '));this.log('Annulation des protections restantes du bot confirmée.');}this.ledger.lastExitAt=Date.now()/1000;this.ledger.owned=false;this.save();return;}
+     const ownOrders=s.orders.filter((o:any)=>o.coin==='ETH'&&o.reduceOnly&&(this.ledger.protectionIds?.includes(o.oid)||this.ledger.protectionCloids?.includes(o.cloid)));if(ownOrders.length){const receipt=exchangeStatus(await this.exchange.cancel({cancels:ownOrders.map((o:any)=>({a:s.meta.asset,o:o.oid}))}));if(receipt.errors.length)throw Error(receipt.errors.join(' · '));this.log('Annulation des protections restantes du bot confirmée.');}this.ledger.lastExitAt=Date.now()/1000;this.ledger.owned=false;this.persist();return;}
     const date=new Date(),eod=date.getUTCHours()===23&&date.getUTCMinutes()>=55||this.ledger.attemptDay<date.toISOString().slice(0,10);
-    if(this.ledger.ownedSide!==( +s.position.szi>0?'long':'short')||Math.abs(+s.position.szi)>(this.ledger.ownedQuantity??0)+1e-8){this.active=false;this.ledger.owned=false;this.save();this.log('Position ETH modifiée hors du bot : gestion automatique suspendue. Vérifie le compte.');return;}
+    if(this.ledger.ownedSide!==( +s.position.szi>0?'long':'short')||Math.abs(+s.position.szi)>(this.ledger.ownedQuantity??0)+1e-8){this.active=false;this.ledger.owned=false;this.persist();this.log('Position ETH modifiée hors du bot : gestion automatique suspendue. Vérifie le compte.');return;}
     const protections=s.orders.filter((o:any)=>o.coin==='ETH'&&o.reduceOnly&&o.isTrigger&&(this.ledger.protectionIds?.includes(o.oid)||this.ledger.protectionCloids?.includes(o.cloid))&&+o.sz>=Math.abs(+s.position.szi)-1e-8&&o.side===(+s.position.szi>0?'A':'B'));
     const price=+s.book.levels[+s.position.szi>0?0:1][0].px;
     const protectedPosition=protections.some((o:any)=>+s.position.szi>0?+o.triggerPx<price:+o.triggerPx>price)&&protections.some((o:any)=>+s.position.szi>0?+o.triggerPx>price:+o.triggerPx<price);
@@ -75,13 +76,13 @@ export class LiveEngine {
    const c=final.candidate,plan=autoPlan(this.network,fresh,c,initialPlan.leverage),cloid=plan.cloid;
    if(plan.leverage!==initialPlan.leverage)throw Error('Levier modifié après validation finale.');
    // Write-ahead reservation persists across process crashes and uncertain responses.
-   this.ledger.protectionCloids=plan.orders.slice(1).map(o=>o.c!);const day=new Date().toISOString().slice(0,10);this.ledger.attemptCount=reservedAttempts(this.ledger,day)+1;this.ledger.attemptDay=day;this.ledger.lastAttemptAt=Date.now()/1000;this.ledger.pending={cloid,at:Date.now()};this.save();
+   this.ledger.protectionCloids=plan.orders.slice(1).map(o=>o.c!);const day=new Date().toISOString().slice(0,10);this.ledger.attemptCount=reservedAttempts(this.ledger,day)+1;this.ledger.attemptDay=day;this.ledger.lastAttemptAt=Date.now()/1000;this.ledger.pending={cloid,at:Date.now()};this.persist();
    try{
     const receipt=await this.exchange.order({orders:plan.orders,grouping:plan.grouping});
     const confirmed=exchangeStatus(receipt);if(typeof confirmed.entry==='object'&&confirmed.entry.filled&&+confirmed.entry.filled.totalSz>0){
-    this.ledger.owned=true;this.ledger.ownedSide=c.side;this.ledger.ownedQuantity=Number(receipt.response.data.statuses[0].filled.totalSz);this.ledger.protectionIds=receipt.response.data.statuses.slice(1).flatMap((x:any)=>x.resting?[x.resting.oid]:[]);this.save();}
+    this.ledger.owned=true;this.ledger.ownedSide=c.side;this.ledger.ownedQuantity=Number(receipt.response.data.statuses[0].filled.totalSz);this.ledger.protectionIds=receipt.response.data.statuses.slice(1).flatMap((x:any)=>x.resting?[x.resting.oid]:[]);this.persist();}
     if(!bracketConfirmed(receipt))throw Error('Entrée ou protections non confirmées. La position attribuée au bot reste surveillée.');
-    this.ledger.pending=null;this.save();this.log('Entrée '+c.side.toUpperCase()+' confirmée sur '+this.network.toUpperCase()+'. Surveillance des protections exchange.');
+    this.ledger.pending=null;this.persist();this.log('Entrée '+c.side.toUpperCase()+' confirmée sur '+this.network.toUpperCase()+'. Surveillance des protections exchange.');
    }catch(error){this.active=false;this.log('Envoi à réconcilier. Aucune répétition automatique : '+errorMessage(error));}
   }catch(error){this.failures++;this.retryAt=Date.now()+Math.min(120000,10000*2**Math.min(4,this.failures-1));this.log('Entrées bloquées · '+errorMessage(error));}
   finally{this.busy=false;}
@@ -106,12 +107,12 @@ export class LiveEngine {
      const filled=ownFills.reduce((total:number,f:any)=>{const quantity=Number(f.sz);if(!Number.isFinite(quantity)||quantity<=0)throw Error('Quantité exécutée invalide.');return total+quantity;},0);
      const size=s.position?Number(s.position.szi):0,ceiling=this.ledger.owned?Math.min(filled,this.ledger.ownedQuantity??0):filled;
      if(!Number.isFinite(size)||s.position&&((size>0?'long':'short')!==side||Math.abs(size)>ceiling+1e-8))throw Error('Position ETH modifiée hors du bot : attribution ambiguë. Vérifie le compte.');
-     this.ledger.owned=!!s.position;this.ledger.ownedSide=side;this.ledger.ownedQuantity=Math.abs(size);this.ledger.protectionIds=[];this.ledger.pending=null;this.save();this.log('Envoi retrouvé dans les fills exchange. Entrées arrêtées ; surveillance de la position attribuée au bot.');return;
+     this.ledger.owned=!!s.position;this.ledger.ownedSide=side;this.ledger.ownedQuantity=Math.abs(size);this.ledger.protectionIds=[];this.ledger.pending=null;this.persist();this.log('Envoi retrouvé dans les fills exchange. Entrées arrêtées ; surveillance de la position attribuée au bot.');return;
     }
    }
-   if(Date.now()-pending.at>90000&&!s.position&&!s.orders.some((o:any)=>o.coin==='ETH')){this.ledger.pending=null;this.save();this.log('Envoi expiré sans exposition. Tentative conservée dans le quota UTC.');}else throw Error('Envoi ou exposition non résolu : vérifie Hyperliquid.');
+   if(Date.now()-pending.at>90000&&!s.position&&!s.orders.some((o:any)=>o.coin==='ETH')){this.ledger.pending=null;this.persist();this.log('Envoi expiré sans exposition. Tentative conservée dans le quota UTC.');}else throw Error('Envoi ou exposition non résolu : vérifie Hyperliquid.');
   }finally{this.busy=false;}
  }
- status(){return {network:this.network,agent:this.agent,owner:this.ledger.owner,active:this.active,busy:this.busy,approved:this.approved,heartbeat:this.heartbeat,reason:this.reason,equity:this.equity,pending:!!this.ledger.pending,owned:this.ledger.owned,settings:this.settings,events:this.ledger.events,attemptDay:this.ledger.attemptDay,attemptCount:reservedAttempts(this.ledger,new Date().toISOString().slice(0,10))};}
+ status(){return {network:this.network,agent:this.agent,owner:this.ledger.owner,active:this.active,busy:this.busy,approved:this.approved,approvedUntil:this.approvedUntil,heartbeat:this.heartbeat,reason:this.reason,equity:this.equity,pending:!!this.ledger.pending,owned:this.ledger.owned,settings:this.settings,events:this.ledger.events,attemptDay:this.ledger.attemptDay,attemptCount:reservedAttempts(this.ledger,new Date().toISOString().slice(0,10))};}
 }
 function errorMessage(error:unknown){return error instanceof Error?error.message:String(error);}

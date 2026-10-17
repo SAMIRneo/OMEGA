@@ -35,13 +35,14 @@ Le graphe montre les responsabilités, pas une séquence d’envoi automatique d
 | Simulation automatique | [controller.ts](../frontend/core/controller.ts) | Armement paper navigateur, nouvelles clôtures, Web Locks |
 | Stores | [market-store.ts](../frontend/shared/market-store.ts), [runner-store.ts](../frontend/shared/runner-store.ts) | Dernier snapshot observé ; état confirmé du service |
 | Réseaux | [networks.js](../frontend/core/networks.js) | Définitions REST/WS immuables, transport signé et refus des incohérences |
-| Connexion wallet | [wallet-connection.ts](../frontend/wallet-connection.ts), [wallet-store.ts](../frontend/shared/wallet-store.ts), [wallet-provider.ts](../frontend/shared/wallet-provider.ts) | Parcours visible, prochaine étape et dépliage du compte, session de lecture/signature partagée, sélection MetaMask EIP-6963 ; aucun armement à la connexion |
+| Connexion wallet | [wallet-connection.ts](../frontend/wallet-connection.ts), [wallet-store.ts](../frontend/shared/wallet-store.ts), [wallet-provider.ts](../frontend/shared/wallet-provider.ts), [wallet-memory.ts](../frontend/shared/wallet-memory.ts) | Parcours visible, prochaine étape et dépliage du compte, session de lecture/signature partagée, sélection MetaMask EIP-6963 ; aucun armement à la connexion |
 | Présentation | [workspace.ts](../frontend/workspace.ts), [bot-dashboard.ts](../frontend/bot-dashboard.ts), [bot-view.ts](../frontend/core/bot-view.ts) | Diagnostic, journal, sous-onglets Bot et lectures des horizons |
 | Exchange manuel | [exchange.ts](../frontend/exchange.ts) | Connexion wallet, plan, signatures, lecture et rapprochement |
 | Commande du service | [runner-ui.ts](../frontend/runner-ui.ts), [network.ts](../frontend/network.ts) | Session locale, approbation agent, armement, changement de réseau |
 | Graphique | [market-chart.ts](../frontend/charts/market-chart.ts), [data-buffer.ts](../frontend/charts/data-buffer.ts) | Lightweight Charts, données/EMA incrémentales, corrections historiques |
 | Visualisation | [depth-model.ts](../frontend/visuals/depth-model.ts), [liquidity.ts](../frontend/visuals/liquidity.ts) | Modèle L2 pur et profondeur cumulée SVG |
 | Recherche | [research.ts](../frontend/research.ts), [research.worker.ts](../frontend/research.worker.ts), [replay.ts](../frontend/core/replay.ts) | Acquisition, calcul en Worker, résultats locaux et CSV |
+| Persistance | [paper-storage.js](../frontend/core/paper-storage.js), [data-archive.ts](../frontend/core/data-archive.ts), [data-settings.ts](../frontend/data-settings.ts), [persistence.ts](../runner/persistence.ts) | Validation, versions, générations précédentes, export et état du stockage |
 | Service Node | [server.ts](../runner/server.ts) | HTTP, session, clés, nonces, persistance, verrou de processus |
 | Automatisation | [engine.ts](../runner/engine.ts), [policy.ts](../runner/policy.ts) | État du pilote, revalidation, plan IOC, gestion de position |
 | Risque | [lib.rs](../rust-core/src/lib.rs), [runtime-risk.ts](../runner/runtime-risk.ts) | Noyau Rust/WASM et chargement Node |
@@ -138,3 +139,9 @@ La matrice des réseaux, schémas de signature et garde-fous de concurrence est 
 ## Bloc de connexion du Bot
 
 `wallet-connection.ts` présente la progression des trois étapes à partir de wallet-store et runner-store. L’action principale reste un bouton déclenché par l’utilisateur : lecture MetaMask, ouverture du guide, autorisation ou démarrage via les commandes existantes. `runner-ui.ts` garde les contrôles effectifs d’autorisation, de consentement et d’armement ; un bouton désactivé ne peut pas être contourné par la navigation. Les états busy sont partagés pour éviter un second clic concurrent. Le compte et les diagnostics techniques utilisent des disclosures natifs ; aucun framework ajouté.
+
+## Reprise de connexion
+
+`wallet-memory.ts` conserve l’adresse publique et la préférence de reconnexion sur l’origine courante. `wallet-connection.ts` peut charger `exchange.ts` pour restaurer passivement le compte primaire via `eth_accounts` ; aucune mutation exchange n’est incluse. `runner-ui.ts` lit et vérifie séparément les deux réseaux, affiche `approvedUntil`, et n’appelle `configure`/`approveAgent` qu’après clic et pour un agent manquant. Les clés restent dans les ledgers locaux du service. La session HTTP est renouvelée une fois après un 401 ; aucune relance automatique n’est ajoutée pour les autres erreurs ou envois incertains.
+
+La politique de conservation, les données exclues des exports et les limites de récupération sont dans [DATA.md](DATA.md). Le drapeau `paper.storageBlocked` bloque la session de simulation quand l’état ne peut pas être validé ou enregistré ; il ne réinitialise pas le compte.

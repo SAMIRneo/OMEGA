@@ -38,3 +38,11 @@ Les tests exécutent les deux modes avec transports simulés et le véritable co
 Le 17 octobre 2026, une lecture publique `l2Book` ETH a répondu HTTP 200 avec achats et ventes sur chacun des deux endpoints. Cela ne valide ni un wallet financé, ni une approbation réelle MetaMask, ni l’exécution de bout en bout d’un ordre testnet/mainnet. Ces dernières étapes restent à constater dans un environnement d’exploitation dédié avant d’affirmer une validation complète.
 
 Références : [API](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api), [signatures](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/signing), [nonces et API wallets](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/nonces-and-api-wallets), [identifiants des actifs](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/asset-ids).
+
+## Préparation commune, autorisations séparées
+
+L’assistant local peut préparer les deux réseaux dans une seule action explicite, mais produit une signature `approveAgent` distincte sur chacun d’eux. La durée demandée est 30 jours, affichée avant signature. Hyperliquid accepte une expiration personnalisée `valid_until` dans le nom de l’agent, dans sa limite officielle de 180 jours : [endpoint exchange](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/exchange-endpoint#approve-an-api-wallet).
+
+Chaque réseau est interrogé et validé indépendamment ; une approbation n’est jamais copiée de l’autre réseau ou déduite du stockage navigateur. Une autorisation encore valide pour le même propriétaire est réutilisée. Une autorisation expirée/révoquée entraîne une nouvelle clé plutôt que le recyclage de l’ancienne, conformément aux précautions de nonce officielles. Un verrou de préparation par réseau complète le verrou de signature par propriétaire pour sérialiser deux assistants ouverts dans des onglets différents.
+
+La préférence de reconnexion ne contient qu’une adresse publique, commune aux sélections mainnet/testnet de la même origine. Elle ne transporte aucune clé, session HTTP ou autorisation exchange entre origines. La restauration utilise seulement `eth_accounts` puis des lectures publiques du compte.
