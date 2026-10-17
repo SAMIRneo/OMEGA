@@ -45,3 +45,15 @@ it('selects the announced MetaMask provider when another wallet owns window.ethe
  const {walletProvider}=await import('./shared/wallet-provider');expect(walletProvider()).toBe(fallback);
  dom.dispatchEvent(new dom.CustomEvent('eip6963:announceProvider',{detail:{info:{rdns:'io.metamask'},provider:metamask}}));expect(walletProvider()).toBe(metamask);
 });
+
+it('guides the next step without signing or arming from the navigation shortcut',async()=>{
+ await import('./wallet-connection');const {publishWallet}=await import('./shared/wallet-store');const {publishRunner}=await import('./shared/runner-store');
+ expect(el('next-step-title').textContent).toBe('Connecter votre compte');
+ (el('next-step-action') as any).click();expect((el('account-disclosure') as HTMLDetailsElement).open).toBe(true);expect(fake.connect).not.toHaveBeenCalled();
+ publishWallet({network:'testnet',address:'0x1111111111111111111111111111111111111111',busy:false,readAt:Date.now(),equity:1200,withdrawable:0,position:null,openOrders:0,message:'Compte lu',error:false});
+ expect(el('next-step-title').textContent).toBe('Relier le service OMEGA');
+ (el('next-step-action') as any).click();expect((el('connect-service-help') as HTMLDetailsElement).open).toBe(true);
+ publishRunner({connected:true,network:'testnet',approved:true,active:false});expect(el('next-step-action').dataset.target).toBe('ready');
+ publishRunner({connected:true,network:'testnet',approved:true,pending:true});expect(el('next-step-action').dataset.target).toBe('pending');
+ publishRunner({connected:false,network:'testnet',approved:true,active:true});expect(el('next-step-action').dataset.target).toBe('service');expect(fake.connect).not.toHaveBeenCalled();expect(fetch).not.toHaveBeenCalled();
+});
