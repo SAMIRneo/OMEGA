@@ -29,6 +29,7 @@ The frontend is TypeScript + JavaScript + CSS, not React/Next.js. Do not introdu
 - Mainnet/testnet transports, signers and state must remain isolated. Display only confirmed runtime state; an unreachable service is not confirmation of an inactive service.
 - Never use a funded exchange account or arm a real runner to validate documentation, UI or refactoring. Automated checks use mocked transports and temporary runtime directories.
 - Preserve write-ahead pending orders/quota, uncertainty handling, nonce ownership, no automatic entry retries and reduce-only exit semantics. Do not weaken guards to make a test pass.
+- Intraday policy lives in `frontend/core/session.js`: four attempts, one position, 30-minute cooldown, realized daily target, consecutive-loss stop. Preserve durable attempt counters and uncertain-send handling on restart. Python compatibility remains a separate paper implementation.
 - Preserve the Daily limits and timing contracts described in STRATEGY.md; change them only as intentional strategy work with corresponding tests and docs.
 - Keys/tokens/runtime state stay outside source, bundles, screenshots and logs. Do not read or print `.omega-runtime/`, personal `config.json`, token files or environment secrets during routine work. Use examples and isolated fixtures.
 - `Snapshot.time`, `context.updatedAt`, `candleStatus.fetchedAt`: seconds. Candle `t/T`, `lastClosedTime`, book `time`, runner heartbeat/events: milliseconds. Confirm units before comparing timestamps.

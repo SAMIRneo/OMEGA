@@ -1,4 +1,4 @@
-import {entriesOnDay} from './daily';
+import {sessionBlock} from './session.js';
 import {spreadBps} from './execution';
 import type {Evaluation,Snapshot} from './types';
 export interface Check {label:string;state:'pass'|'wait'|'blocked';detail:string}
@@ -13,8 +13,8 @@ export function diagnose(s:Snapshot,e:Evaluation,riskReady:boolean):Check[]{
  const meta=s.context.updatedAt,metadataOK=meta!==undefined&&Number.isFinite(meta)&&s.time-meta<=120&&meta<=s.time+5;
  add('Métadonnées exchange',metadataOK,metadataOK?'Plafond de levier actualisé':'Métadonnées absentes ou anciennes',true);
  add('Calcul du risque',riskReady,riskReady?'Module Rust disponible':'Entrées indisponibles sans module Rust',true);
- const used=entriesOnDay(s),room=!s.paper.position&&used<1&&s.paper.dailyPnl>-s.limits.daily_loss_limit;
- add('Quota et capital',room,s.paper.position?'Position déjà ouverte':used?'Entrée du jour consommée':s.paper.dailyPnl<=-s.limits.daily_loss_limit?'Limite de perte atteinte':'Une entrée disponible · jour UTC',true);
+ const blocked=sessionBlock(s.paper,s.limits,s.time);
+ add('Quota et capital',!s.paper.position&&!blocked,s.paper.position?'Position déjà ouverte':blocked||'Session disponible · jour UTC',true);
  const f=s.indicators['15m'],d=s.indicators['1d'],h=s.indicators['1h'];
  const bias=d?.ready&&Number.isFinite(d.close)&&Number.isFinite(d.ema20)?(d.close!>d.ema20!?'bullish':'bearish'):null;
  const aligned=!!bias&&h?.trend===bias&&!!f?.ready&&(bias==='bullish'?f.ema20!>f.ema50!:f.ema20!<f.ema50!);

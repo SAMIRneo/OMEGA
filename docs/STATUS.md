@@ -1,6 +1,6 @@
 # État réel et reprise de travail
 
-Revue documentaire : **16 octobre 2026**. Version logicielle : `1.2.0` dans `package.json`. La numérotation des versions publiées par l’hébergement est indépendante ; la version publiée et son historique se consultent dans Sites. Les modifications documentaires seules ne nécessitent pas une nouvelle publication de l’application.
+Revue documentaire : **17 octobre 2026**. Version logicielle : `1.2.0` dans `package.json`. La numérotation des versions publiées par l’hébergement est indépendante ; la version publiée et son historique se consultent dans Sites. Les modifications documentaires seules ne nécessitent pas une nouvelle publication de l’application.
 
 ## Implémenté
 
@@ -10,11 +10,11 @@ Revue documentaire : **16 octobre 2026**. Version logicielle : `1.2.0` dans `pac
 | Connexion wallet | Parcours Bot visible, MetaMask depuis en-tête/Compte, lecture partagée, choix réseau gardé, erreurs et guide local ; autorisation et armement séparés |
 | Hallmark / Bot | Première passe ciblée Workbench : colonne compte, espace de commande, polices locales dérivées d’IBM Plex, tokens partagés et progression native après lecture ; fonctions de trading conservées |
 | UI / couleurs | Fond noir, surfaces graphite, navigation cyan, actions ambre, recherche violet ; gains/pertes verts/rouges, réseaux distingués par texte et couleur ; contrôles tactiles et focus clavier |
-| Visualisations | Graphique financier incrémental, carnet L2 3D ; horizons du Bot sans figure décorative ; pas de modèle de prédiction |
+| Visualisations | Graphique financier incrémental, profondeur cumulée SVG ; horizons du Bot sans figure décorative ; pas de modèle de prédiction |
 | Recherche | Replay récent en Worker, deux hypothèses de coûts, CSV |
 | Paper web | Compte local et contrôleur de clôtures avec Web Locks |
 | Exchange manuel | Wallet EIP-1193, testnet/mainnet, lot IOC + SL/TP et rapprochement |
-| Automatisation Node | Agent dédié, session locale, armement, nouvelle clôture, réservation durable et surveillance |
+| Automatisation Node | Agent dédié, session intraday, jusqu’à 4 tentatives, pause 30 min, objectif réalisé et réservation durable |
 | Python/MCP | Compatibilité recherche/paper ; aucune mutation exchange réelle |
 | Documentation | README court, AGENTS, cinq guides actifs, archives identifiées et contrôle automatisé des liens/commandes |
 
@@ -67,3 +67,15 @@ Validation de cette passe : `npm run check` réussi (102 tests Vitest, 19 tests 
 Navigation et surfaces unifiées avec les polices locales et les tokens ambre/graphite. Le Bot affiche une prochaine étape issue de l’état wallet/service confirmé, avec raccourcis de navigation sans signature ni armement. Le compte se replie nativement sur petit écran et s’ouvre depuis le raccourci de connexion. Les commandes, horizons et diagnostics conservent leurs contrats.
 
 Validation : `npm run check` réussi, 103 tests Vitest et 19 tests navigateur/VM, builds typés et contrôle HTTP isolé. Le nouveau test couvre la progression wallet → service → prêt, un envoi en attente et la perte de connexion sans action exchange. Rendu graphique et iPhone physique non vérifiés dans cet environnement.
+
+## Intraday — 17 octobre 2026
+
+Politique partagée navigateur/replay/Node : jusqu’à quatre opérations admissibles par jour UTC, objectif de session 100/200/500 USDC (défaut 200), une position à la fois, pause 30 min après entrée/sortie et arrêt après deux pertes. Taille ajustée au stop et aux coûts sous plafond 100 USDC / 1 % de l’équité / budget restant, marge ≤ 50 %. ADX minimal, plafond de volatilité et distance EMA20 filtrent les régimes et poursuites tardives. Ce sont des règles nouvelles, sans preuve de rentabilité.
+
+Les compteurs d’essai et horaires restent persistants dans le service ; les anciens ledgers conservent leur tentative. Les refus/timeouts ne déclenchent pas de nouvelle entrée automatique. Le P&L réalisé et les frais sont distingués du funding et du latent non reconstruits.
+
+La scène 3D Marché et ses contrôles sont supprimés. La courbe SVG utilise les quantités visibles exactes ; aucun flux supplémentaire ni boucle d’animation. Les widgets mettent en avant P&L, objectif et entrées. Documentation de stratégie, exploitation, architecture et consignes agents actualisée.
+
+La nouvelle politique n’a pas été validée sur compte financé, en testnet de bout en bout, en simulation historique réelle hors échantillon ni sur iPhone physique. Le moteur Python/MCP garde ses règles paper historiques.
+
+Validation de la politique intraday : `npm run check` réussi (109 tests Vitest, 19 tests moteur navigateur/VM, builds web et Node typés, contrôle HTTP du service dans un dossier temporaire). Les tests couvrent les arrêts de session, le refroidissement inter-opérations, le budget restant, la migration des compteurs et l’absence de renvoi automatique. Aucun wallet financé ni ordre exchange utilisé.

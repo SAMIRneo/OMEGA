@@ -62,7 +62,7 @@ it('keeps uncertain sends pending, blocks duplicates and isolates the mainnet jo
 it('enforces the exchange daily entry quota instead of resetting paper counters',async()=>{
  fake.today=[{coin:'ETH',time:Date.now(),dir:'Open Long',oid:1,closedPnl:'0',fee:'0.5',feeToken:'USDC'}];
  const form=await start();form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();
- expect(fake.calls.some(x=>x[0]==='leverage')).toBe(false);expect(el('testnet-action-status').textContent).toContain('déjà été exécutée');
+ expect(fake.calls.some(x=>x[0]==='leverage')).toBe(false);expect(el('testnet-action-status').textContent).toContain('Pause entre opérations');
 });
 it('stops before signing when the active wallet account changed',async()=>{
  const form=await start();fake.accounts=['0x2222222222222222222222222222222222222222'];

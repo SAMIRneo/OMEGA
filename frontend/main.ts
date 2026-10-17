@@ -15,7 +15,7 @@ async function start(){
  const research=lazyModule(()=>import('./research'));
  const runner=lazyModule(()=>import('./runner-ui'));
  const dashboard=lazyModule(()=>import('./bot-dashboard'));
- const depth=lazyModule(()=>import('./visuals/depth-scene'));
+ const depth=lazyModule(()=>import('./visuals/liquidity'));
  const exchange=lazyModule(()=>import('./exchange'));
  const connection=lazyModule(()=>import('./wallet-connection'));
  document.addEventListener('click',event=>{

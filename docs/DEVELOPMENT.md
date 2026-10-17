@@ -42,7 +42,7 @@ Vite affiche son URL, généralement sur le port 5173. Il sert la source navigat
 | Documentation seule | `npm run check:docs` ; relire la source décrite |
 | UI, IDs, navigation, stores, imports différés | Vitest, tests navigateur, build web ; QA visuelle si navigateur disponible |
 | Graphique, cache, calcul d’EMA d’affichage | Tests ChartBuffer et build ; vérifier zoom/corrections historiques |
-| Géométrie ou données 3D | Tests du modèle ; QA visuelle des caméras, sélection, mobile et pause |
+| Liquidité SVG | Tests du modèle, données anciennes, cumul et responsive |
 | Règles/risque/ordres/session/persistance | `npm run check` ; tests ciblés des refus, interruptions et doubles envois |
 | Rust/WASM | Tests Rust, régénération, puis contrôles Node des consommateurs |
 | Python/MCP | Tests Python avec dépendances installées ; Node si contrat frontend partagé touché |

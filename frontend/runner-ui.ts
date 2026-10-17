@@ -20,7 +20,7 @@ function render(){
  $('runner-account').textContent=state?.owner?(Number.isFinite(state.equity)?Number(state.equity).toLocaleString('fr-FR',{maximumFractionDigits:2})+' USDC':state.approved?'Agent autorisé':'Autorisation à vérifier'):'Wallet à connecter';
  $('runner-agent').textContent=state?.agent?(state.approved?'Autorisé · ':'À autoriser · ')+state.agent.slice(0,8)+'…'+state.agent.slice(-6):'Agent distinct pour chaque réseau';
  $('runner-state').textContent=state&&!reachable?'État à vérifier':state?.active?'Automatique actif':state?.pending?'Envoi à vérifier':state?.owned?'Position sous surveillance':'À l’arrêt';
- $('runner-pulse').textContent=state?.heartbeat?'Dernier contrôle '+new Date(state.heartbeat).toLocaleTimeString('fr-FR'):'1 entrée max. / jour UTC · levier ≤ ×15';
+ $('runner-pulse').textContent=state?.heartbeat?'Dernier contrôle '+new Date(state.heartbeat).toLocaleTimeString('fr-FR'):'4 tentatives max. / jour UTC · levier ≤ ×15';
  for(const id of ['runner-authorize','runner-start','runner-stop','runner-reconcile']){
   const button=$(id) as HTMLButtonElement;button.disabled=busy||!local||!state||!reachable;
   if(id==='runner-authorize')button.disabled||=state?.active||state?.owned||state?.pending;
@@ -30,7 +30,7 @@ function render(){
  }
  publishRunner({...state,connected:!!state&&reachable});
  const log=$('runner-log');log.replaceChildren(...(state?.events??[]).slice(-15).reverse().map((event:any)=>{const row=document.createElement('p');row.textContent=new Date(event.at).toLocaleString('fr-FR')+' · '+event.message;return row;}));
- if(state?.settings)$('runner-config').textContent='Service : '+state.settings.profile+' · levier maximal ×'+state.settings.leverage+'. Les réglages du formulaire sont appliqués au prochain démarrage.';
+ if(state?.settings)$('runner-config').textContent='Service : '+state.settings.profile+' · levier maximal ×'+state.settings.leverage+' · objectif journalier +'+(state.settings.dailyTarget??200)+' USDC. Les réglages du formulaire sont appliqués au prochain démarrage.';
 }
 async function refresh(){current=await request('status');if(!verified&&current.owner){current=await request('verify',{});verified=true;}render();if(current.reason)message(current.reason);}
 async function run(fn:()=>Promise<void>){if(busy)return;busy=true;render();try{await fn();}catch(error){message(walletError(error));}finally{busy=false;render();}}
@@ -51,7 +51,7 @@ $('runner-authorize').addEventListener('click',()=>run(async()=>{
  message('Agent API autorisé sur '+network.toUpperCase()+'. Tu peux démarrer le pilote automatique.');
 }));
 $('runner-start').addEventListener('click',()=>run(async()=>{
- const settings={profile:($('strategy-profile') as HTMLSelectElement).value,leverage:Number(($('leverage-cap') as HTMLSelectElement).value)};
+ const settings={dailyTarget:Number(($('daily-target') as HTMLSelectElement).value),profile:($('strategy-profile') as HTMLSelectElement).value,leverage:Number(($('leverage-cap') as HTMLSelectElement).value)};
  const consent=network==='mainnet'&&($('runner-mainnet') as HTMLInputElement).checked?'MAINNET':undefined;
  current=await request('arm',{settings,consent});($('runner-mainnet') as HTMLInputElement).checked=false;message(current.reason);
 }));

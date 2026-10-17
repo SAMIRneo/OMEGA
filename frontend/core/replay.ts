@@ -41,7 +41,7 @@ export function runReplay(input:ReplayData,options:ReplayOptions,progress?:(perc
  const timeline=data['5m'].filter(b=>b.t>=O.start&&b.T<O.end);
  if(timeline.length!==(O.end-O.start)/300000||timeline[0]?.t!==O.start||timeline.at(-1)!.T!==O.end-1)throw Error('La période demandée n’est pas entièrement couverte en 5 min.');
  for(const tf of ['15m','1h','1d'] as const){if(data[tf].filter(b=>b.T<O.start).length<51)throw Error('Préchargement '+tf+' insuffisant : 51 bougies clôturées requises.');if(data[tf].at(-1)!.T<Math.floor(O.end/duration[tf])*duration[tf]-1)throw Error('Fin d’historique '+tf+' incomplète.');}
- let cash=10000,dailyPnl=0,day='',lastEntryDay='',entriesToday=0,peak=10000,maxDrawdown=0,maxDrawdownPercent=0,ambiguousBars=0,evaluations=0;
+ let cash=10000,dailyPnl=0,day='',lastEntryDay='',entriesToday=0,lastEntryAt=0,lastExitAt=0,lossStreak=0,peak=10000,maxDrawdown=0,maxDrawdownPercent=0,ambiguousBars=0,evaluations=0;
  let position:(Candidate&{openedAt:number;signalTime:number;entryFee:number})|null=null;
  const trades:ReplayTrade[]=[],equity=[{time:O.start,value:cash}],refusalCounts=new Map<string,number>();
  const indices={'15m':0,'1h':0,'1d':0},cached:Partial<Record<'15m'|'1h'|'1d',{index:number;value:Indicator}>>={};
@@ -49,11 +49,11 @@ export function runReplay(input:ReplayData,options:ReplayOptions,progress?:(perc
  const close=(reference:number,time:number,reason:string,ambiguous=false)=>{
   if(!position)return;const p=position,d=p.side==='long'?1:-1,exit=reference*(1-d*O.slippageBps/10000),grossPnl=d*(exit-p.entry)*p.quantity,exitFee=exit*p.quantity*O.feeBps/10000;
   cash+=grossPnl-exitFee;dailyPnl+=grossPnl-exitFee;
-  trades.push({...p,closedAt:time,exit,exitFee,grossPnl,netPnl:grossPnl-p.entryFee-exitFee,reason,ambiguous});position=null;
+  trades.push({...p,closedAt:time,exit,exitFee,grossPnl,netPnl:grossPnl-p.entryFee-exitFee,reason,ambiguous});lastExitAt=time/1000;lossStreak=grossPnl-p.entryFee-exitFee<0?lossStreak+1:0;position=null;
  };
  for(let i=0;i<timeline.length;i++){
   const bar=timeline[i],now=bar.t,currentDay=utcDay(now/1000);
-  if(day!==currentDay){day=currentDay;dailyPnl=0;entriesToday=0;}
+  if(day!==currentDay){day=currentDay;dailyPnl=0;entriesToday=0;lossStreak=0;}
   const halfSpread=O.spreadBps/20000,mid=Number(bar.o),bid=mid*(1-halfSpread),ask=mid*(1+halfSpread);
   if(position){const p=position,d=p.side==='long'?1:-1,openQuote=d===1?bid:ask;
    if(d*(openQuote-p.stop)<=0)close(openQuote,now,'Stop à l’ouverture / gap');
@@ -65,9 +65,9 @@ export function runReplay(input:ReplayData,options:ReplayOptions,progress?:(perc
    if(!position){
     const indicators:Snapshot['indicators']={},status:Snapshot['candleStatus']={};
     for(const tf of ['15m','1h','1d'] as const){while(indices[tf]<data[tf].length&&data[tf][indices[tf]].T<now)indices[tf]++;const index=indices[tf];if(cached[tf]?.index!==index)cached[tf]={index,value:features(data[tf].slice(Math.max(0,index-350),index),now) as Indicator};indicators[tf]=cached[tf]!.value;status[tf]={fetchedAt:now/1000};}
-    const snapshot:Snapshot={time:now/1000,runtime:'browser',market:{fresh:true,mid,sourceAgeSeconds:0,book:{time:now,levels:[[{px:String(bid),sz:'1000000'}],[{px:String(ask),sz:'1000000'}]]}},context:{maxLeverage:O.leverageCap,updatedAt:now/1000},limits:{strategy_profile:O.strategyProfile??'balanced',leverage:O.leverageCap,max_leverage:15,max_margin:cash*.5,max_risk:500,daily_loss_limit:500,fee_bps:O.feeBps,slippage_bps:O.slippageBps,allocation_fraction:.5,daily_mode:true,max_entries_per_day:1},paper:{initial:10000,cash,equity:cash,unrealized:0,position:null,history:[],day,dailyPnl,entriesToday,lastEntryDay},indicators,candleStatus:status,candlesByTimeframe:{}};
+    const snapshot:Snapshot={time:now/1000,runtime:'browser',market:{fresh:true,mid,sourceAgeSeconds:0,book:{time:now,levels:[[{px:String(bid),sz:'1000000'}],[{px:String(ask),sz:'1000000'}]]}},context:{maxLeverage:O.leverageCap,updatedAt:now/1000},limits:{strategy_profile:O.strategyProfile??'balanced',leverage:O.leverageCap,max_leverage:15,max_margin:cash*.5,max_risk:500,daily_loss_limit:500,fee_bps:O.feeBps,slippage_bps:O.slippageBps,allocation_fraction:.5,daily_mode:true,max_entries_per_day:4,daily_profit_target:200,trade_risk:100},paper:{initial:10000,cash,equity:cash,unrealized:0,position:null,history:[],day,dailyPnl,entriesToday,lastEntryDay,lastEntryAt,lastExitAt,lossStreak},indicators,candleStatus:status,candlesByTimeframe:{}};
     const result=evaluate(snapshot,replayRisk),candidate=result.candidate;
-    if(candidate){const entryFee=candidate.entry*candidate.quantity*O.feeBps/10000;cash-=entryFee;dailyPnl-=entryFee;entriesToday++;lastEntryDay=day;position={...candidate,openedAt:now,signalTime:indicators['15m']!.lastClosedTime!,entryFee};}
+    if(candidate){const entryFee=candidate.entry*candidate.quantity*O.feeBps/10000;cash-=entryFee;dailyPnl-=entryFee;entriesToday++;lastEntryAt=now/1000;lastEntryDay=day;position={...candidate,openedAt:now,signalTime:indicators['15m']!.lastClosedTime!,entryFee};}
     else {const reason=result.reasons[0]||'Aucune configuration';refusalCounts.set(reason,(refusalCounts.get(reason)||0)+1);}
    }else refusalCounts.set('Position en cours',(refusalCounts.get('Position en cours')||0)+1);
   }

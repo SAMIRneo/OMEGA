@@ -1,67 +1,62 @@
-# Stratégie Daily et contrats de risque
+# Stratégie intraday et contrats de risque
 
-Cette page décrit les règles implémentées. Le code canonique est [daily.ts](../frontend/core/daily.ts), avec les [indicateurs](../frontend/core/indicators.js), l’[exécution sur profondeur](../frontend/core/execution.ts), le [plan exchange](../frontend/core/testnet-plan.ts) et la [politique Node](../runner/policy.ts).
+Règles canoniques : [daily.ts](../frontend/core/daily.ts), [session.js](../frontend/core/session.js), [indicateurs](../frontend/core/indicators.js), [exécution](../frontend/core/execution.ts), [plan exchange](../frontend/core/testnet-plan.ts), [politique du service](../runner/policy.ts).
 
-OMEGA classe des configurations selon des règles explicites. Ce n’est pas un modèle IA entraîné. Un score de règles n’est ni une probabilité de réussite ni une preuve de rentabilité.
+OMEGA sélectionne des configurations avec des règles explicites. Aucun modèle entraîné, apprentissage continu ou rentabilité démontrée. Les seuils ci-dessous sont des hypothèses à évaluer, pas une optimisation statistique prouvée. Un score de règles n’est pas une probabilité.
 
-## Séquence de sélection
+## Décision
 
-1. **Sources** : carnet récent, métadonnées récentes et historiques 15 min / 1 h / 1 jour clôturés et suffisamment récents. Le runner vérifie aussi la continuité des séries.
-2. **Contexte** : clôture daily au-dessus/sous EMA20 ; tendance 1 h concordante ; structure EMA20/50 15 min dans le même sens.
-3. **Déclenchement** : cassure d’un niveau issu des 20 bougies précédentes avec volume, reprise de l’EMA20, ou croisement MACD précoce pour le profil Offensif.
-4. **Confirmations** : MACD, flux CMF/OBV, force ADX/DI, VWAP/volume. Elles sont partiellement corrélées et ne constituent pas quatre sources indépendantes de probabilité.
-5. **Exécution envisagée** : profondeur visible, spread ≤ 8 bps, impact visible ≤ 8 bps et distance au signal ≤ 1,25 ATR. Choix d’un levier entier compatible avec le budget.
-6. **Revalidation** : le service relit les entrées de décision après le réglage du levier. Un candidat modifié/ancien ne justifie pas un envoi automatique.
+1. Carnet, métadonnées et historiques clôturés récents ; séries continues dans le service.
+2. Contexte : clôture journalière au-dessus/sous EMA20, tendance horaire concordante, structure EMA20/EMA50 en 15 min dans le même sens.
+3. Régime : ADX 15 min ≥ 18, ATR/prix ≤ 2,5 %, distance clôture/EMA20 ≤ 1,5 ATR. Les mouvements trop avancés ou sans force sont écartés.
+4. Déclenchement : cassure d’un extrême des 20 bougies précédentes avec volume, reprise EMA20, ou croisement MACD précoce en Offensif.
+5. Confirmations : MACD, CMF/OBV, ADX/DI, VWAP/volume. Elles sont partiellement corrélées.
+6. Score : 55 + 8 par confirmation + 6 pour cassure (3 sinon) + 5 si ADX ≥ 25 + 4 si volume relatif ≥ 1,4. Affichage plafonné à 100.
+7. Coûts/exécution : spread ≤ 8 bps, impact visible ≤ 8 bps, distance du prix au signal ≤ 1,25 ATR, ratio gain/risque net ≥ 1,5. Revalidation après réglage du levier, signal de moins de 60 s dans le runner.
 
-| Profil | Volume relatif | Zone RSI long | Confirmations minimales | Particularité |
+| Profil | Volume relatif requis pour cassure/VWAP | RSI long | Confirmations | Score minimal |
 |---|---|---|---|---|
-| `balanced` | 1,2 | 45–72 | 2 | Cassure ou reprise |
-| `selective` | 1,4 | 48–68 | 3 | ADX ≥ 20 requis |
-| `aggressive` | 1,0 | 42–76 | 2 | Croisement MACD supplémentaire autorisé |
+| Équilibré | 1,2 | 45–72 | 2 | 80 |
+| Sélectif | 1,4 | 48–68 | 3 et ADX ≥ 20 | 88 |
+| Offensif | 1,0 | 42–76 | 2 ; croisement MACD supplémentaire autorisé | 76 |
 
-La zone short est symétrique autour de 50. Le score de classement doit atteindre 80/100. Ces paramètres sont des hypothèses de recherche, pas une optimisation démontrée.
+Le RSI short est symétrique autour de 50. Le volume minimal ne s’applique pas séparément à toutes les reprises EMA20 : seules les confirmations admissibles comptent.
 
-## Règles selon le mode
+## Gestion de session UTC
 
-| Règle | Paper navigateur | Exchange manuel | Runner automatique |
-|---|---|---|---|
-| Capital de référence | 10 000 USDC fictifs | Solde exchange lu | Solde exchange lu |
-| Allocation | 50 % de l’équité paper pour les entrées | Quantité saisie, marge ≤ 50 % | Vise la moitié de l’équité sous quantification/limites |
-| Levier | 1–15 sous plafond utilisateur/exchange | 1–15 sous métadonnées | Plus haut entier admissible sous plafonds |
-| Perte prévue | Manuelle ≤ 500 ; candidat automatique vise ≤ 450 | ≤ 500 | ≤ 450 |
-| Ratio net minimal du candidat | 1,5 dans l’évaluation Daily | Pas de garantie que le formulaire manuel impose cette sélection Daily | 1,5 au plan final |
-| Quota | État de cet appareil/origine, Web Locks | Fills ETH du jour | Fills ETH + réservation durable d’une tentative UTC |
-| Déclenchement automatique | Nouvelle clôture après armement, onglet visible | Aucun : signatures manuelles | Nouvelle clôture après armement, âge < 60 s |
-| Sortie de fin de journée | Prochain prix frais observé par la simulation | Pas de clôture automatique du compte manuel | Clôture reduce-only visée des positions attribuées au bot |
+- Jusqu’à quatre tentatives/entrées quotidiennes ; une position à la fois.
+- Pause de 30 min après l’entrée ou la dernière sortie. Une nouvelle clôture admissible reste requise ; aucun rattrapage.
+- Objectif réalisé 100 / 200 / 500 USDC, défaut 200. Dès qu’il est atteint, les nouvelles entrées sont bloquées. Il ne fixe pas un gain garanti par trade et ne force aucune entrée.
+- Deux pertes consécutives : nouvelles entrées bloquées jusqu’au prochain jour UTC. Dans le service, le calcul regroupe les fills de clôture par oid et inclut les frais de ces clôtures. Les frais d’entrée participent au P&L journalier mais ne sont pas attribués à ce compteur de pertes par ordre.
+- Limite de perte réalisée du jour : 500 USDC. Les gains antérieurs n’élargissent pas le budget de perte des prochaines entrées.
+- Pas d’entrée après 23:30 UTC ; clôture reduce-only visée à partir de 23:55 UTC et à la reprise d’une position du jour précédent.
 
-Les plans ATR préparés manuellement sont des exemples de risque ; ils ne sont pas des signaux. Arrondir une taille au pas ETH peut réduire légèrement la marge effectivement engagée. Si le plan ne respecte pas risque/coûts/liquidité, le service tente un levier entier plus bas ou refuse l’entrée.
+Le runner utilise les fills ETH du compte : P&L réalisé moins frais USDC. Funding, P&L latent et autres actifs ne sont pas reconstruits. Les interventions manuelles sur ETH peuvent donc modifier les conditions de session. Paper et replay ont leur comptabilité propre.
 
-## Temps, budgets et coûts
+## Dimensionnement
 
-- Jour comptable UTC. Pas de nouvelle entrée après 23:30 UTC ; sortie visée dès 23:55 UTC. Une position du jour précédent est également visée à la reprise du service.
-- Stop 1,5 ATR, cible 3 ATR. Le budget 500 USDC est une perte **prévue**, pas une garantie de perte maximale. Le budget automatique 450 réserve 10 %.
-- Le candidat Daily utilise les hypothèses de frais/slippage des limites (par défaut 4,5 et 2 bps par côté).
-- Le plan IOC exchange borne son prix d’entrée à 10 bps. Son risque de sortie modélise aussi un glissement hypothétique ; les coûts du plan final peuvent donc refuser un candidat accepté par la première évaluation.
-- La limite de pertes réalisées/frais du jour est 500 USDC. Le calcul exchange repose sur les fills ETH, pas sur une reconstruction complète du funding ou des pertes latentes du compte.
-- Les fills partiels d’un même ordre sont dédupliqués par oid pour compter les entrées. Un historique quotidien tronqué ou des frais non interprétables bloquent la vérification.
+La marge de 50 % devient un **plafond**, et non une allocation obligatoire. Le moteur calcule d’abord une quantité compatible avec le stop et les coûts, puis la borne par ce plafond de marge.
 
-## Ordres et états incertains
+Budget automatique = min(100 USDC, 1 % de l’équité, 90 % du budget de perte restant). Le budget restant vaut 500 + min(0, P&L réalisé du jour), borné à zéro. Stop 1,5 ATR, cible 3 ATR. Le levier entier reste sous les plafonds utilisateur/exchange et ×15 ; la quantité dépend du risque, pas d’un gain à rattraper. Aucune martingale.
 
-Le lot contient une entrée IOC et deux protections reduce-only. Tailles/prix sont quantifiés selon les métadonnées ETH. Le runner réserve le jour et le cloid avant l’envoi, avec expiration d’ordre et nonces persistants.
+Le candidat navigateur modélise frais et slippage configurés, par défaut 4,5 et 2 bps par côté. Le plan IOC exchange utilise une borne d’entrée de 10 bps, des frais de 4,5 bps par côté et une hypothèse de glissement de sortie de 10 bps. Le service réduit encore la quantité si ce plan plus conservateur l’exige. L’ordre final peut donc être refusé malgré un candidat navigateur admissible.
 
-Une tentative peut consommer le quota même sans fill confirmé. Un refus/timeout n’autorise pas une nouvelle entrée aveugle. Le rapprochement cherche l’ordre et les fills associés ; en l’absence d’exposition après expiration, le pending peut être levé sans libérer la réservation du jour.
+La signature manuelle utilise un plan générique plafonné à 500 USDC de perte prévue et 50 % de marge ; elle applique les conditions de session mais ne sélectionne pas obligatoirement une configuration Daily. Les simulations manuelles navigateur restent plafonnées à 100 USDC et 1 % de l’équité. Python/MCP conserve son ancien moteur paper, distinct de cette nouvelle politique intraday.
 
-Une entrée remplie avec protections incomplètes reste sous surveillance. Le service vise une sortie reduce-only si les protections reconnues sont absentes, puis vérifie au contrôle suivant. Une demande de sortie n’est pas une garantie de fermeture intégrale ou de prix. La propriété de position est une attribution locale, limitée par les interventions externes sur la position nette ETH.
+Ces montants sont des pertes **prévues**, pas des garanties de perte maximale en cas de gap, panne, liquidation ou glissement réel.
 
-## Recherche historique
+## Persistance et incertitude
 
-[replay.ts](../frontend/core/replay.ts) réutilise les règles et indicateurs sur bougies disponibles avant la décision. Acquisition de quatre séries : 5 min, 15 min, 1 h et 1 jour, avec préchauffage des indicateurs.
+Le runner réserve le compteur quotidien, la date, l’heure et le cloid avant l’envoi du lot IOC + SL/TP reduce-only. Un refus ou timeout conserve la tentative. Un pending n’est jamais relancé automatiquement. Après rapprochement et absence d’exposition, le pending peut être levé ; la tentative reste consommée et un réarmement explicite est nécessaire.
 
-- Périodes proposées : 7/14 jours récents, sous la limite des bougies disponibles de l’API.
-- Entrées modélisées à l’ouverture suivant la clôture 15 min ; sorties examinées en 5 min.
-- Carnet synthétique à liquidité supposée disponible : coûts standard spread/slippage 2/2 bps ou renforcés 4/4 ; frais 4,5 bps/côté.
-- Si stop et cible sont touchés dans la même bougie, priorité au stop. Un gap peut dépasser le risque prévu.
-- Funding, liquidation et vraie profondeur historique ne sont pas reconstruits.
-- Le drawdown est mesuré aux clôtures 5 min ; les segments 70/30 partagent le même capital. Ce n’est pas une validation chronologique indépendante.
+Un ancien ledger avec `attemptDay` mais sans `attemptCount` conserve une tentative. Les compteurs invalides bloquent le service. Le nombre retenu est le maximum entre les tentatives locales et les ordres d’entrée exchange du jour : ce n’est pas un quota transactionnel global sur plusieurs logiciels ou machines.
 
-Ne pas modifier un seuil simplement pour obtenir davantage de trades ou transformer un résultat court en affirmation de performance. Le parcours de validation restant figure dans [STATUS.md](STATUS.md).
+Protections incomplètes : la position attribuée au bot reste surveillée et une sortie reduce-only est visée. La propriété de position reste limitée face aux modifications externes de l’exposition nette ETH.
+
+## Recherche
+
+[replay.ts](../frontend/core/replay.ts) réutilise les règles et la session avec les données connues à chaque instant. Entrée à l’ouverture suivant la clôture 15 min ; sorties en 5 min. Stop prioritaire si stop et cible touchés dans la même bougie ; gaps possibles. Carnet synthétique, coûts standard/renforcés ; aucune reconstruction du funding, des liquidations ou de la vraie profondeur historique.
+
+Le replay utilise actuellement l’objectif par défaut de 200 USDC ; les objectifs live personnalisés doivent faire l’objet de comparaisons dédiées. Périodes récentes 7/14 jours. Les segments 70/30 partagent le même capital ; aucune validation hors échantillon indépendante n’est établie. Les tests logiciels vérifient les contrats, sans démontrer une meilleure performance financière.
+
+Références : [API exchange Hyperliquid](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/exchange-endpoint), [frais Hyperliquid](https://hyperliquid.gitbook.io/hyperliquid-docs/trading/fees).

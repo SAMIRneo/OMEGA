@@ -1,6 +1,6 @@
 # OMEGA — ETH Intelligence
 
-Un terminal ETH/Hyperliquid, une stratégie Daily et un pilote local à signature déléguée. Interface sombre, graphique financier, carnet 3D, recherche historique et suivi du compte.
+Un terminal ETH/Hyperliquid, une stratégie Daily et un pilote local à signature déléguée. Interface sombre, graphique financier, profondeur cumulée, recherche historique et suivi du compte.
 
 **[Ouvrir OMEGA](https://omega.kairos-labspro.chatgpt.site) · [Dépôt GitHub](https://github.com/SAMIRneo/OMEGA)**
 
@@ -38,16 +38,18 @@ Les fonds testnet, le solde mainnet et le capital paper sont distincts. Fermer l
 
 ## Interface
 
-- **Marché** : graphique TradingView Lightweight Charts, EMA, volume, carnet L2, profondeur 3D et horizons.
+- **Marché** : graphique TradingView Lightweight Charts, EMA, volume, carnet L2, profondeur cumulée et horizons.
 - **Bot** : connexion MetaMask visible en tête, choix Testnet/Mainnet, lecture du compte, puis autorisation et démarrage séparés. Pilotage, Réglages et Activité ; guide local accessible depuis le site public.
 - **Compte** : positions, ordres et exécutions ; journal de simulation et export CSV.
 - **Recherche** : replay récent 7/14 jours dans un Worker, coûts standard/renforcés, courbe et motifs de refus.
 
-Le carnet 3D utilise les niveaux visibles, avec hauteur normalisée et valeurs exactes à l’inspection. Ces visuels ne mesurent pas une probabilité de gain.
+La courbe de profondeur cumule les douze premiers niveaux visibles de chaque côté. Elle décrit le carnet, sans prédiction de prix.
 
 ## Mandat Daily
 
-ETH perpétuel ; contexte 1 jour, tendance 1 heure, déclenchement 15 minutes. Au plus une tentative d’entrée par jour UTC pour le service, levier isolé ≤ ×15, allocation maximale de 50 % de l’équité. Plafond de perte **prévue** 500 USDC, budget automatique 450 USDC, stop 1,5 ATR et cible 3 ATR. Une journée peut rester sans entrée.
+ETH perpétuel ; contexte 1 jour, tendance 1 heure, déclenchement 15 minutes. Jusqu’à **4 tentatives par jour UTC**, une position à la fois, pause de 30 min après entrée/sortie, arrêt des entrées après deux pertes consécutives. Objectif journalier sélectionnable **100 / 200 / 500 USDC**, par défaut 200 : il met les nouvelles entrées en pause une fois atteint en P&L réalisé, sans garantir ce résultat.
+
+Taille adaptée au stop : perte automatique prévue ≤ min(100 USDC, 1 % de l’équité, 90 % du budget de perte restant). Marge ≤ 50 %, levier isolé ≤ ×15, stop 1,5 ATR et cible 3 ATR, ratio net ≥ 1,5. La limite de pertes réalisées du jour reste 500 USDC. Une journée peut rester sans entrée ou finir négative.
 
 Les détails et différences entre les trois modes sont dans [STRATEGY.md](docs/STRATEGY.md). Ces budgets ne garantissent pas la perte maximale en cas de gap, panne ou liquidation. Aucune rentabilité n’est établie ; les tests logiciels ne constituent pas une validation de performance.
 

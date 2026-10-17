@@ -20,12 +20,12 @@ it('requires mainnet permission, verifies approval and starts after the current 
 it('blocks an expired agent, existing position, exchange quota and persisted attempted day',async()=>{
  const f=setup();f.info.extraAgents.mockResolvedValue([{address:agent,validUntil:Date.now()-1}]);await expect(f.engine.arm({profile:'balanced',leverage:15},null)).rejects.toThrow('non autorisé');
  f.info.extraAgents.mockResolvedValue([{address:agent,validUntil:Date.now()+86400000}]);f.s.orders=[{coin:'ETH'}];await expect(f.engine.arm({profile:'balanced',leverage:15},null)).rejects.toThrow('existant');f.s.orders=[];
- f.s.today=[{coin:'ETH',time:Date.now(),dir:'Open Long',oid:1,closedPnl:'0',fee:'1',feeToken:'USDC'}];await expect(f.engine.arm({profile:'balanced',leverage:15},null)).rejects.toThrow('Quota');f.s.today=[];f.ledger.attemptDay='2026-10-14';await expect(f.engine.arm({profile:'balanced',leverage:15},null)).rejects.toThrow('Quota');
+ f.s.today=[{coin:'ETH',time:Date.now(),dir:'Open Long',oid:1,closedPnl:'0',fee:'1',feeToken:'USDC'}];await expect(f.engine.arm({profile:'balanced',leverage:15},null)).rejects.toThrow('Pause');f.s.today=[];f.ledger.attemptDay='2026-10-14';f.ledger.attemptCount=4;await expect(f.engine.arm({profile:'balanced',leverage:15},null)).rejects.toThrow('Quota');
 });
 function eligible(f:ReturnType<typeof setup>){f.engine.active=true;f.engine.armedAt=Date.now()-20000;f.engine.lastBar=Date.now()-900000;}
 it('sends an automatic bracket with persistent reservation before transmission, once per bar',async()=>{
  const f=setup();eligible(f);let reserved=false;const send=f.exchange.order.getMockImplementation()!;f.exchange.order.mockImplementation(async(p)=>{reserved=!!f.ledger.pending&&f.ledger.attemptDay==='2026-10-14';return send(p);});
- await f.engine.tick();expect(f.exchange.order).toHaveBeenCalledTimes(1);expect(reserved).toBe(true);const plan=f.exchange.order.mock.calls[0][0];expect(plan.orders).toHaveLength(3);expect(plan.orders.slice(1).every((o:any)=>o.r&&o.c)).toBe(true);expect(f.ledger.owned).toBe(true);expect(f.ledger.pending).toBeNull();
+ await f.engine.tick();expect(f.exchange.order).toHaveBeenCalledTimes(1);expect(reserved).toBe(true);expect(f.ledger.attemptCount).toBe(1);expect(f.ledger.lastAttemptAt).toBe(Date.now()/1000);const plan=f.exchange.order.mock.calls[0][0];expect(plan.orders).toHaveLength(3);expect(plan.orders.slice(1).every((o:any)=>o.r&&o.c)).toBe(true);expect(f.ledger.owned).toBe(true);expect(f.ledger.pending).toBeNull();
 });
 it('halts and preserves uncertain sends across restart, with no automatic retry',async()=>{
  const f=setup('mainnet');eligible(f);f.exchange.order.mockRejectedValue(Error('timeout'));
@@ -39,9 +39,9 @@ it('rejects stale, crossed or unsorted L2 books and discontinuous candles',()=>{
  const f=setup(),book=f.s.book;expect(()=>validBook({...book,time:Date.now()-6000},Date.now())).toThrow();expect(()=>validBook({...book,levels:[[{px:'2501',sz:'1'}],[{px:'2500',sz:'1'}]]},Date.now())).toThrow();
  const now=Date.now(),bars=Array.from({length:70},(_,i)=>({t:now-(71-i)*900000,T:now-(70-i)*900000-1,o:2500,h:2502,l:2498,c:2500,v:1}));bars[30].t+=1;expect(()=>validCandles(bars,900000,now)).toThrow();
 });
-it('keeps IOC margin under half equity and lowers integer leverage instead of shrinking allocation',()=>{
+it('sizes IOC by a 100 USDC budget under half equity',()=>{
  const f=setup(),c={side:'long',leverage:15,stop:2455,target:2590} as any;
- const plan=autoPlan('testnet',f.s,c);expect(plan.margin).toBeLessThanOrEqual(5000);expect(plan.loss).toBeLessThanOrEqual(450);expect(plan.leverage).toBeLessThan(15);expect(plan.margin).toBeGreaterThan(4999);
+ const plan=autoPlan('testnet',f.s,c);expect(plan.margin).toBeLessThanOrEqual(5000);expect(plan.loss).toBeLessThanOrEqual(100);expect(plan.leverage).toBeLessThanOrEqual(15);expect(plan.margin).toBeLessThan(4999);
 });
 it('continues managing the bot position after entry stop and closes reduce-only if protection is missing',async()=>{
  const f=setup();f.ledger.owned=true;f.ledger.ownedSide='long';f.ledger.ownedQuantity=1;f.ledger.protectionIds=[2,3];f.s.position={szi:'1'};f.engine.stop();await f.engine.tick();expect(f.exchange.order).toHaveBeenCalledTimes(1);expect(f.exchange.order.mock.calls[0][0].orders[0].r).toBe(true);
@@ -52,4 +52,13 @@ it('does not flatten a position enlarged outside the bot',async()=>{
 it('keeps a known filled position under surveillance when a protection is rejected',async()=>{
  const f=setup();eligible(f);f.exchange.order.mockResolvedValueOnce({status:'ok',response:{data:{statuses:[{filled:{oid:1,totalSz:'1',avgPx:'2500'}},{error:'trigger rejected'} as any,{resting:{oid:3}}]}}});
  await f.engine.tick();expect(f.engine.active).toBe(false);expect(f.ledger.owned).toBe(true);expect(f.ledger.pending).not.toBeNull();f.s.position={szi:'1'};await f.engine.tick();expect(f.exchange.order).toHaveBeenCalledTimes(2);expect(f.exchange.order.mock.calls[1][0].orders[0].r).toBe(true);
+});
+
+it('permits another intraday session after cooldown but retains attempted quota across a restart',async()=>{
+ const f=setup();f.ledger.attemptDay='2026-10-14';f.ledger.attemptCount=1;f.ledger.lastAttemptAt=Date.now()/1000-1800;
+ await f.engine.arm({profile:'balanced',leverage:15,dailyTarget:200},null);expect(f.engine.active).toBe(true);f.engine.stop();
+ f.ledger.lastAttemptAt=Date.now()/1000;await expect(f.engine.arm({profile:'balanced',leverage:15},null)).rejects.toThrow('Pause');
+ const restored=new LiveEngine('testnet',f.ledger,agent,f.info,f.exchange,risk,f.save);vi.spyOn(restored,'snapshot').mockResolvedValue(f.s);
+ await expect(restored.arm({profile:'balanced',leverage:15},null)).rejects.toThrow('Pause');
+ f.ledger.attemptCount=4;await expect(restored.arm({profile:'balanced',leverage:15},null)).rejects.toThrow('Quota');expect(f.exchange.order).not.toHaveBeenCalled();
 });

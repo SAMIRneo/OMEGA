@@ -12,6 +12,6 @@ it('supports mainnet only when the expected signing network matches exactly',()=
 });
 it('deduplicates partial entries and accounts for fees within the current UTC day',()=>{
  const now=Date.UTC(2026,9,15,12),f={coin:'ETH',time:now-1000,dir:'Open Long',oid:1,closedPnl:'0',fee:'.5',feeToken:'USDC'};
- expect(exchangeDay([f,{...f},{...f,dir:'Close Long',oid:2,closedPnl:'-10'},{...f,time:now-86400000,oid:3}],now)).toEqual({entries:1,pnl:-11.5});
+ expect(exchangeDay([f,{...f},{...f,dir:'Close Long',oid:2,closedPnl:'-10'},{...f,time:now-86400000,oid:3}],now)).toMatchObject({entries:1,pnl:-11.5});
  expect(()=>exchangeDay(Array(2000).fill(f),now)).toThrow();expect(()=>exchangeDay([{...f,fee:'bad'}],now)).toThrow();
 });
