@@ -24,7 +24,7 @@ npm run build
 npm run bot
 ```
 
-Ouvrir **http://127.0.0.1:8766/#pilot**. Le service démarre désarmé. Dans Bot, choisir le réseau, autoriser l’agent avec le wallet, puis démarrer le pilote. Mainnet comporte une autorisation explicite de fonds réels. Les modalités sont dans le [guide d’exploitation](docs/OPERATIONS.md).
+Ouvrir **http://127.0.0.1:8766/#pilot**. Le service démarre désarmé. Dans Bot, connecter MetaMask puis configurer Testnet et Mainnet ensemble : une signature par réseau manquant, valable 30 jours et révocable. Le compte est mémorisé sur ce navigateur et les agents encore autorisés sont réutilisés. Choisir ensuite le réseau et démarrer le pilote. Mainnet comporte une autorisation explicite de fonds réels. Les modalités sont dans le [guide d’exploitation](docs/OPERATIONS.md).
 
 ## Trois modes, trois responsabilités
 

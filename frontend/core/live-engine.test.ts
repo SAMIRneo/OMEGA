@@ -85,3 +85,7 @@ it('adopts only a compatible position bounded by attributable partial fills',asy
  Object.assign(f.info,{orderStatus:vi.fn(async()=>({status:'order',order:{order:{oid:1,side:'B'}}})),userFillsByTime:vi.fn(async()=>[{coin:'ETH',oid:1,dir:'Open Long',sz:'.2'},{coin:'ETH',oid:1,dir:'Open Long',sz:'.3'}])});
  await f.engine.reconcile();expect(f.engine.snapshot).toHaveBeenCalledWith(false);expect(f.ledger.owned).toBe(true);expect(f.ledger.ownedQuantity).toBe(.4);expect(f.ledger.pending).toBeNull();expect(f.exchange.order).not.toHaveBeenCalled();
 });
+it('reports confirmed approval expiry and clears it when the agent is revoked',async()=>{
+ const f=setup(),until=Date.now()+86400000;await f.engine.verifyApproval();expect(f.engine.status()).toMatchObject({approved:true,approvedUntil:until});
+ f.info.extraAgents.mockResolvedValue([]);await f.engine.verifyApproval();expect(f.engine.status()).toMatchObject({approved:false,approvedUntil:null});
+});

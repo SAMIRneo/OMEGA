@@ -125,3 +125,19 @@ it('retains a partial exchange acknowledgement until explicit reconciliation',as
  expect(el('testnet-action-status').textContent).toContain('réponse partielle');
  form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();expect(fake.calls.filter(x=>x[0]==='order')).toHaveLength(1);
 });
+it('restores the remembered primary account without a permission request or signature',async()=>{
+ await start();expect(dom.localStorage.getItem('omega-wallet-session-v1')).toContain(fake.accounts[0]);
+ vi.resetModules();const request=vi.fn(async(_args:any)=>fake.accounts);(dom as any).ethereum={request,on:vi.fn()};
+ const module=await import('./exchange');fake.calls=[];await module.restoreWallet();
+ expect(request.mock.calls).toEqual([[{method:'eth_accounts'}]]);expect(el('testnet-wallet').textContent).toBe(fake.accounts[0]);
+ expect(fake.calls.some(x=>x[0]==='order'||x[0]==='leverage')).toBe(false);
+ module.disconnectWallet();expect(dom.localStorage.getItem('omega-wallet-session-v1')).toBeNull();
+});
+it('does not restore a different account or request access to a locked wallet',async()=>{
+ await start();vi.resetModules();fake.accounts=['0x2222222222222222222222222222222222222222'];
+ const request=vi.fn(async(_args:any)=>fake.accounts);(dom as any).ethereum={request,on:vi.fn()};
+ const module=await import('./exchange');await module.restoreWallet();expect(el('testnet-wallet').textContent).toBe('Aucun wallet connecté');
+ expect(el('testnet-action-status').textContent).toContain('compte actif');expect(dom.localStorage.getItem('omega-wallet-session-v1')).toBeNull();
+ dom.localStorage.setItem('omega-wallet-session-v1',JSON.stringify({address:fake.accounts[0],reconnect:true}));fake.accounts=[];
+ await module.restoreWallet();expect(el('testnet-action-status').textContent).toContain('Déverrouille');expect(request.mock.calls.every(args=>(args[0] as any).method==='eth_accounts')).toBe(true);
+});
