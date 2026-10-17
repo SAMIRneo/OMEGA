@@ -2,7 +2,7 @@ import {it,expect} from 'vitest';
 import {sessionBlock} from './session.js';
 import {evaluateDaily} from './daily';
 import {sample,risk} from './test-fixtures';
-import {reservedAttempts,validateSettings} from '../../runner/policy';
+import {reservedAttempts,validateSettings} from '../../shared/policy';
 it('permits a second opportunity but stops at the fourth attempt',()=>{
  const s=sample();s.paper.lastEntryDay=s.paper.day;s.paper.entriesToday=1;s.paper.lastEntryAt=s.time-1800;
  expect(evaluateDaily(s,risk).status).toBe('eligible');s.paper.entriesToday=4;expect(sessionBlock(s.paper,s.limits,s.time)).toMatch(/Quota/);

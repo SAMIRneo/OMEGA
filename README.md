@@ -19,7 +19,7 @@ npm ci
 npm run dev
 ```
 
-Ouvrir l’adresse affichée par Vite. Ce mode sert au développement du terminal et à la simulation navigateur.
+Ouvrir l’adresse affichée par Vite. Ce mode sert au développement du terminal, de la simulation et du bot web. Il ne lance pas le service Node optionnel.
 
 Pour utiliser le service Node optionnel :
 
@@ -44,8 +44,8 @@ Les fonds testnet, le solde mainnet et le capital paper sont distincts. Fermer o
 ## Interface
 
 - **Marché** : graphique TradingView Lightweight Charts, EMA, volume, carnet L2, profondeur cumulée et horizons.
-- **Bot** : connexion regroupée en trois étapes visibles (Compte → Autorisation → Démarrage), choix Testnet/Mainnet et une action principale adaptée à l’état confirmé. Suivi, Réglages et Activité ; guide local accessible depuis le site public.
-- **Compte** : positions, ordres et exécutions ; journal de simulation et export CSV.
+- **Bot** : connexion regroupée en trois étapes visibles (Compte → Autorisation → Démarrage), choix Testnet/Mainnet et une action principale adaptée à l’état confirmé. Suivi, Réglages et Activité ; les commandes utilisent le runtime web ou Node selon l’origine.
+- **Compte** : positions, ordres et exécutions ; journal de simulation, export CSV et panneau Données avec export JSON vérifiable.
 - **Recherche** : replay récent 7/14 jours dans un Worker, coûts standard/renforcés, courbe et motifs de refus.
 
 La courbe de profondeur cumule les douze premiers niveaux visibles de chaque côté. Elle décrit le carnet, sans prédiction de prix.
@@ -57,6 +57,19 @@ ETH perpétuel ; contexte 1 jour, tendance 1 heure, déclenchement 15 minutes. J
 Taille adaptée au stop : perte automatique prévue ≤ min(100 USDC, 1 % de l’équité, 90 % du budget de perte restant). Marge ≤ 50 %, levier isolé ≤ ×15, stop 1,5 ATR et cible 3 ATR, ratio net ≥ 1,5. La limite de pertes réalisées du jour reste 500 USDC. Une journée peut rester sans entrée ou finir négative.
 
 Les détails et différences entre les modes sont dans [STRATEGY.md](docs/STRATEGY.md). Ces budgets ne garantissent pas la perte maximale en cas de gap, panne ou liquidation. Aucune rentabilité n’est établie ; les tests logiciels ne constituent pas une validation de performance.
+
+## Organisation du dépôt
+
+| Dossier | Rôle |
+|---|---|
+| [frontend/](frontend/README.md) | Interface, adaptateurs navigateur, simulation et règles pures canoniques |
+| [shared/](shared/README.md) | Moteur d’exécution, politique et validation du ledger partagés web/Node |
+| [runner/](runner/README.md) | Backend Node optionnel : HTTP, fichiers, nonces et cycle de processus |
+| `rust-core/` | Noyau de calcul du risque et source du WASM généré |
+| `tests/`, `scripts/` | Contrôles VM/Python, fixtures et outils de build/vérification |
+| [docs/](docs/README.md) | Guides actuels ; `docs/archive/` conserve les textes remplacés |
+
+Les points d’entrée Python restent à la racine pour compatibilité. `dist/` et `runner-dist/` sont générés ; les données personnelles sont exclues du dépôt.
 
 ## Reprendre avec un autre agent
 

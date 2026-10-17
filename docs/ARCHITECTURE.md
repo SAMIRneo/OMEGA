@@ -26,6 +26,12 @@ flowchart TD
 
 Le graphe montre les responsabilités, pas une séquence d’envoi automatique déclenchée par le navigateur. Le runner relit ses propres données et autorisations avant une entrée. Sur le site publié, les commandes utilisent le moteur web ; sur l’origine Node prévue, elles utilisent l’API locale. Les deux modes relisent leurs données propres.
 
+## Organisation et dépendances
+
+`frontend/` possède le DOM et les API navigateur ; `runner/` possède les API Node ; `shared/` possède le moteur commun, sans dépendance à ces adaptateurs. Les deux adaptateurs injectent leurs transports, sauvegarde et risque dans LiveEngine. `frontend/shared/` désigne uniquement les stores/utilitaires UI, pas le moteur commun.
+
+Les calculs Daily et réseaux de `frontend/core/` sont purs et importables par shared. Le dossier contient aussi des contrôleurs navigateur : seules les dépendances pures nécessaires au moteur sont autorisées par le contrôle de structure. `vitest.config.ts` découvre les tests dans les trois zones ; la racine Vite reste `frontend/`.
+
 ## Carte des sources
 
 | Zone | Entrées importantes | Responsabilité |
@@ -49,9 +55,9 @@ Le graphe montre les responsabilités, pas une séquence d’envoi automatique d
 | Persistance | [paper-storage.js](../frontend/core/paper-storage.js), [data-archive.ts](../frontend/core/data-archive.ts), [data-settings.ts](../frontend/data-settings.ts), [persistence.ts](../runner/persistence.ts) | Validation, versions, générations précédentes, export et état du stockage |
 | Service Node | [server.ts](../runner/server.ts) | HTTP, session, clés, nonces, persistance, verrou de processus |
 | Exécution web | [web/runner.ts](../frontend/web/runner.ts), [web/vault.ts](../frontend/web/vault.ts) | Même LiveEngine, coffre IndexedDB chiffré, lock d’onglet et contrôle au transport |
-| Automatisation | [engine.ts](../runner/engine.ts), [policy.ts](../runner/policy.ts) | État du pilote, revalidation, plan IOC, gestion de position |
+| Moteur commun | [engine.ts](../shared/engine.ts), [policy.ts](../shared/policy.ts), [ledger.ts](../shared/ledger.ts) | État du pilote, revalidation, plan IOC, gestion de position et validation pure du ledger |
 | Risque | [lib.rs](../rust-core/src/lib.rs), [runtime-risk.ts](../runner/runtime-risk.ts) | Noyau Rust/WASM et chargement Node |
-| Styles | [interface.css](../frontend/interface.css), [layout.css](../frontend/layout.css), [obsidian.css](../frontend/obsidian.css) | Point d’import, base en couche CSS et thème/priorités visuelles ; tokens.css et polices locales pour la vue Bot |
+| Styles | [interface.css](../frontend/interface.css), [layout.css](../frontend/layout.css), [obsidian.css](../frontend/obsidian.css) | Point d’import, base en couche CSS et thème/priorités visuelles ; tokens.css et polices locales pour toutes les vues |
 
 `frontend/legacy/` n’est pas une archive : plusieurs fichiers y sont exécutés. `testnet-plan.ts` conserve un nom historique mais `exchangePlan` gère explicitement testnet **et** mainnet. Son wrapper `testnetPlan` reste limité au testnet.
 
@@ -89,11 +95,11 @@ Le dossier `docs/archive/` archive des textes ; il ne déplace pas ces modules d
 - Les lignes du carnet sont réutilisées. Les clés de rendu limitent les reconstructions des horizons, événements et positions.
 - La profondeur est une courbe SVG statique mise à jour depuis market-store. Aucun contrôle de caméra ni boucle d’animation. Les douze niveaux de chaque côté sont cumulés séparément et affichés sur une échelle commune.
 
-## Chemin d’une entrée Node
+## Chemin d’une entrée déléguée web/Node
 
 `arm` vérifie consentement mainnet, paramètres, agent, compte, quota et absence d’exposition ETH. Le service mémorise la clôture déjà observée et attend une nouvelle clôture.
 
-À chaque tick pertinent : snapshot propre au service → `evaluateDaily` → plan exchange → réglage du levier → nouveau snapshot et nouvelle évaluation → réservation durable quota/cloid → envoi du lot IOC + SL/TP. Une réponse incertaine conserve un envoi à réconcilier ; elle ne provoque pas une relance d’entrée.
+À chaque tick pertinent : snapshot propre au moteur → `evaluateDaily` → plan exchange → réglage du levier → nouveau snapshot et nouvelle évaluation → réservation durable quota/cloid → envoi du lot IOC + SL/TP. Une réponse incertaine conserve un envoi à réconcilier ; elle ne provoque pas une relance d’entrée.
 
 La surveillance de la position attribuée au bot est distincte de l’armement des entrées. Son snapshot ne charge ni bougies ni fills quotidiens et ne valide pas le quota d’entrée : une panne de ces données ne doit pas bloquer le contrôle des protections. Le rapprochement borne l’attribution au sens et aux quantités exécutées de l’ordre enregistré ; une exposition agrandie ou inversée reste bloquée. Pour les transitions, paramètres HTTP et fichiers personnels, voir [OPERATIONS.md](OPERATIONS.md).
 
@@ -118,7 +124,7 @@ La surveillance de la position attribuée au bot est distincte de l’armement d
 
 | Chemin | Rôle | Source canonique ? |
 |---|---|---|
-| `frontend/`, `runner/`, `rust-core/` | Code à modifier | Oui |
+| `frontend/`, `shared/`, `runner/`, `rust-core/` | Code à modifier | Oui |
 | `dist/` | Build web consommé par hébergement/serveurs locaux | Non |
 | `runner-dist/` | Build Node | Non |
 | `.omega-runtime/` | Clés d’agents, nonces, quotas, journal et verrou | Non, personnel/secret |
@@ -147,8 +153,8 @@ La matrice des réseaux, schémas de signature et garde-fous de concurrence est 
 
 ## Reprise de connexion
 
-`wallet-memory.ts` conserve l’adresse publique et la préférence de reconnexion sur l’origine courante. `wallet-connection.ts` peut charger `exchange.ts` pour restaurer passivement le compte primaire via `eth_accounts` ; aucune mutation exchange n’est incluse. `runner-ui.ts` lit et vérifie séparément les deux réseaux, affiche `approvedUntil`, et n’appelle `configure`/`approveAgent` qu’après clic et pour un agent manquant. Les clés restent dans les ledgers locaux du service. La session HTTP est renouvelée une fois après un 401 ; aucune relance automatique n’est ajoutée pour les autres erreurs ou envois incertains.
+`wallet-memory.ts` conserve l’adresse publique et la préférence de reconnexion sur l’origine courante. `wallet-connection.ts` peut charger `exchange.ts` pour restaurer passivement le compte primaire via `eth_accounts` ; aucune mutation exchange n’est incluse. `runner-ui.ts` lit et vérifie séparément les deux réseaux, affiche `approvedUntil`, et n’appelle `configure`/`approveAgent` qu’après clic et pour un agent manquant. Les clés sont dans le coffre chiffré en mode web ou les fichiers du service en mode Node. La session HTTP Node est renouvelée une fois après un 401 ; aucune relance automatique n’est ajoutée pour les autres erreurs ou envois incertains.
 
 La politique de conservation, les données exclues des exports et les limites de récupération sont dans [DATA.md](DATA.md). Le drapeau `paper.storageBlocked` bloque la session de simulation quand l’état ne peut pas être validé ou enregistré ; il ne réinitialise pas le compte.
 
-La validation pure des ledgers est extraite dans [runner/ledger.ts](../runner/ledger.ts) pour les deux persistances. Les callbacks de sauvegarde de LiveEngine acceptent une Promise et sont attendus avant transmission. Le protocole du coffre et les limites de cycle de page sont dans [WEB.md](WEB.md).
+La validation pure des ledgers est extraite dans [shared/ledger.ts](../shared/ledger.ts) pour les deux persistances. Les callbacks de sauvegarde de LiveEngine acceptent une Promise et sont attendus avant transmission. Le protocole du coffre et les limites de cycle de page sont dans [WEB.md](WEB.md).

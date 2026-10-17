@@ -1,6 +1,6 @@
 # Working on OMEGA
 
-OMEGA is an ETH/Hyperliquid research terminal with browser paper trading, manual exchange orders and a local delegated trading runner. This file is the entry point for coding agents. Product documentation is in French; keep existing language and naming conventions.
+OMEGA is an ETH/Hyperliquid research terminal with browser paper trading, manual exchange orders and delegated execution in the browser or an optional local Node service. This file is the entry point for coding agents. Product documentation is in French; keep existing language and naming conventions.
 
 ## Read first
 
@@ -16,7 +16,8 @@ OMEGA is an ETH/Hyperliquid research terminal with browser paper trading, manual
 ## Orientation
 
 - `frontend/`: canonical Vite frontend, DOM UI, pure strategy modules, replay worker and visualizations.
-- `runner/`: shared LiveEngine and pure policy/ledger validation, plus the local Node HTTP service.
+- `shared/`: runtime-independent LiveEngine, policy and ledger validation, imported by both adapters.
+- `runner/`: Node-only HTTP service, filesystem persistence and WASM loading.
 - `frontend/web/`: browser delegated execution, encrypted IndexedDB vault and per-network execution locks; read docs/WEB.md before changes.
 - `rust-core/`: risk math; its generated WASM is embedded in `frontend/legacy/risk-core.js`.
 - Root Python modules: retained paper/MCP compatibility implementation. They do not execute live exchange orders.
@@ -39,11 +40,11 @@ The frontend is TypeScript + JavaScript + CSS, not React/Next.js. Do not introdu
 
 Browser agent keys may exist only in memory and the authenticated encrypted IndexedDB vault; never put them in localStorage, status responses, exports or logs. Await every durable checkpoint and nonce before transmission, preserve revision checks and the final transport/visibility/lock guard. A page restart must remain disarmed.
 
-Pour la persistance : lire [docs/DATA.md](docs/DATA.md). Préserver les fichiers/valeurs corrompus, bloquer les mutations, et ne jamais restaurer automatiquement un nonce, quota ou pending depuis une ancienne copie. Les exports navigateur suivent une liste autorisée sans clés, sessions ou permissions.
+For persistence, read [docs/DATA.md](docs/DATA.md). Preserve corrupted files/values, block mutations and never automatically restore a nonce, quota or pending from an older generation. Browser exports use an allowlist excluding keys, sessions and permissions.
 
 ## Implementation practice
 
-- Keep pure rules in `frontend/core/`; DOM/event handling belongs in UI modules. Share Daily rules/indicators/risk between replay, browser and runner rather than copying them.
+- Keep cross-runtime execution in `shared/`; never import `runner/` from frontend or shared code. Keep pure rules in `frontend/core/`; DOM/event handling belongs in UI modules. Share Daily rules/indicators/risk between replay, browser and runner rather than copying them.
 - Keep stable HTML IDs: legacy bindings, dynamic modules and tests depend on them. Use `textContent` for market/service values, never raw HTML from remote data.
 - Add UI code through deferred modules in `frontend/main.ts`. Reuse existing market snapshots through `frontend/shared/market-store.ts`; use the runner store for confirmed service status. Visuals must not open extra exchange connections.
 - Preserve tab/panel keyboard navigation, dark contrast, reduced-motion handling and animation suspension outside the viewport or hidden document.

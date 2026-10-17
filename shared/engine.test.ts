@@ -1,7 +1,7 @@
 import {it,expect,vi,afterEach} from 'vitest';
-import {LiveEngine,type Ledger} from '../../runner/engine';
-import {autoPlan,networkConfig,validBook,canEvaluate,bracketConfirmed,validCandles} from '../../runner/policy';
-import {sample,risk} from './test-fixtures';
+import {LiveEngine,type Ledger} from './engine';
+import {autoPlan,networkConfig,validBook,canEvaluate,bracketConfirmed,validCandles} from './policy';
+import {sample,risk} from '../frontend/core/test-fixtures';
 const owner='0x1111111111111111111111111111111111111111',agent='0x2222222222222222222222222222222222222222';
 function setup(network:'mainnet'|'testnet'='testnet'){
  vi.useFakeTimers();vi.setSystemTime(Date.UTC(2026,9,14,12,0,10));

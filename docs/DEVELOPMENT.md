@@ -13,7 +13,7 @@ npm run dev
 
 Node 22.12+ ; vérifications courantes réalisées avec Node 24.19.0, aussi indiqué dans [.node-version](../.node-version). `package.json` déclare le gestionnaire et les versions ; `package-lock.json` verrouille l’installation. Ne pas remplacer `npm ci` par une mise à jour générale de dépendances pour une retouche de documentation/UI.
 
-Vite affiche son URL, généralement sur le port 5173. Il sert la source navigateur et ne remplace pas le serveur Node d’exécution. Le contrôle du runner est prévu sur l’interface buildée servie depuis `127.0.0.1:8766`.
+Vite affiche son URL, généralement sur le port 5173. Il sert la source et utilise le runtime web pour le bot. Le backend Node optionnel se contrôle depuis l’interface buildée servie sur `127.0.0.1:8766` ; Vite ne démarre pas ce processus.
 
 ## Commandes
 
@@ -23,17 +23,18 @@ Vite affiche son URL, généralement sur le port 5173. Il sert la source navigat
 | `npm run preview` | Aperçu local du build web déjà produit |
 | `npm run typecheck` | TypeScript frontend et dépendances importées |
 | `npm run typecheck:bot` | Contrôle TypeScript du service Node |
-| `npm test` | Vitest : tests co-localisés sous `frontend/` |
+| `npm test` | Vitest : tests co-localisés sous `frontend/`, `shared/` et `runner/` |
 | `npm run test:browser` | Contrats du moteur navigateur via Node/VM, sans navigateur graphique |
 | `npm run build` | Typecheck frontend puis build statique dans `dist/` |
 | `npm run build:bot` | Typecheck service puis bundle dans `runner-dist/` |
 | `npm run start:bot` | Lance le bundle Node déjà construit ; démarre désarmé |
 | `npm run bot` | Construit puis lance le service Node |
 | `npm run test:service` | Build du service et test HTTP isolé ; aucun ordre exchange |
+| `npm run check:structure` | Vérifie les frontières des imports frontend/shared/Node |
 | `npm run check:docs` | Vérifie liens locaux, chemins documentés et scripts npm cités |
 | `npm run check` | Vérification Node complète, documentation incluse |
 
-`check` exécute : documentation → Vitest → tests du moteur navigateur → build web → build/test HTTP du service. Il ne lance pas de wallet, ne signe pas d’agent et ne fait pas un backtest de rentabilité.
+`check` exécute : documentation → frontières d’import → Vitest → tests du moteur navigateur → build web → build/test HTTP du service. Il ne lance pas de wallet, ne signe pas d’agent et ne fait pas un backtest de rentabilité.
 
 ## Matrice de validation
 
@@ -51,7 +52,9 @@ Un changement purement visuel ne nécessite pas un nouvel essai sur un compte fi
 
 ## Où sont les tests ?
 
-- `frontend/core/*.test.ts` : stratégie, contrôleur, plans, replay et moteur Node importé par les tests.
+- `frontend/core/*.test.ts` : stratégie, contrôleur, plans, replay, session et réseaux.
+- `shared/engine.test.ts` : moteur commun, revalidation, réservations durables et protections avec transports simulés.
+- `runner/persistence.test.ts` : fichiers Node, corruption, reprise et écritures atomiques.
 - `frontend/web/*.test.ts` : coffre Web Crypto avec fake-indexeddb (dépendance de test), CAS, échecs transactionnels et cycle de page avec transports simulés.
 - `frontend/exchange.test.ts` : wallet/transport simulés, signatures manuelles et lecture du compte.
 - `frontend/network.test.ts` : blocage du changement de réseau quand le runner est actif.
@@ -62,7 +65,9 @@ Un changement purement visuel ne nécessite pas un nouvel essai sur un compte fi
 - `scripts/check-runner.mjs` : processus réel temporaire, authentification et séparation des réseaux, sans agent autorisé.
 - `tests/test_engine.py`, `tests/test_multiframe.py` : moteur Python historique.
 
-La configuration Vitest a `root: frontend`. Un nouveau test placé seulement dans `runner/` n’est pas automatiquement découvert : le placer selon les conventions existantes ou modifier explicitement la configuration.
+`vitest.config.ts` est indépendant de `vite.config.ts` et découvre `frontend/**/*.test.ts`, `shared/**/*.test.ts` et `runner/**/*.test.ts`. Placer les nouveaux tests avec le module propriétaire. Le build web conserve `frontend` comme racine.
+
+`npm run check:structure` parcourt les imports statiques/dynamiques des sources TypeScript/JavaScript. Il interdit frontend → runner et shared → adaptateurs/API Node. La liste des modules purs de frontend/core accessibles depuis shared est explicite, et ses dépendances transitives sont contrôlées. Ce contrôle ne remplace pas les tests de comportement.
 
 ## Recettes de modification
 

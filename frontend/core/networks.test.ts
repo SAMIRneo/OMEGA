@@ -1,6 +1,6 @@
 import {it,expect} from 'vitest';
 import {networkConfig,networkDefinition,assertEnvironment} from './networks.js';
-import {bindLedgerNetwork,assertDistinctAgents} from '../../runner/policy';
+import {bindLedgerNetwork,assertDistinctAgents} from '../../shared/policy';
 it.each(['mainnet','testnet'] as const)('pins %s REST, WS and signatures to one immutable definition',network=>{
  const n=networkDefinition(network),config=networkConfig(network);
  expect(config.apiUrl).toBe(network==='mainnet'?'https://api.hyperliquid.xyz':'https://api.hyperliquid-testnet.xyz');

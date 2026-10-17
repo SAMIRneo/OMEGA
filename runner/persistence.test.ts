@@ -2,8 +2,8 @@ import {it,expect,afterEach} from 'vitest';
 import {mkdtempSync,rmSync,readFileSync,writeFileSync,unlinkSync,existsSync,mkdirSync,readdirSync,statSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {loadLedger,saveLedger} from '../../runner/persistence';
-import type {Ledger} from '../../runner/engine';
+import {loadLedger,saveLedger} from './persistence';
+import type {Ledger} from '../shared/engine';
 const dirs:string[]=[];
 function fixture(){const dir=mkdtempSync(join(tmpdir(),'omega-persistence-'));dirs.push(dir);return {dir,file:join(dir,'testnet.json'),ledger:{network:'testnet',owner:null,key:'0x'+'1'.repeat(64),nonce:123,attemptDay:'2026-10-17',attemptCount:2,pending:{cloid:'0x'+'2'.repeat(32),at:1000},owned:false,events:[],settings:{profile:'balanced',leverage:3,dailyTarget:200}} as Ledger};}
 afterEach(()=>{for(const dir of dirs.splice(0))rmSync(dir,{recursive:true,force:true});});

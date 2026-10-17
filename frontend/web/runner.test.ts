@@ -18,7 +18,7 @@ beforeEach(async()=>{
  vi.stubGlobal('window',dom);vi.stubGlobal('document',dom.document);vi.stubGlobal('navigator',{locks:{request:async(_name:string,_options:any,fn:any)=>fn({name:_name})}});vi.stubGlobal('setInterval',vi.fn());vi.stubGlobal('fetch',vi.fn(()=>{throw Error('No real transport allowed')}));
  const snapshot=sample();snapshot.time=Date.now()/1000;snapshot.market.book!.time=Date.now();snapshot.indicators['15m']!.atr=30;
  s={snapshot,account:{assetPositions:[]},orders:[],today:[],meta:{asset:4,szDecimals:4,maxLeverage:20},book:snapshot.market.book!,equity:10000,available:10000,position:null};
- const {LiveEngine}=await import('../../runner/engine');vi.spyOn(LiveEngine.prototype,'snapshot').mockImplementation(async function(this:any){fake.engine=this;return s;});
+ const {LiveEngine}=await import('../../shared/engine');vi.spyOn(LiveEngine.prototype,'snapshot').mockImplementation(async function(this:any){fake.engine=this;return s;});
 });
 afterEach(async()=>{dom.dispatchEvent(new dom.Event('pagehide'));await new Promise(setImmediate);await dom.happyDOM.abort();vi.restoreAllMocks();vi.unstubAllGlobals();vi.useRealTimers();});
 async function configured(network:'testnet'|'mainnet'='testnet'){

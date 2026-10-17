@@ -4,7 +4,7 @@
 
 | Runtime | Démarrage | Adresse | Capacité |
 |---|---|---|---|
-| Vite | `npm run dev` | URL affichée par Vite | Développement, données publiques, paper navigateur |
+| Vite | `npm run dev` | URL affichée par Vite | Développement du terminal, paper et bot web |
 | Site publié | Ouvrir le site public | Domaine OMEGA | Connexion, réglages et bot web dans un onglet visible ; aucun processus permanent hébergé |
 | Node permanent | `npm run build` puis `npm run bot` | `http://127.0.0.1:8766/#pilot` | Signature déléguée et surveillance tant que le processus tourne |
 | Python historique | Dépendances + `config.json`, build web, `python app.py` | `http://127.0.0.1:8765` | Recherche/paper/MCP, pas d’ordres exchange |
@@ -30,11 +30,11 @@ npm run bot
 5. Vérifier le compte/réseau effectivement affichés, puis régler profil et plafond de levier dans Réglages.
 6. Revenir à Suivi, autoriser explicitement les fonds réels si Mainnet, puis démarrer le pilote.
 
-Le bouton de connexion est aussi accessible dans l’en-tête et dans Compte. Sur le site public, il établit la session wallet/lecture pour les ordres manuels ; un guide visible explique comment lancer et ouvrir le service local. Les commandes d’automatisation locales y restent masquées. Une erreur de changement de réseau remonte dans le parcours de connexion, sans contourner les gardes. Si plusieurs extensions sont installées, OMEGA privilégie MetaMask annoncé via EIP-6963, puis le fournisseur injecté compatible.
+Le bouton de connexion est aussi accessible dans l’en-tête et dans Compte. Sur le site public, il établit la session wallet utilisée pour les lectures, les signatures manuelles et la configuration explicite du bot web. Le service Node n’est pas requis ; ses commandes HTTP ne sont utilisées que sur son origine locale. Une erreur de changement de réseau remonte dans le parcours de connexion, sans contourner les gardes. Si plusieurs extensions sont installées, OMEGA privilégie MetaMask annoncé via EIP-6963, puis le fournisseur injecté compatible.
 
 Les USDC du compte paper ne financent pas le testnet. Un compte lu n’est pas un agent autorisé ; une autorisation d’agent n’arme pas automatiquement les entrées.
 
-## Cycle de vie
+## Cycle de vie Node
 
 | Situation | Comportement implémenté |
 |---|---|
@@ -87,7 +87,7 @@ Ne pas effacer un runtime pour « débloquer » une erreur : cela efface aussi l
 
 | Symptôme | Vérification utile |
 |---|---|
-| Service non connecté sur le site public | Comportement attendu ; ouvrir l’interface locale et lancer Node |
+| Bot indisponible sur le site public | Vérifier HTTPS, Web Locks, IndexedDB et Web Crypto ; voir le guide WEB. Pour Node, ouvrir son origine locale |
 | Host refusé | Employer l’URL exacte `127.0.0.1:8766` |
 | Port occupé / service déjà actif | Identifier le processus concerné ; ne pas terminer un service utilisateur au hasard |
 | Agent non autorisé/expiré | Vérifier le réseau, le compte propriétaire et l’approbation wallet |
@@ -118,7 +118,7 @@ Le rapprochement Node refuse d’adopter une position inversée ou supérieure a
 
 ## Connexion mémorisée du service Node
 
-Pour utiliser le service Node optionnel, commencer directement dans `http://127.0.0.1:8766/#pilot`. Les permissions MetaMask et le stockage du site public sont distincts de ceux de cette origine locale. Le guide du site propose l’archive de la branche à jour de la PR #2, tant que ses changements ne sont pas fusionnés dans main.
+Pour utiliser le service Node optionnel, commencer directement dans `http://127.0.0.1:8766/#pilot`. Les permissions MetaMask et le stockage du site public sont distincts de ceux de cette origine locale. Les changements en cours sont sur la branche `codex/modern-ui-2026-10-17` de la [PR #2](https://github.com/SAMIRneo/OMEGA/pull/2) tant qu’elle n’est pas fusionnée ; choisir cette branche pour une installation de cette version.
 
 Le navigateur mémorise uniquement l’adresse publique et la préférence de reconnexion. À la prochaine visite de Bot/Compte, `eth_accounts` vérifie passivement le compte primaire déjà autorisé. Aucun popup d’accès, signature, approbation d’agent ou armement n’est déclenché par cette reprise. Si MetaMask est verrouillé, il faut le déverrouiller puis cliquer Connecter. Si le compte change, la préférence est effacée et une connexion explicite est requise. Déconnecter oublie la préférence ; cela ne révoque pas les agents ni les ordres exchange.
 
