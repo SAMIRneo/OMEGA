@@ -6,6 +6,8 @@ import {formatNumber} from './shared/format';
 const $=(id:string)=>document.getElementById(id)!;
 const exchange=lazyModule(()=>import('./exchange'));
 const local=location.origin==='http://127.0.0.1:8766';
+const accountDisclosure=$('account-disclosure') as HTMLDetailsElement;
+accountDisclosure.open=window.matchMedia('(min-width: 1024px)').matches;
 const network=window.BrowserAtelier.environment?.id??'',label=network==='testnet'?'Testnet':'Mainnet';
 let wallet:WalletView|null=null,runner:RunnerView={connected:false},loading=false,loadError='',guided=false;
 function render(){
@@ -34,9 +36,24 @@ function render(){
  const step=$('connect-step-wallet');step.dataset.complete=String(read&&!known?.error);$('connect-step-agent').dataset.complete=String(service&&!!runner.approved&&!mismatch);$('connect-step-start').dataset.complete=String(service&&!!runner.active&&!mismatch);
  $('connect-manual').textContent=known?.position||known?.openOrders?'Gérer la position ETH':'Ordre manuel';
  $('connect-next-label').textContent=mismatch?'Vérifier le compte':service?(runner.approved?'Voir les commandes':'Autoriser l’agent'):'Configurer le service';
+ const state=!read?'wallet':mismatch?'mismatch':!service?'service':runner.pending?'pending':runner.active?'active':runner.owned?'owned':!runner.approved?'authorize':'ready';
+ const guidance={
+  wallet:['Connecter votre compte','MetaMask partage votre adresse pour lire le solde et les positions.','Voir la connexion'],
+  mismatch:['Vérifier le compte du service','Le service et le wallet utilisent des comptes différents.','Vérifier le compte'],
+  service:['Relier le service OMEGA','Le compte est lu. Le pilote automatique nécessite OMEGA sur votre ordinateur.','Configurer le service'],
+  pending:['Vérifier le dernier envoi','Un ordre attend un rapprochement. Vérifiez son état avant toute nouvelle entrée.','Voir la vérification'],
+  active:['Le pilote est actif','Le service confirme son activité. Les événements sont disponibles dans Activité.','Voir l’activité'],
+  owned:['Une position est sous surveillance','Les nouvelles entrées sont arrêtées ; le service surveille la position attribuée au bot.','Voir le compte'],
+  authorize:['Autoriser l’agent de trading','Signez l’autorisation dans MetaMask. Le démarrage reste une action séparée.','Voir l’autorisation'],
+  ready:['Vérifier les réglages, puis démarrer','L’agent est autorisé. Relisez les paramètres et le consentement du réseau avant de démarrer.','Voir les commandes']
+ }[state];
+ $('next-step-title').textContent=guidance[0];$('next-step-detail').textContent=guidance[1];$('next-step-action').textContent=guidance[2]+' →';
+ $('next-step-action').dataset.target=state;($('next-step-action') as HTMLButtonElement).disabled=busy;
+ document.querySelector<HTMLElement>('.next-step')!.dataset.state=state;
+
 }
 export async function connect(){
- if(loading)return;loading=true;loadError='';render();
+ if(loading)return;accountDisclosure.open=true;loading=true;loadError='';render();
  try{await (await exchange()).connectWallet();}catch(error){loadError=walletError(error);}
  finally{loading=false;render();}
 }
@@ -56,7 +73,22 @@ $('connect-manual').addEventListener('click',()=>{
  ($('bot-tab-settings') as HTMLButtonElement).click();
  const details=document.querySelector<HTMLDetailsElement>('.execution-details')!;details.open=true;details.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});details.querySelector('summary')?.focus();
 });
+$('next-step-action').addEventListener('click',()=>{
+ const state=$('next-step-action').dataset.target;
+ if(state==='service'){($('connect-local-guide') as HTMLButtonElement).click();return;}
+ if(state==='active'){($('bot-tab-activity') as HTMLButtonElement).click();$('bot-tab-activity').focus();return;}
+ if(state==='owned'){location.hash='wallet';return;}
+ if(state==='wallet'||state==='mismatch'){
+  accountDisclosure.open=true;
+  const button=document.querySelector<HTMLButtonElement>('.connect-wallet-actions [data-wallet-connect]')!;
+  button.scrollIntoView({block:'center'});button.focus();return;
+ }
+ ($('bot-tab-overview') as HTMLButtonElement).click();
+ const target=$(state==='pending'?'runner-reconcile':state==='authorize'?'runner-authorize':network==='mainnet'&&!($('runner-mainnet') as HTMLInputElement).checked?'runner-mainnet':'runner-start');
+ target.scrollIntoView({block:'center'});target.focus();
+});
 $('connect-local-guide').addEventListener('click',()=>{
+ accountDisclosure.open=true;
  if(runner.connected&&runner.network===network){document.querySelector('.runner-panel')?.scrollIntoView({block:'start'});($(runner.approved?'runner-start':'runner-authorize') as HTMLButtonElement).focus();return;}
  const details=$('connect-service-help') as HTMLDetailsElement;details.hidden=false;details.open=true;details.scrollIntoView({block:'nearest'});
 });

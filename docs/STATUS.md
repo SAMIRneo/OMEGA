@@ -61,3 +61,9 @@ Lire AGENTS → ARCHITECTURE → DEVELOPMENT, lancer `npm ci` si nécessaire pui
 Suppression de la figure orbitale du Bot, de ses styles, contrôles et observateurs, ainsi que de l’ancien module de tore non importé et de son test devenu sans objet. La chaîne de décision redondante est retirée : le diagnostic conserve les motifs et contrôles détaillés. Les commandes, lectures des horizons, règles Daily et protections exchange sont conservées.
 
 Validation de cette passe : `npm run check` réussi (102 tests Vitest, 19 tests du moteur navigateur, builds web/Node et contrôle HTTP isolé). Aucun ordre envoyé. Le rendu visuel sur navigateur et iPhone reste non vérifié. Les deux anciens fichiers générés suivis sous dist sont retirés du suivi Git ; le build reste produit pour publication.
+
+## Interface du 17 octobre 2026
+
+Navigation et surfaces unifiées avec les polices locales et les tokens ambre/graphite. Le Bot affiche une prochaine étape issue de l’état wallet/service confirmé, avec raccourcis de navigation sans signature ni armement. Le compte se replie nativement sur petit écran et s’ouvre depuis le raccourci de connexion. Les commandes, horizons et diagnostics conservent leurs contrats.
+
+Validation : `npm run check` réussi, 103 tests Vitest et 19 tests navigateur/VM, builds typés et contrôle HTTP isolé. Le nouveau test couvre la progression wallet → service → prêt, un envoi en attente et la perte de connexion sans action exchange. Rendu graphique et iPhone physique non vérifiés dans cet environnement.
