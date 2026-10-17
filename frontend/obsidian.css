@@ -265,7 +265,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,select:focus-visible{
 #view-pilot .account-summary{display:flex;justify-content:space-between;gap:16px;cursor:pointer;padding:18px 20px;min-height:56px;font:400 14px/1.5 var(--font-body);color:var(--color-ink);list-style:none}
 #view-pilot .account-summary::-webkit-details-marker{display:none}
 #view-pilot .wallet-onboarding[open]>.account-summary{border-bottom:var(--rule)}
-#view-pilot .wallet-onboarding[open]>.account-summary>span{transform:rotate(180deg)}
+#view-pilot .wallet-onboarding[open]>.account-summary:after{transform:rotate(180deg)}
 @media(min-width:64rem){#view-pilot .wallet-onboarding:not([open]){max-height:none}}
 
 /* Intraday workspace · real session values and visible liquidity · Hallmark P4 H5 E4 S5 R5 V4 */
@@ -297,3 +297,61 @@ button:focus-visible,a:focus-visible,summary:focus-visible,select:focus-visible{
 #view-pilot .bot-instrument .risk-scale,#view-pilot .bot-instrument .mandate-tags{display:none}
 #view-pilot .command-badge[data-tone=live]{border-color:var(--color-success);color:var(--color-success)}
 @media(max-width:700px){.liquidity-summary{padding:18px 16px 8px;gap:10px}.liquidity-summary strong{font-size:15px}.liquidity-summary span{font-size:10px}.liquidity-chart{height:180px;padding:0 8px}.liquidity-caption{padding-inline:16px}#view-pilot .session-scoreboard{grid-template-columns:1fr 1fr}#view-pilot .session-scoreboard>div{padding:16px}#view-pilot .session-scoreboard>div:first-child{grid-column:1/-1}#view-pilot .session-scoreboard>div:first-child strong{font-size:32px}}
+
+/* Hallmark · connection-first Bot · single primary action · P5 H5 E4 S5 R5 V4 */
+#view-pilot .bot-workbench{display:block}
+#view-pilot .connection-hub{overflow:hidden;margin-bottom:28px;border:var(--rule);border-radius:var(--radius-panel);background:var(--color-paper-2)}
+#view-pilot .connection-hub-head{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px 24px 16px}
+#view-pilot .connection-hub-head h2{font:400 22px/1.3 var(--font-body);letter-spacing:-.035em;margin:0;color:var(--color-ink)}
+#view-pilot .connection-hub-head p{font:400 13px/1.6 var(--font-body);color:var(--color-muted);margin:6px 0 0}
+#view-pilot .connection-network-label{font:400 12px/1.5 var(--font-body);color:var(--color-accent);text-align:right}
+#view-pilot #bot-connect>.connect-network{display:flex;gap:8px;margin:0 24px 24px;max-width:400px}
+#view-pilot #bot-connect>.connect-network button{flex:1;display:grid;grid-template-columns:8px 1fr;gap:2px 8px;padding:11px 14px;min-height:58px;text-align:left}
+#view-pilot #bot-connect>.connect-network button i{grid-row:1/3;align-self:center}
+#view-pilot #bot-connect>.connect-network button strong{font-size:13px}
+#view-pilot #bot-connect>.connect-network button span{grid-column:2;font-size:11px}
+#view-pilot .connection-track{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;list-style:none;padding:0;margin:0 24px;border-block:var(--rule)}
+#view-pilot .connection-track li{display:flex;gap:12px;align-items:center;min-width:0;padding:18px 14px;border-bottom:2px solid var(--color-transparent)}
+#view-pilot .connection-track li:first-child{padding-left:0}#view-pilot .connection-track li+li{border-left:var(--rule)}
+#view-pilot .connection-track .connect-step-number{display:grid;place-items:center;width:30px;height:30px;flex:0 0 30px;border:var(--rule);border-radius:50%;font:400 13px/1 var(--font-mono);color:var(--color-muted);background:var(--color-paper-3)}
+#view-pilot .connection-track strong{font:400 14px/1.5 var(--font-body);color:var(--color-muted)}
+#view-pilot .connection-track p{font:400 11px/1.5 var(--font-body);color:var(--color-muted);margin:3px 0 0;overflow-wrap:anywhere}
+#view-pilot .connection-track [aria-current=step]{border-bottom-color:var(--color-accent)}
+#view-pilot .connection-track [aria-current=step] strong{color:var(--color-ink)}
+#view-pilot .connection-track [aria-current=step] .connect-step-number{background:var(--color-accent);color:var(--color-accent-ink);border-color:var(--color-accent)}
+#view-pilot .connection-track [data-complete=true] .connect-step-number{border-color:var(--color-success);color:var(--color-success)}
+#view-pilot .connection-hub .next-step{margin:0;padding:24px;display:flex;gap:24px;border:0;border-radius:0;background:var(--color-paper-3)}
+#view-pilot .connection-hub .next-step h2{font-size:22px}
+#view-pilot .connection-hub .next-step-label{font-size:10px;margin-bottom:5px}
+#view-pilot .connection-hub .next-step p{font-size:13px;margin-top:6px}
+#view-pilot .connection-hub .next-step .button{min-width:220px;min-height:48px;margin:0;white-space:normal;text-align:center;justify-content:center;border-color:var(--color-accent)}
+#view-pilot .connection-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;border-top:var(--rule)}
+#view-pilot #bot-connect .wallet-onboarding{position:static;max-height:none;overflow:visible;grid-column:auto;grid-row:auto;order:0;border:0;border-radius:0;background:none;margin:0}
+#view-pilot #bot-connect .connect-layout{display:block}#view-pilot #bot-connect .connect-account{padding:0 24px 20px;border:0}
+#view-pilot .connection-hub .account-summary{padding:20px 24px;min-height:62px;border:0;font-size:14px;gap:12px}
+#view-pilot .connection-hub .account-summary span{margin-left:auto;font:400 12px/1.5 var(--font-mono);color:var(--color-accent);transform:none}
+#view-pilot .account-summary:after{content:'⌄';display:block;font-size:14px;color:var(--color-muted)}
+#view-pilot #bot-connect .connect-wallet-actions .button:first-child{width:auto;flex-basis:auto;font-size:12px}
+#view-pilot #bot-connect .connect-wallet-actions .button{min-height:38px;padding:8px 10px}
+#view-pilot #bot-connect .connect-balances{grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;padding-block:14px}
+#view-pilot #bot-connect .connect-feedback{margin-top:12px;font-size:12px}
+#view-pilot #bot-connect .connect-account-links{margin-top:10px}#view-pilot #bot-connect .connect-account-links .text-link{font-size:12px}
+#view-pilot #bot-connect .connect-wallet-help summary{cursor:pointer;font-size:12px;min-height:40px;display:flex;align-items:center}
+#view-pilot #bot-connect .runner-panel{border:0;border-left:var(--rule);border-radius:0;background:none;margin:0;min-width:0}
+#view-pilot #bot-connect .runner-overview{padding:20px 24px 0;border:0;gap:10px;display:flex}
+#view-pilot #bot-connect .runner-overview h2{font-size:14px}
+#view-pilot #bot-connect .runner-status{margin:12px 24px;font-size:12px;line-height:1.6}
+#view-pilot #bot-connect .runner-actions{padding:0 24px 14px;gap:8px}
+#view-pilot #bot-connect .runner-actions .button{flex-basis:auto;min-height:38px;padding:8px 12px;font-size:12px;background:none}
+#view-pilot #bot-connect .automation-consent{margin:16px 24px;padding:14px;border:1px solid var(--color-accent);border-radius:var(--radius-control);font-size:12px;background:var(--color-paper-3);color:var(--color-ink)}
+#view-pilot .runner-connection-details,#view-pilot #bot-connect .runner-guide{padding:0 24px;border:0;background:none;font-size:12px;color:var(--color-muted)}
+#view-pilot .runner-connection-details>summary,#view-pilot #bot-connect .runner-guide>summary{cursor:pointer;min-height:38px;line-height:1.5;padding:10px 0;font-size:12px}
+#view-pilot .runner-connection-details .runner-steps{display:block;margin:0}#view-pilot .runner-connection-details .runner-step{display:grid;grid-template-columns:100px 1fr;padding:12px 0}
+#view-pilot #bot-connect .connect-service-note{margin:0;padding:12px 24px 18px;border:0;font-size:12px;background:none}
+#view-pilot #bot-connect .connect-service-note>strong{font-size:12px;font-weight:400;color:var(--color-muted)}
+#view-pilot #bot-connect .connect-service-note p{display:none}#view-pilot #bot-connect .connect-service-note .text-link{font-size:12px;min-height:38px}
+#view-pilot #bot-connect .connect-service-help{padding:0 24px;border-top:var(--rule)}
+#view-pilot #bot-connect .connect-service-help>summary{padding:15px 0;min-height:48px;font-size:12px;cursor:pointer}
+#view-pilot #bot-connect .connect-install{grid-template-columns:repeat(3,minmax(0,1fr));padding-block:8px 24px;gap:24px}
+#view-pilot #bot-connect .connect-install .eyebrow{display:none}
+@media(max-width:700px){#view-pilot .connection-hub-head{padding:20px 18px 14px;gap:12px}#view-pilot .connection-hub-head h2{font-size:20px}#view-pilot .connection-hub-head p{font-size:12px}#view-pilot .connection-network-label{font-size:11px;max-width:90px}#view-pilot #bot-connect>.connect-network{margin:0 18px 18px;max-width:none}#view-pilot .connection-track{margin-inline:18px}#view-pilot .connection-track li{display:block;padding:14px 8px}#view-pilot .connection-track .connect-step-number{margin-bottom:8px;width:26px;height:26px}#view-pilot .connection-track strong{font-size:12px}#view-pilot .connection-track p{font-size:10px;line-height:1.6}#view-pilot .connection-hub .next-step{display:block;padding:20px 18px}#view-pilot .connection-hub .next-step h2{font-size:20px}#view-pilot .connection-hub .next-step .button{width:100%;min-width:0;margin-top:16px}#view-pilot .connection-body{grid-template-columns:1fr}#view-pilot #bot-connect .runner-panel{border-left:0;border-top:var(--rule)}#view-pilot .connection-hub .account-summary{padding:18px;min-height:58px}#view-pilot #bot-connect .connect-account{padding:0 18px 18px}#view-pilot #bot-connect .runner-overview{padding:18px 18px 0}#view-pilot #bot-connect .runner-status{margin-inline:18px}#view-pilot #bot-connect .runner-actions{padding-inline:18px}#view-pilot .runner-connection-details,#view-pilot #bot-connect .runner-guide{padding-inline:18px}#view-pilot #bot-connect .connect-service-note{padding-inline:18px}#view-pilot #bot-connect .connect-service-help{padding-inline:18px}#view-pilot #bot-connect .connect-install{grid-template-columns:1fr;gap:18px}#view-pilot #bot-connect .automation-consent{margin-inline:18px}}

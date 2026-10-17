@@ -22,9 +22,9 @@ it('keeps wallet reads separate from approval and confirmed automation',async()=
  await import('./wallet-connection');const {publishWallet}=await import('./shared/wallet-store');const {publishRunner}=await import('./shared/runner-store');
  publishWallet({network:'testnet',address:'0x1111111111111111111111111111111111111111',busy:false,readAt:Date.now(),equity:1200,withdrawable:0,position:{size:-6,entry:2400},openOrders:2,message:'Compte lu',error:false});
  expect(el('connect-position').textContent).toContain('Short');expect(el('connect-position-note').hidden).toBe(false);expect(el('connect-step-wallet').dataset.complete).toBe('true');
- expect((el('connect-automation') as HTMLDetailsElement).open).toBe(true);(el('connect-automation') as HTMLDetailsElement).open=false;
+ expect(el('connect-step-agent').getAttribute('aria-current')).toBe('step');
  expect(el('connect-step-agent').dataset.complete).toBe('false');expect(fake.connect).not.toHaveBeenCalled();
- publishRunner({connected:false,approved:true,active:true});expect((el('connect-automation') as HTMLDetailsElement).open).toBe(false);expect(el('connect-step-start').dataset.complete).toBe('false');
+ publishRunner({connected:false,approved:true,active:true});expect(el('connect-step-start').dataset.complete).toBe('false');
  publishRunner({connected:true,network:'testnet',approved:true,active:false});expect(el('connect-step-agent').dataset.complete).toBe('true');expect(el('connect-step-start').dataset.complete).toBe('false');
  publishRunner({connected:true,network:'testnet',owner:'0x2222222222222222222222222222222222222222',approved:true,active:true});expect(el('connect-step-agent').dataset.complete).toBe('false');expect(el('connect-agent-state').textContent).toContain('autre compte');
  publishWallet({network:'mainnet',address:null,busy:false,readAt:0,equity:9999,withdrawable:0,position:null,openOrders:0,message:'',error:false});expect(el('connect-equity').textContent).toBe('—');
@@ -46,14 +46,33 @@ it('selects the announced MetaMask provider when another wallet owns window.ethe
  dom.dispatchEvent(new dom.CustomEvent('eip6963:announceProvider',{detail:{info:{rdns:'io.metamask'},provider:metamask}}));expect(walletProvider()).toBe(metamask);
 });
 
-it('guides the next step without signing or arming from the navigation shortcut',async()=>{
+it('connects from the primary action and never authorizes or arms just from state updates',async()=>{
  await import('./wallet-connection');const {publishWallet}=await import('./shared/wallet-store');const {publishRunner}=await import('./shared/runner-store');
- expect(el('next-step-title').textContent).toBe('Connecter votre compte');
- (el('next-step-action') as any).click();expect((el('account-disclosure') as HTMLDetailsElement).open).toBe(true);expect(fake.connect).not.toHaveBeenCalled();
+ expect(el('next-step-title').textContent).toBe('Connecter MetaMask');
+ (el('next-step-action') as any).click();await vi.dynamicImportSettled();expect((el('account-disclosure') as HTMLDetailsElement).open).toBe(true);expect(fake.connect).toHaveBeenCalledTimes(1);
  publishWallet({network:'testnet',address:'0x1111111111111111111111111111111111111111',busy:false,readAt:Date.now(),equity:1200,withdrawable:0,position:null,openOrders:0,message:'Compte lu',error:false});
- expect(el('next-step-title').textContent).toBe('Relier le service OMEGA');
+ expect(el('next-step-title').textContent).toBe('Ouvrir OMEGA local');
  (el('next-step-action') as any).click();expect((el('connect-service-help') as HTMLDetailsElement).open).toBe(true);
  publishRunner({connected:true,network:'testnet',approved:true,active:false});expect(el('next-step-action').dataset.target).toBe('ready');
  publishRunner({connected:true,network:'testnet',approved:true,pending:true});expect(el('next-step-action').dataset.target).toBe('pending');
- publishRunner({connected:false,network:'testnet',approved:true,active:true});expect(el('next-step-action').dataset.target).toBe('service');expect(fake.connect).not.toHaveBeenCalled();expect(fetch).not.toHaveBeenCalled();
+ publishRunner({connected:false,network:'testnet',approved:true,active:true});expect(el('next-step-action').dataset.target).toBe('service');expect(fake.connect).toHaveBeenCalledTimes(1);expect(fetch).not.toHaveBeenCalled();
+});
+
+it('keeps mainnet start explicit and requires the visible real-funds consent',async()=>{
+ (dom as any).BrowserAtelier.environment.id='mainnet';await import('./wallet-connection');
+ const {publishWallet}=await import('./shared/wallet-store'),{publishRunner}=await import('./shared/runner-store');
+ publishWallet({network:'mainnet',address:'0x1111111111111111111111111111111111111111',busy:false,readAt:Date.now(),equity:1000,withdrawable:1000,position:null,openOrders:0,message:'Compte lu',error:false});
+ const authorize=vi.fn(),start=vi.fn();el('runner-authorize').addEventListener('click',authorize);el('runner-start').addEventListener('click',start);
+ (el('runner-authorize') as HTMLButtonElement).disabled=false;(el('runner-start') as HTMLButtonElement).disabled=false;
+ publishRunner({connected:true,network:'mainnet',approved:false,owner:'0x1111111111111111111111111111111111111111'});
+ expect(authorize).not.toHaveBeenCalled();(el('next-step-action') as HTMLButtonElement).click();expect(authorize).toHaveBeenCalledTimes(1);
+ publishRunner({connected:true,network:'mainnet',approved:true});expect(start).not.toHaveBeenCalled();expect(el('next-step-action').textContent).toContain('Confirmer les fonds réels');
+ (el('next-step-action') as HTMLButtonElement).click();expect(start).not.toHaveBeenCalled();expect(dom.document.activeElement?.id).toBe('runner-mainnet');
+ (el('runner-mainnet') as HTMLInputElement).checked=true;el('runner-mainnet').dispatchEvent(new dom.Event('change') as unknown as Event);expect(start).not.toHaveBeenCalled();
+ (el('next-step-action') as HTMLButtonElement).click();expect(start).toHaveBeenCalledTimes(1);
+ publishRunner({connected:false,network:'mainnet',approved:true});(el('next-step-action') as HTMLButtonElement).click();expect(start).toHaveBeenCalledTimes(1);
+});
+it('disables the primary connection action while the service is busy',async()=>{
+ await import('./wallet-connection');const {publishRunner}=await import('./shared/runner-store');publishRunner({connected:true,network:'testnet',busy:true});
+ expect((el('next-step-action') as HTMLButtonElement).disabled).toBe(true);expect(el('next-step-action').textContent).toContain('Action en cours');expect(fake.connect).not.toHaveBeenCalled();
 });

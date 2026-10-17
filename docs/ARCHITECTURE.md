@@ -134,3 +134,7 @@ La surveillance de la position attribuée au bot est distincte de l’armement d
 Le ledger conserve `attemptDay`, `attemptCount` et `lastAttemptAt` et `lastExitAt` (secondes). Un ancien ledger sans compteur mais avec une date d’essai conserve une tentative consommée. Le compteur est écrit avec le pending/cloid avant l’envoi. Réconciliation et redémarrage ne le remettent pas à zéro. Le service compare le nombre de fills d’entrée du compte au compteur local et retient leur maximum ; il n’offre pas de quota global transactionnel entre logiciels indépendants.
 
 La matrice des réseaux, schémas de signature et garde-fous de concurrence est décrite dans [NETWORKS.md](NETWORKS.md).
+
+## Bloc de connexion du Bot
+
+`wallet-connection.ts` présente la progression des trois étapes à partir de wallet-store et runner-store. L’action principale reste un bouton déclenché par l’utilisateur : lecture MetaMask, ouverture du guide, autorisation ou démarrage via les commandes existantes. `runner-ui.ts` garde les contrôles effectifs d’autorisation, de consentement et d’armement ; un bouton désactivé ne peut pas être contourné par la navigation. Les états busy sont partagés pour éviter un second clic concurrent. Le compte et les diagnostics techniques utilisent des disclosures natifs ; aucun framework ajouté.
