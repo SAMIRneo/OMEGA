@@ -2,14 +2,14 @@ import {AUTHORIZATION_DAYS,agentAuthorizationName} from '../shared/authorization
 import {rememberWallet} from './shared/wallet-memory';
 import {assertEnvironment,networkConfig} from './core/networks.js';
 import {publishRunner} from './shared/runner-store';
-import {walletProvider,walletError} from './shared/wallet-provider';
+import {walletProvider,walletError,requestWalletAccount,signingChainId} from './shared/wallet-provider';
 const $=(id:string)=>document.getElementById(id)!;
 const local=location.origin==='http://127.0.0.1:8766';
 const network:Network=assertEnvironment(window.BrowserAtelier.environment).id;
 type Network='testnet'|'mainnet';
 const states:Partial<Record<Network,any>>={},verifiedAt:Partial<Record<Network,number>>={};
 const connected:Partial<Record<Network,boolean>>={};
-let token='',current:any=null,busy=false;
+let token='',current:any=null,busy=false,actionError='';
 const message=(text:string)=>{$('runner-status').textContent=text;};
 $('runner-mainnet-row').hidden=network!=='mainnet';
 (document.querySelector('.runner-actions') as HTMLElement).hidden=false;
@@ -39,10 +39,10 @@ function render(){
   if(id==='runner-reconcile')button.disabled||=!state?.pending||state?.active;
  }
  for(const id of ['runner-authorize','runner-start','runner-stop','runner-reconcile']){const button=$(id) as HTMLButtonElement;button.hidden=id==='runner-authorize'||id==='runner-start'?true:id==='runner-stop'?!state?.active:!state?.pending;}
- publishRunner({...state,busy:busy||!!state?.busy,connected:!!state&&reachable});
+ publishRunner({...state,actionError,busy:busy||!!state?.busy,connected:!!state&&reachable});
  const complete=!!state?.owner&&(['testnet','mainnet'] as const).every(n=>connected[n]&&states[n]?.approved&&states[n]?.owner?.toLowerCase()===state.owner.toLowerCase());
  $('runner-setup').hidden=false;
- for(const n of ['testnet','mainnet'] as const){const item=states[n],same=!!item?.owner&&(!state?.owner||item.owner.toLowerCase()===state.owner.toLowerCase());const el=$('runner-network-'+n);el.textContent=(n==='testnet'?'Testnet':'Mainnet')+' · '+(!connected[n]||!item?'à vérifier':!item.owner?'à configurer':!same?'compte à relier':item.approved?'autorisé'+(item.approvedUntil?' jusqu’au '+new Date(item.approvedUntil).toLocaleDateString('fr-FR'):''):'à autoriser');el.dataset.ready=String(connected[n]&&same&&!!item?.approved);}
+ for(const n of ['testnet','mainnet'] as const){const item=states[n],same=!!item?.owner&&(!state?.owner||item.owner.toLowerCase()===state.owner.toLowerCase());const button=$('runner-authorize-'+n) as HTMLButtonElement;button.disabled=busy||!!item?.busy||!!item?.active||!!item?.owned||!!item?.pending;button.textContent=item?.approved?'Vérifier '+(n==='testnet'?'Testnet':'Mainnet'):'Autoriser '+(n==='testnet'?'Testnet':'Mainnet');const el=$('runner-network-'+n);el.textContent=(n==='testnet'?'Testnet':'Mainnet')+' · '+(!connected[n]||!item?'à vérifier':!item.owner?'à configurer':!same?'compte à relier':item.approved?'autorisé'+(item.approvedUntil?' jusqu’au '+new Date(item.approvedUntil).toLocaleDateString('fr-FR'):''):'à autoriser');el.dataset.ready=String(connected[n]&&same&&!!item?.approved);}
  const both=$('runner-both-networks') as HTMLInputElement;both.disabled=busy||!!state?.busy;both.closest('label')!.hidden=complete;
  const setup=$('runner-setup-networks') as HTMLButtonElement;setup.hidden=complete||!state?.approved;setup.disabled=($('runner-authorize') as HTMLButtonElement).disabled;
  const log=$('runner-log');log.replaceChildren(...(state?.events??[]).slice(-15).reverse().map((event:any)=>{const row=document.createElement('p');row.textContent=new Date(event.at).toLocaleString('fr-FR')+' · '+event.message;return row;}));
@@ -57,18 +57,18 @@ async function refresh(){
    record(target,state);
   }catch(error){connected[target]=false;failures.push(target.toUpperCase()+' : '+walletError(error));render();}
  }
- if(failures.length)message(failures.join(' · '));else if(current?.reason)message(current.reason);
+ if(actionError)message(actionError);else if(failures.length)message(failures.join(' · '));else if(current?.reason)message(current.reason);
 }
-async function run(fn:()=>Promise<void>){if(busy)return;busy=true;render();try{await fn();}catch(error){message(walletError(error));}finally{busy=false;render();}}
+async function run(fn:()=>Promise<void>){if(busy)return;busy=true;render();try{await fn();}catch(error){actionError=walletError(error);message(actionError);}finally{busy=false;render();}}
 $('runner-refresh').addEventListener('click',()=>run(refresh));
 $('runner-mainnet').addEventListener('change',render);
 $('runner-setup-networks').addEventListener('click',()=>{const button=$('runner-authorize') as HTMLButtonElement;if(!button.disabled)button.click();});
-$('runner-authorize').addEventListener('click',()=>run(async()=>{
+async function authorizeNetworks(targets:Network[]){return run(async()=>{
+ actionError='';
  const provider=walletProvider();if(!provider)throw Error('Ouvre cette page dans un navigateur avec MetaMask ou Rabby.');
- const existing=await provider.request({method:'eth_accounts'}),[rawAddress]=existing.length?existing:await provider.request({method:'eth_requestAccounts'});
+ const rawAddress=await requestWalletAccount(provider);
  const address=rawAddress?.toLowerCase();if(!/^0x[0-9a-fA-F]{40}$/.test(address??'')||/^0x0{40}$/.test(address))throw Error('Aucun compte wallet autorisé.');
  if(!navigator.locks)throw Error('Verrouillage entre onglets requis pour autoriser un agent.');
- const targets:Network[]=($('runner-both-networks') as HTMLInputElement).checked?['testnet','mainnet']:[network];
  for(const target of targets)await navigator.locks.request('omega-'+target+'-agent-setup',()=>navigator.locks.request('omega-'+target+'-sign-'+address,async()=>{
   let state=await request('status',undefined,target);
   if(state.owner?.toLowerCase()===address){state=await request('verify',{},target);record(target,state);if(state.approved)return;}
@@ -79,7 +79,7 @@ $('runner-authorize').addEventListener('click',()=>run(async()=>{
   const expectedAgent=state.agent;
   const {createWalletClient,custom}=await import('viem');
   const {ExchangeClient,HttpTransport}=await import('@nktkas/hyperliquid');
-  const signer=new ExchangeClient({wallet:createWalletClient({account:address as `0x${string}`,transport:custom(provider)}),transport:new HttpTransport(networkConfig(target))});
+  const signer=new ExchangeClient({wallet:createWalletClient({account:address as `0x${string}`,transport:custom(provider)}),transport:new HttpTransport(networkConfig(target)),signatureChainId:()=>signingChainId(provider)});
   const selected=await provider.request({method:'eth_accounts'});if(selected[0]?.toLowerCase()!==address)throw Error('Compte actif modifié avant autorisation.');
   message('Signature '+target.toUpperCase()+' : autoriser OMEGA pour '+AUTHORIZATION_DAYS+' jours. Aucun démarrage du bot.');
   await signer.approveAgent({agentAddress:expectedAgent,agentName:agentAuthorizationName(local?'local':'web',target)});
@@ -88,9 +88,12 @@ $('runner-authorize').addEventListener('click',()=>run(async()=>{
  }));
  const remembered=rememberWallet(address);
  await window.BrowserAtelier.setAddress(address,false);
- message(!remembered?'Agents configurés, mais mémorisation du compte indisponible sur ce navigateur. Le bot reste à l’arrêt.':targets.length===2?'Testnet et Mainnet configurés. Les autorisations valides seront reprises sans signature. Choisis ton réseau, puis démarre explicitement le bot.':'Agent autorisé sur '+network.toUpperCase()+'. Le bot reste à l’arrêt.');
-}));
+ message(!remembered?'Agents configurés, mais mémorisation du compte indisponible sur ce navigateur. Le bot reste à l’arrêt.':targets.length===2?'Testnet et Mainnet configurés. Les autorisations valides seront reprises sans signature. Choisis ton réseau, puis démarre explicitement le bot.':'Agent autorisé sur '+targets[0].toUpperCase()+'. Le bot reste à l’arrêt.');
+});}
+$('runner-authorize').addEventListener('click',()=>void authorizeNetworks(($('runner-both-networks') as HTMLInputElement).checked?['testnet','mainnet']:[network]));
+for(const n of ['testnet','mainnet'] as const)$('runner-authorize-'+n).addEventListener('click',()=>void authorizeNetworks([n]));
 $('runner-start').addEventListener('click',()=>run(async()=>{
+ actionError='';
  const settings={dailyTarget:Number(($('daily-target') as HTMLSelectElement).value),profile:($('strategy-profile') as HTMLSelectElement).value,leverage:Number(($('leverage-cap') as HTMLSelectElement).value)};
  const consent=network==='mainnet'&&($('runner-mainnet') as HTMLInputElement).checked?'MAINNET':undefined;
  current=await request('arm',{settings,consent});($('runner-mainnet') as HTMLInputElement).checked=false;message(current.reason);

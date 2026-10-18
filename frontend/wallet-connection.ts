@@ -7,6 +7,7 @@ import {lazyModule} from './shared/lazy';
 import {formatNumber} from './shared/format';
 import {browserReadiness,type Readiness} from './web/readiness';
 const $=(id:string)=>document.getElementById(id)!;
+const mobile=lazyModule(()=>import('./shared/mobile-wallet'));
 const exchange=lazyModule(()=>import('./exchange'));
 const local=location.origin==='http://127.0.0.1:8766';
 const accountDisclosure=$('account-disclosure') as HTMLDetailsElement;
@@ -24,7 +25,7 @@ function render(){
   const rows:[string,boolean,string][]=[['secure',readiness.secure,'Connexion sécurisée'],['wallet',!!walletProvider(),'MetaMask / wallet compatible'],['vault',readiness.vault&&readiness.crypto,'Coffre chiffré · écriture vérifiée'],['memory',readiness.memory,'Mémorisation du compte'],['locks',readiness.locks,'Exclusivité entre onglets']];
   for(const [id,ok,label] of rows){const el=$('connect-check-'+id);el.textContent=(ok?'✓ ':'À vérifier · ')+label;el.dataset.ready=String(ok);}
   const ready=readiness.secure&&readiness.vault&&readiness.crypto&&readiness.locks;
-  $('connect-device-status').textContent=ready?(walletProvider()?'Cet appareil est compatible avec le bot web.':'Stockage prêt · ouvre OMEGA avec MetaMask pour continuer.'):'Le bot web reste bloqué tant que les contrôles requis ne passent pas.';
+  $('connect-device-status').textContent=ready?(walletProvider()?'Cet appareil est compatible avec le bot web.':'Stockage prêt · utilise le bouton téléphone / QR ou une extension MetaMask.'):'Le bot web reste bloqué tant que les contrôles requis ne passent pas.';
   $('connect-storage-note').textContent=readiness.error||(!readiness.vault?'Le coffre n’a pas pu être vérifié.':readiness.retained===true?'Stockage persistant accordé par le navigateur.':'Le navigateur peut effacer son stockage. Garde le même profil et n’efface pas les données du site pour retrouver tes agents.');
  }
  const known=wallet?.network===network?wallet:null,read=!!known?.readAt,connected=!!known?.address,busy=loading||!!known?.busy||!!(runner.connected&&runner.network===network&&runner.busy),service=runner.connected&&runner.network===network,mismatch=!!(service&&known?.address&&runner.owner&&known.address.toLowerCase()!==runner.owner.toLowerCase());
@@ -37,7 +38,8 @@ function render(){
  $('connection-network-label').textContent=label+(network==='mainnet'?' · fonds réels':' · fonds de test');
  document.querySelector<HTMLElement>('.connect-balances')!.hidden=!read;
  $('connect-read-time').hidden=!read;$('connect-address').hidden=!connected;
- (document.querySelector('.connect-wallet-actions [data-wallet-connect]') as HTMLButtonElement).hidden=!connected;
+ (document.querySelector('.connect-wallet-actions [data-wallet-connect]') as HTMLButtonElement).hidden=false;
+ ($('connect-mobile') as HTMLButtonElement).disabled=busy;
  $('connect-wallet-state').textContent=busy?'Action en cours…':known?.error?'Connexion à vérifier':read?'Compte Hyperliquid lu':connected?'Wallet autorisé · lecture à terminer':'Wallet non connecté';
  $('connect-equity').textContent=read&&known?.equity!==null?formatNumber(known!.equity!,2)+' USDC':'—';
  $('connect-position').textContent=read?(known?.position?(known.position.size<0?'Short':'Long')+' · '+formatNumber(Math.abs(known.position.size),4)+' ETH':'Aucune position ETH'):'Connecte MetaMask pour consulter';
@@ -56,7 +58,7 @@ function render(){
  const step=$('connect-step-wallet');step.dataset.complete=String(read&&!known?.error);$('connect-step-agent').dataset.complete=String(service&&!!runner.approved&&!mismatch);$('connect-step-start').dataset.complete=String(service&&!!runner.active&&!mismatch);
  $('connect-manual').textContent=known?.position||known?.openOrders?'Gérer la position ETH':'Ordre manuel';
  $('connect-next-label').textContent=mismatch?'Vérifier le compte':service?(runner.approved?'Voir les commandes':'Autoriser l’agent'):'Configurer le service';
- const state=mismatch?'mismatch':service&&runner.active?'active':service&&runner.pending?'pending':!read||known?.error||loadError?'wallet':!service?'service':runner.owned?'owned':!runner.approved?'authorize':'ready';
+ const state=mismatch?'mismatch':service&&runner.active?'active':service&&runner.pending?'pending':!read||known?.error||loadError?'wallet':!service?'service':runner.owned?'owned':!runner.approved?'authorize':known?.equity!==null&&Number(known?.equity)<=0?'funds':'ready';
  const guidance={
   wallet:rememberedWallet()?['Reprendre mon compte','Le compte et les agents sont mémorisés. Déverrouille MetaMask ; aucune nouvelle autorisation si les agents sont valides.','Reprendre MetaMask']:['Relier mon compte','Une connexion MetaMask, puis une autorisation pour chaque réseau. Le compte sera mémorisé sur cet appareil.','Connecter MetaMask'],
   mismatch:['Vérifier le compte du service','Le service et le wallet utilisent des comptes différents.','Vérifier le compte'],
@@ -65,11 +67,12 @@ function render(){
   active:['Le pilote est actif','Le service confirme son activité. Les événements sont disponibles dans Activité.','Voir l’activité'],
   owned:['Une position est sous surveillance','Les nouvelles entrées sont arrêtées ; le service surveille la position attribuée au bot.','Voir le compte'],
   authorize:['Autoriser le bot','Connexion mémorisée · '+AUTHORIZATION_DAYS+' jours maximum, révocable. Une signature par réseau manquant.','Configurer dans MetaMask'],
+  funds:['Compte à approvisionner','Aucun capital perpétuel disponible sur '+label+'. Vérifie les fonds de ce réseau dans Hyperliquid, puis actualise le compte.','Actualiser mon solde'],
   ready:['Le bot est prêt','Vérifie les réglages. Le démarrage est une action séparée.','Démarrer le bot']
  }[state];
- $('next-step-title').textContent=guidance[0];$('next-step-detail').textContent=guidance[1];$('next-step-action').textContent=guidance[2]+' →';
+ $('next-step-title').textContent=guidance[0];$('next-step-detail').textContent=loadError||known?.error&&known.message||runner.actionError||guidance[1];$('next-step-action').textContent=guidance[2]+' →';
  const consentNeeded=state==='ready'&&network==='mainnet'&&!($('runner-mainnet') as HTMLInputElement).checked;
- if(consentNeeded){$('next-step-detail').textContent='Confirme l’utilisation de fonds réels avant de démarrer.';$('next-step-action').textContent='Confirmer les fonds réels →';}
+ if(consentNeeded&&!runner.actionError){$('next-step-detail').textContent='Confirme l’utilisation de fonds réels avant de démarrer.';$('next-step-action').textContent='Confirmer les fonds réels →';}
  if(busy)$('next-step-action').textContent='Action en cours…';
  $('next-step-action').setAttribute('aria-busy',String(busy));
  $('next-step-action').dataset.target=state;($('next-step-action') as HTMLButtonElement).disabled=busy;
@@ -80,9 +83,11 @@ function render(){
 }
 export async function connect(){
  if(loading)return;accountDisclosure.open=true;loading=true;loadError='';render();
- try{await (await exchange()).connectWallet();}catch(error){loadError=walletError(error);}
+ try{if(!walletProvider())await (await mobile()).connectMobileWallet();await (await exchange()).connectWallet();}catch(error){loadError=walletError(error);}
  finally{loading=false;render();}
 }
+$('connect-mobile').addEventListener('click',async()=>{if(loading)return;loading=true;loadError='';accountDisclosure.open=true;render();try{await (await mobile()).connectMobileWallet();loading=false;await connect();}catch(error){loadError=walletError(error);}finally{loading=false;render();}});
+window.addEventListener('omega-wallet-provider',render);
 $('runner-mainnet').addEventListener('change',render);
 $('connect-device-check').addEventListener('click',()=>void checkDevice());
 window.addEventListener('eip6963:announceProvider',()=>{queueMicrotask(render);});
@@ -109,6 +114,7 @@ $('next-step-action').addEventListener('click',()=>{
  if(state==='active'){($('bot-tab-activity') as HTMLButtonElement).click();$('bot-tab-activity').focus();return;}
  if(state==='owned'){location.hash='wallet';return;}
  if(state==='wallet'){void connect();return;}
+ if(state==='funds'){($('connect-refresh') as HTMLButtonElement).click();accountDisclosure.open=true;return;}
  if(state==='mismatch'){accountDisclosure.open=true;const button=document.querySelector<HTMLButtonElement>('.connect-wallet-actions [data-wallet-connect]')!;button.scrollIntoView({block:'center'});button.focus();return;}
  if(state==='authorize'){const button=$('runner-authorize') as HTMLButtonElement;if(!button.disabled)button.click();return;}
  if(state==='ready'){

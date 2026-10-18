@@ -65,6 +65,10 @@ Le service Node reste une option pour une exécution indépendante de l’onglet
 
 ## Validation
 
+La connexion mobile utilise le SDK MetaMask Connect officiel chargé seulement après une action utilisateur. La fenêtre QR native OMEGA est annulable au clavier et ne déclenche aucune signature. Le mode web ne devient actif qu’après autorisation du réseau puis démarrage explicite. L’action principale autorise le réseau sélectionné par défaut ; la configuration des deux réseaux ensemble est optionnelle. Chaque réseau dispose de son bouton d’autorisation ; un réseau indisponible n’impose pas de reconfigurer l’autre. Une erreur de lancement reste visible pendant les rafraîchissements.
+
+Une lecture secondaire indisponible n’empêche plus d’afficher le propriétaire et le solde perpétuel si la lecture principale réussit. Les ordres et historiques sont alors signalés indisponibles et les opérations manuelles exigent une lecture complète avant envoi. Un solde nul n’est pas présenté comme un bot prêt à démarrer.
+
 Tests du véritable code AES-GCM avec IndexedDB simulé : non-extraction de la clé, réouverture, corruption, mauvais réseau, écritures concurrentes/périmées et transaction échouée. Tests du moteur web avec transports simulés : isolation, consentement Mainnet, absence d’entrée à l’armement, checkpoint avant envoi, interruption tardive, cycle de page et compte modifié. Signatures et noms d’agents validés hors ligne avec le SDK réel sur les deux réseaux.
 
 Aucune permission MetaMask réelle, autorisation d’agent financé ou exécution sur compte financé n’a servi à ces tests. La QA graphique du parcours sans wallet a été réalisée ; le parcours signé avec l’extension reste à réaliser ; les tests de logique ne les remplacent pas. Voir [STATUS.md](STATUS.md).

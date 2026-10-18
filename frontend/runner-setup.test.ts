@@ -10,7 +10,7 @@ const el=(id:string)=>dom.document.getElementById(id)!;
 async function settle(){await vi.dynamicImportSettled();for(let i=0;i<8;i++)await new Promise(r=>setTimeout(r,0));}
 beforeEach(()=>{
  vi.resetModules();fake.signatures=[];fake.rejectMain=false;fake.unavailableTest=false;calls=[];restarted=false;
- dom=new Window({url:'http://127.0.0.1:8766/#pilot'});dom.document.write(readFileSync(new URL('./index.html',import.meta.url),'utf8'));
+ dom=new Window({url:'http://127.0.0.1:8766/#pilot'});dom.document.write(readFileSync(new URL('./index.html',import.meta.url),'utf8'));(dom.document.getElementById('runner-both-networks') as any).checked=true;
  states=Object.fromEntries(['testnet','mainnet'].map((n,i)=>[n,{network:n,agent:'0x'+String(i+2).repeat(40),owner:null,approved:false,active:false,busy:false,events:[],reason:'À l’arrêt.'}]));
  permission=vi.fn(async()=>[owner]);(dom as any).ethereum={request:permission};(dom as any).BrowserAtelier={environment:{id:'testnet'},setAddress:vi.fn()};
  vi.stubGlobal('window',dom);vi.stubGlobal('document',dom.document);vi.stubGlobal('location',dom.location);vi.stubGlobal('setInterval',vi.fn());
@@ -29,7 +29,7 @@ it('configures both networks once, then reuses verified agents without rotating 
  await import('./runner-ui');await settle();(el('runner-authorize') as any).click();await settle();
  expect(fake.signatures.map(x=>x.network)).toEqual(['testnet','mainnet']);expect(calls.filter(x=>x.path.includes('/configure'))).toHaveLength(2);
  expect(fake.signatures.every(x=>Number(x.agentName.split('valid_until ')[1])>Date.now()+179*86400000)).toBe(true);
- expect(permission.mock.calls.every(x=>x[0].method==='eth_accounts')).toBe(true);expect(calls.some(x=>x.path.includes('/arm'))).toBe(false);
+ expect(permission.mock.calls[0][0].method).toBe('eth_requestAccounts');expect(calls.some(x=>x.path.includes('/arm'))).toBe(false);
  (el('runner-authorize') as any).click();await settle();expect(fake.signatures).toHaveLength(2);expect(calls.filter(x=>x.path.includes('/configure'))).toHaveLength(2);
  expect(el('runner-network-mainnet').textContent).toContain('autorisé jusqu’au');
 });
@@ -59,4 +59,15 @@ it('does not disconnect the selected mainnet runtime when only testnet verificat
  await import('./runner-ui');await settle();expect(el('runner-service').textContent).toContain('Mode web · MAINNET');expect(el('runner-network-testnet').textContent).toContain('à vérifier');
  (el('runner-mainnet') as any).checked=true;el('runner-mainnet').dispatchEvent(new dom.Event('change'));expect((el('runner-start') as any).disabled).toBe(false);
  expect(fake.signatures).toHaveLength(0);expect(calls.some(x=>x.path.includes('/arm'))).toBe(false);
+});
+it('authorizes mainnet independently when testnet is unavailable',async()=>{
+ dom.location.href='https://omega.test/#pilot';fake.unavailableTest=true;
+ await import('./runner-ui');await settle();(el('runner-authorize-mainnet') as any).click();await settle();
+ expect(fake.signatures.map(x=>x.network)).toEqual(['mainnet']);expect(states.mainnet.approved).toBe(true);
+ expect(calls.some(x=>x.path.includes('/arm'))).toBe(false);
+});
+it('keeps an authorization error visible after a background refresh',async()=>{
+ await import('./runner-ui');await settle();fake.rejectMain=true;(el('runner-authorize-mainnet') as any).click();await settle();
+ const error=el('runner-status').textContent;expect(error).toContain('refusée');
+ (el('runner-refresh') as any).click();await settle();expect(el('runner-status').textContent).toBe(error);
 });

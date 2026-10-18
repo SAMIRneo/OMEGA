@@ -1,12 +1,12 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {Window} from 'happy-dom';
 import {readFileSync} from 'node:fs';
-const fake=vi.hoisted(()=>({network:'testnet',calls:[] as any[],today:[] as any[],open:[] as any[],reject:false,partial:false,accounts:['0x1111111111111111111111111111111111111111']}));
+const fake=vi.hoisted(()=>({network:'testnet',calls:[] as any[],today:[] as any[],open:[] as any[],reject:false,partial:false,readFailure:false,accounts:['0x1111111111111111111111111111111111111111']}));
 vi.mock('@nktkas/hyperliquid',()=>({
  HttpTransport:class {isTestnet:boolean;constructor(o:any){this.isTestnet=o.isTestnet;fake.calls.push(['transport',o]);}},
  InfoClient:class {
   async clearinghouseState(){return {marginSummary:{accountValue:'1000'},withdrawable:'1000',assetPositions:[]};}
-  async frontendOpenOrders(){return fake.open;}
+  async frontendOpenOrders(){if(fake.readFailure)throw Error('Orders unavailable');return fake.open;}
   async userFills(){return [];}
   async userFillsByTime(){return fake.today;}
   async meta(){return {universe:[...Array.from({length:fake.network==='mainnet'?2:1},(_,i)=>({name:'OTHER'+i,szDecimals:2,maxLeverage:10})),{name:'ETH',szDecimals:4,maxLeverage:20}]};}
@@ -33,7 +33,7 @@ async function start(network='testnet'){
  return form;
 }
 beforeEach(()=>{
- vi.resetModules();fake.calls=[];fake.today=[];fake.open=[];fake.reject=false;fake.partial=false;fake.accounts=['0x1111111111111111111111111111111111111111'];
+ vi.resetModules();fake.calls=[];fake.today=[];fake.open=[];fake.reject=false;fake.partial=false;fake.readFailure=false;fake.accounts=['0x1111111111111111111111111111111111111111'];
  dom=new Window({url:'https://omega.test/'});dom.document.write(readFileSync(new URL('./index.html',import.meta.url),'utf8'));
  vi.stubGlobal('window',dom);vi.stubGlobal('document',dom.document);vi.stubGlobal('localStorage',dom.localStorage);vi.stubGlobal('navigator',{locks:{request:async(_name:string,fn:()=>unknown)=>fn()}});
 });
@@ -168,4 +168,14 @@ it('invalidates account reads on provider disconnect while retaining the remembe
 it('reports an unsaved account preference rather than claiming successful persistence',async()=>{
  vi.spyOn(dom.localStorage,'setItem').mockImplementation(()=>{throw Error('blocked')});await start();
  expect(el('testnet-action-status').textContent).toContain('mémorisation indisponible');expect(fake.calls.some(x=>x[0]==='order')).toBe(false);
+});
+it('connects a readable owner when secondary reads fail, but blocks an order until all required reads recover',async()=>{
+ fake.readFailure=true;const form=await start();
+ expect(el('testnet-wallet').textContent).toBe(fake.accounts[0]);
+ expect(el('testnet-balance').textContent).toContain('1');expect(el('testnet-orders').textContent).toContain('indisponible');
+ expect(window.ExchangeSnapshot!({} as any)).toBeNull();
+ form.dispatchEvent(new dom.Event('submit',{cancelable:true}));await settle();
+ expect(fake.calls.some(x=>x[0]==='order'||x[0]==='leverage')).toBe(false);
+ fake.readFailure=false;await (await import('./exchange')).refreshWallet();
+ expect(el('testnet-orders').textContent).toContain('Aucun ordre');
 });

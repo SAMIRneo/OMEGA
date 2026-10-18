@@ -2,6 +2,14 @@ import {agentAuthorizationName,AUTHORIZATION_DAYS} from '../../shared/authorizat
 import {it,expect} from 'vitest';
 import {ExchangeClient,HttpTransport} from '@nktkas/hyperliquid';
 import {exchangePlan,type TestnetPlanInput} from './testnet-plan';
+it.each(['testnet','mainnet'] as const)('signs %s approval using the actual EIP1193 wallet chain independently of the Hyperliquid network',async network=>{
+ const {createWalletClient,custom}=await import('viem');
+ const signed:any[]=[],sent:any[]=[];
+ const provider={request:async({method,params}:any)=>{if(method==='eth_accounts')return ['0x1111111111111111111111111111111111111111'];if(method==='eth_chainId')return '0xa4b1';if(method==='eth_signTypedData_v4'){signed.push(JSON.parse(params[1]));return '0x'+'11'.repeat(32)+'22'.repeat(32)+'1b';}throw Error(method);}};
+ const client=new ExchangeClient({wallet:createWalletClient({account:'0x1111111111111111111111111111111111111111',transport:custom(provider as any)}),signatureChainId:async()=>await provider.request({method:'eth_chainId'}) as `0x${string}`,transport:{isTestnet:network==='testnet',async request<T>(_endpoint:string,payload:any){sent.push(payload);return {status:'ok',response:{type:'default'}} as T;}}});
+ await client.approveAgent({agentAddress:'0x2222222222222222222222222222222222222222',agentName:'OMEGA-'+network});
+ expect(sent[0].action.signatureChainId).toBe('0xa4b1');expect(sent[0].action.hyperliquidChain).toBe(network==='testnet'?'Testnet':'Mainnet');expect(Number(signed[0].domain.chainId)).toBe(42161);
+});
 it.each(['testnet','mainnet'] as const)('SDK signs %s L1 actions with the correct source, expiry and IOC bracket fields',async(network)=>{
  const signatures:unknown[]=[],requests:Array<{endpoint:string;payload:any}>=[];
  // Non-secret signature fixture, never sent to an exchange.

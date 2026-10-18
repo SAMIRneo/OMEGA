@@ -3,6 +3,7 @@ import {Window} from 'happy-dom';
 import {readFileSync} from 'node:fs';
 const fake=vi.hoisted(()=>({connect:vi.fn(),refresh:vi.fn(),disconnect:vi.fn(),restore:vi.fn()}));
 vi.mock('./exchange',()=>({connectWallet:fake.connect,refreshWallet:fake.refresh,disconnectWallet:fake.disconnect,restoreWallet:fake.restore}));
+vi.mock('./shared/mobile-wallet',()=>({connectMobileWallet:vi.fn(async()=>{})}));
 let dom:Window;
 const el=(id:string)=>dom.document.getElementById(id)! as unknown as HTMLElement;
 beforeEach(()=>{
@@ -17,6 +18,12 @@ it('offers a visible wallet entry without probing localhost or requesting wallet
  expect(el('connect-wallet-state').textContent).toBe('Wallet non connecté');expect(el('connect-wallet-help').hidden).toBe(false);
  expect(el('connect-service-state').textContent).toContain('Mode web');expect(el('connect-service-help').hidden).toBe(true);
  expect(el('wallet-short')).not.toBeNull();expect(dom.document.querySelector('[data-connect-network="testnet"]')?.getAttribute('aria-pressed')).toBe('true');
+});
+it('does not present an unfunded perpetual account as ready to start',async()=>{
+ await import('./wallet-connection');const {publishWallet}=await import('./shared/wallet-store');const {publishRunner}=await import('./shared/runner-store');
+ publishWallet({network:'testnet',address:'0x1111111111111111111111111111111111111111',busy:false,readAt:Date.now(),equity:0,withdrawable:0,position:null,openOrders:0,message:'Compte lu',error:false});
+ publishRunner({network:'testnet',connected:true,approved:true,active:false});
+ expect(el('next-step-title').textContent).toBe('Compte à approvisionner');expect(el('next-step-action').dataset.target).toBe('funds');
 });
 it('keeps wallet reads separate from approval and confirmed automation',async()=>{
  await import('./wallet-connection');const {publishWallet}=await import('./shared/wallet-store');const {publishRunner}=await import('./shared/runner-store');

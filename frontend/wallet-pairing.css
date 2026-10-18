@@ -1,0 +1,18 @@
+.wallet-pairing{width:min(440px,calc(100vw - 32px));box-sizing:border-box;border:var(--rule);border-radius:20px;padding:28px;background:var(--panel);color:var(--text);box-shadow:0 20px 70px #0005;overflow-wrap:anywhere}
+.wallet-pairing::backdrop{background:#081828b3}
+.wallet-pairing h2{font:500 24px/1.25 var(--font-body);margin:0 0 16px}
+.wallet-pairing p{font-size:14px;line-height:1.7;color:var(--muted)}
+.wallet-pairing .button{width:100%;min-height:48px;margin-top:12px}
+.wallet-pairing-qr{display:flex;justify-content:center;padding:12px;background:#fff;border-radius:12px;min-height:240px}
+.wallet-pairing-qr svg{width:min(240px,100%);height:auto}
+.wallet-pairing .micro{font-size:12px}
+
+.runner-network-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.network-authorization{display:flex;flex-direction:column;gap:12px;min-width:0;padding:16px;border:var(--rule);background:var(--color-paper-3);border-radius:12px}
+.network-authorization span{line-height:1.6;overflow-wrap:anywhere;color:var(--color-ink)}
+.network-authorization .button{min-height:44px;white-space:normal}
+.network-authorization a{font-size:12px;line-height:1.6;color:var(--color-accent);text-decoration:underline;text-underline-offset:3px}
+#view-pilot .runner-status{overflow-wrap:anywhere;line-height:1.7}
+#view-pilot .connect-wallet-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+#view-pilot .connect-wallet-actions .button{white-space:normal;line-height:1.5}
+@media(max-width:600px){.runner-network-summary{grid-template-columns:1fr}#view-pilot .connect-wallet-actions{grid-template-columns:1fr}}

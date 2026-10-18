@@ -2,3 +2,4 @@
 @import './layout.css' layer(base);
 @import './obsidian.css' layer(legacy);
 @import './studio.css';
+@import './wallet-pairing.css';

@@ -10,7 +10,7 @@ let dom:Window;
 const owner='0x1111111111111111111111111111111111111111';
 beforeEach(()=>{
  vi.resetModules();fake.signatures=[];fake.requests=[];fake.refuseMainnet=false;fake.states={testnet:{network:'testnet',approved:false,active:false},mainnet:{network:'mainnet',approved:false,active:false}};
- dom=new Window({url:'https://omega.test/#pilot'});dom.document.write(readFileSync(new URL('./index.html',import.meta.url),'utf8'));(dom as any).BrowserAtelier={environment:{id:'testnet'},setAddress:vi.fn()};(dom as any).ethereum={request:vi.fn(async()=>[owner])};
+ dom=new Window({url:'https://omega.test/#pilot'});dom.document.write(readFileSync(new URL('./index.html',import.meta.url),'utf8'));(dom.document.getElementById('runner-both-networks') as any).checked=true;(dom as any).BrowserAtelier={environment:{id:'testnet'},setAddress:vi.fn()};(dom as any).ethereum={request:vi.fn(async()=>[owner])};
  vi.stubGlobal('window',dom);vi.stubGlobal('document',dom.document);vi.stubGlobal('location',dom.location);vi.stubGlobal('navigator',{locks:{request:async(_name:string,fn:any)=>fn()}});vi.stubGlobal('setInterval',vi.fn());
 });
 afterEach(async()=>{await dom.happyDOM.abort();vi.unstubAllGlobals();});
