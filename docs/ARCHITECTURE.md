@@ -85,7 +85,7 @@ Les calculs Daily et réseaux de `frontend/core/` sont purs et importables par s
 | [start.ps1](../start.ps1) | Lanceur Windows du serveur Python |
 | [sync_docs.py](../sync_docs.py) | Téléchargement facultatif de documentation officielle vers un dossier ignoré |
 
-Le dossier `docs/archive/` archive des textes ; il ne déplace pas ces modules de compatibilité ni leurs imports.
+Ces modules de compatibilité restent utilisés ; leur présence ne constitue pas une seconde version du produit.
 
 ## Chargement et affichage
 

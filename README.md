@@ -1,6 +1,6 @@
 # OMEGA — ETH Intelligence
 
-Un terminal ETH/Hyperliquid, une stratégie Daily et un pilote à signature déléguée utilisable depuis le lien. Interface sombre, graphique financier, profondeur cumulée, recherche historique et suivi du compte.
+Un terminal ETH/Hyperliquid, une stratégie Daily et un pilote à signature déléguée utilisable depuis le lien. Interface Copper Studio graphite/cuivre, graphique financier, profondeur cumulée, recherche historique et suivi du compte.
 
 **[Ouvrir OMEGA](https://omega.kairos-labspro.chatgpt.site) · [Dépôt GitHub](https://github.com/SAMIRneo/OMEGA)**
 
@@ -67,7 +67,7 @@ Les détails et différences entre les modes sont dans [STRATEGY.md](docs/STRATE
 | [runner/](runner/README.md) | Backend Node optionnel : HTTP, fichiers, nonces et cycle de processus |
 | `rust-core/` | Noyau de calcul du risque et source du WASM généré |
 | `tests/`, `scripts/` | Contrôles VM/Python, fixtures et outils de build/vérification |
-| [docs/](docs/README.md) | Guides actuels ; `docs/archive/` conserve les textes remplacés |
+| [docs/](docs/README.md) | Documentation de la version actuelle |
 
 Les points d’entrée Python restent à la racine pour compatibilité. `dist/` et `runner-dist/` sont générés ; les données personnelles sont exclues du dépôt.
 
@@ -88,7 +88,7 @@ Donner à l’agent **le dépôt complet**, puis lui demander de commencer par [
 | Conservation des données, export et récupération | [Données et sauvegardes](docs/DATA.md) |
 | Constats, corrections et limites de l’audit technique | [Audit du 17 octobre](docs/AUDIT.md) |
 
-Les anciens documents ont été déplacés dans `docs/archive/`. Ils n’ont pas autorité sur la version actuelle.
+Une seule version de référence : la branche `main` de ce dépôt. Les anciennes branches et copies de documentation ont été retirées.
 
 ## Vérifier
 
