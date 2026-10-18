@@ -20,7 +20,7 @@ export async function connectMobileWallet(){
  const display=async(uri:string)=>{try{const {default:QRCode}=await import('qr-code-styling');if(!dialog.isConnected||cancelled)return;qr.replaceChildren();new QRCode({width:240,height:240,type:'svg',data:uri,dotsOptions:{color:'#142638'},backgroundOptions:{color:'#ffffff'}}).append(qr);note.textContent='Dans MetaMask, ouvre le scanner et scanne ce QR code.';}catch{abort();}};
  provider.on('display_uri',display);
  let result:Awaited<ReturnType<typeof client.connect>>;
- try{result=await Promise.race([client.connect({chainIds:['0x1']}),cancellation]);}
+ try{result=await Promise.race([client.connect({chainIds:['0x1'],forceRequest:true}),cancellation]);}
  finally{provider.removeListener('display_uri',display);dialog.close();dialog.remove();}
  if(result.accounts.length!==1){await client.disconnect();throw Error('Sélectionne un seul compte dans MetaMask pour relier OMEGA, puis réessaie.');}
  // Remote sessions may merge several previously authorized accounts. Never pick an arbitrary first account.

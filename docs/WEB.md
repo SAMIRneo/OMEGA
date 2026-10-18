@@ -81,3 +81,6 @@ Après connexion mobile réussie, OMEGA relit les comptes autorisés sans redema
 Les signatures passent par un client commun sans relance automatique du transport wallet (`retryCount: 0`). Juste avant `eth_signTypedData_v4`, le compte demandé doit être le propriétaire sélectionné. Pour `ApproveAgent`, la chaîne active doit toujours correspondre au domaine préparé et `hyperliquidChain` au réseau ciblé. Un changement bloque la signature ; aucun changement de chaîne ni repli vers `personal_sign` n'est imposé.
 
 Les refus distinguent la connexion du compte et la signature structurée, avec le code 4001. Un refus ou une alerte de sécurité MetaMask n'est jamais contourné. Les codes de méthode non supportée sont signalés, notamment pour vérifier la compatibilité des comptes matériels. Les messages ne journalisent ni signature, ni QR, ni clés.
+
+
+Le bouton téléphone/QR déclenche explicitement `connect({forceRequest:true})` pour ne pas rester bloqué sur la reprise d'une ancienne session SDK expirée. Cette demande explicite est unique ; le raccordement au compte et la préparation de l'agent ne redemandent pas les permissions déjà obtenues.
