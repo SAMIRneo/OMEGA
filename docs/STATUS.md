@@ -6,7 +6,7 @@ Revue du 18 octobre 2026, version `1.2.0`. Cette page décrit la version de réf
 
 | Domaine | Comportement actuel | Référence |
 |---|---|---|
-| Interface | Terminal DOM TypeScript/JS, direction Copper Studio graphite/cuivre, navigation latérale et cinq vues, graphique ETH et profondeur SVG ; aucune figure 3D | [Architecture](ARCHITECTURE.md) |
+| Interface | Terminal DOM TypeScript/JS, direction ALPHA sable/or et noir/or, navigation latérale et six vues, graphique ETH et profondeur SVG ; aucune figure 3D | [Architecture](ARCHITECTURE.md) |
 | Bot web | Connexion MetaMask, configuration des deux réseaux, réglages et démarrage depuis le lien ; onglet visible et appareil éveillé requis | [Mode web](WEB.md) |
 | Service Node optionnel | Même LiveEngine, HTTP local sur 127.0.0.1:8766, indépendant de l’onglet tant que le processus fonctionne | [Exploitation](OPERATIONS.md) |
 | Simulation / manuel | Capital fictif séparé ; ordres manuels signés par le wallet, distincts du bot délégué | [README](../README.md) |
@@ -46,16 +46,20 @@ Les 18 tests Python ont passé lors de l’audit antérieur ; ils ne sont pas in
 
 Pour reprendre : lire [AGENTS](../AGENTS.md), [ARCHITECTURE](ARCHITECTURE.md) et [DEVELOPMENT](DEVELOPMENT.md), puis lancer les contrôles appropriés. Les preuves sont celles du checkout testé, pas une certification des futurs changements.
 
-## Refonte visuelle du 18 octobre
+## Interface actuelle — cockpit ALPHA
 
-Copper Studio recompose le terminal : rail de navigation sur ordinateur, barre inférieure à cinq destinations sur mobile, graphique dominant et parcours du bot séparé de ses commandes. La palette cuivre, les graphiques et les vues Compte/Historique/Recherche utilisent le même système. Les sources historiques de présentation restent dans des couches CSS de priorité inférieure ; `frontend/studio.css` porte la direction actuelle. Les IDs, règles de trading, permissions et données conservées ne changent pas.
+La référence ALPHA est intégrée dans la présentation OMEGA : polices locales Bricolage Grotesque et Instrument Serif, thèmes clair sable/crème et sombre noir/or, grande carte de capital et widgets asymétriques. `frontend/studio.css` porte cette direction unique. Le cockpit est la page d’accueil, avec six destinations : Cockpit, Marché, Bot, Compte, Historique et Lab.
 
-Validation locale : 185 tests Vitest, 23 tests navigateur/VM, builds web/Node et test HTTP isolé avec redémarrage réussis. Vérification des cinq vues à 320, 390, 768 et 1440 pixels sans débordement horizontal ; revue visuelle du marché, bot et recherche. Aucun compte financé ni ordre réel testé. La source de référence est `main`, avec un seul checkout local maintenu dans `C:\Users\samir\Desktop\bot`.
+Le capital affiché est soit la simulation, soit le compte perpétuel récemment consulté (75 secondes maximum). Le sélecteur ne change pas le mode d’exécution. Les périodes 1/7/30 jours ou tout filtrent les clôtures enregistrées sur cet appareil ; aucun historique exchange n’est inventé. La courbe inclut le capital valorisé actuellement, et signale les périodes sans clôture. Les widgets affichent le bot confirmé sur le réseau courant, la position ETH, le diagnostic sur bougies clôturées, la marge et la perte simulée du jour, puis les décisions réellement enregistrées. Aucun faux chat IA, stratégie multi-actifs ou résultat de la maquette n’est présenté comme implémenté.
+
+La commande « Arrêter les entrées » réutilise le contrôle existant du service et ne ferme pas les positions. Les règles, autorisations et données conservées ne changent pas. La source de référence reste `main`, avec un seul checkout local dans `C:\Users\samir\Desktop\bot`.
 
 ## Fiabilité de l’interface — 18 octobre
 
-Les erreurs de chargement ne sont plus effacées par un rafraîchissement du marché : un panneau indépendant permet de relancer les seuls modules en échec, sans rechargement du bot ni répétition d’une action wallet. Les tentatives simultanées sont regroupées. Le panneau est annoncé et utilisable au clavier. La liquidité affiche le nombre réel de niveaux observés, avec suppression des courbes et valeurs lorsque le carnet devient ancien. La documentation des couches CSS décrit maintenant Copper Studio.
+Les erreurs de chargement ne sont plus effacées par un rafraîchissement du marché : un panneau indépendant permet de relancer les seuls modules en échec, sans rechargement du bot ni répétition d’une action wallet. Les tentatives simultanées sont regroupées. Le panneau est annoncé et utilisable au clavier. La liquidité affiche le nombre réel de niveaux observés, avec suppression des courbes et valeurs lorsque le carnet devient ancien. La documentation des couches CSS décrit le thème courant.
 
 Les tests de non-régression vérifient erreurs multiples, reprise partielle, concurrence et exclusion des signatures du mécanisme de relance, ainsi que les carnets incomplets et anciens.
 
 Validation de cette passe : **188 tests Vitest et 23 tests navigateur/VM** (211 au total), builds web/Node et contrôle HTTP isolé avec redémarrage réussis. Les cinq vues ont été contrôlées à 320, 768 et 1440 pixels sans débordement, sans erreur console observée. Les scénarios d’échec/reprise sont simulés dans les tests ; aucune signature ni aucun ordre réel testé.
+
+Validation du cockpit ALPHA : **191 tests Vitest et 23 tests navigateur/VM**, soit 214 tests, builds web/Node et contrôle HTTP isolé avec redémarrage réussis. Les tests couvrent la séparation compte/simulation, les lectures anciennes, les périodes de capital et la délégation explicite de l’arrêt. Contrôle visuel des six vues dans les deux thèmes à 320, 390, 768 et 1440 pixels : 48 vérifications sans débordement horizontal, aucune erreur console observée. Les grandes valeurs sont dimensionnées sans coupure au petit format. Aucun ordre réel ni permission wallet utilisée pour ces validations.

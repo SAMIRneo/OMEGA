@@ -46,7 +46,7 @@ Les calculs Daily et réseaux de `frontend/core/` sont purs et importables par s
 | Stores | [market-store.ts](../frontend/shared/market-store.ts), [runner-store.ts](../frontend/shared/runner-store.ts) | Dernier snapshot observé ; état confirmé du service |
 | Réseaux | [networks.js](../frontend/core/networks.js) | Définitions REST/WS immuables, transport signé et refus des incohérences |
 | Connexion wallet | [wallet-connection.ts](../frontend/wallet-connection.ts), [wallet-store.ts](../frontend/shared/wallet-store.ts), [wallet-provider.ts](../frontend/shared/wallet-provider.ts), [wallet-memory.ts](../frontend/shared/wallet-memory.ts) | Parcours visible, prochaine étape et dépliage du compte, session de lecture/signature partagée, sélection MetaMask EIP-6963 ; aucun armement à la connexion |
-| Présentation | [workspace.ts](../frontend/workspace.ts), [bot-dashboard.ts](../frontend/bot-dashboard.ts), [bot-view.ts](../frontend/core/bot-view.ts) | Diagnostic, journal, sous-onglets Bot et lectures des horizons |
+| Présentation | [cockpit.ts](../frontend/cockpit.ts), [cockpit.ts (modèle)](../frontend/core/cockpit.ts), [theme.ts](../frontend/theme.ts), [workspace.ts](../frontend/workspace.ts), [bot-dashboard.ts](../frontend/bot-dashboard.ts), [bot-view.ts](../frontend/core/bot-view.ts) | Cockpit de lecture, thèmes, diagnostic, journal, sous-onglets Bot et lectures des horizons |
 | Exchange manuel | [exchange.ts](../frontend/exchange.ts) | Connexion wallet, plan, signatures, lecture et rapprochement |
 | Commande du service | [runner-ui.ts](../frontend/runner-ui.ts), [network.ts](../frontend/network.ts) | Session locale, approbation agent, armement, changement de réseau |
 | Graphique | [market-chart.ts](../frontend/charts/market-chart.ts), [data-buffer.ts](../frontend/charts/data-buffer.ts) | Lightweight Charts, données/EMA incrémentales, corrections historiques |
@@ -57,7 +57,7 @@ Les calculs Daily et réseaux de `frontend/core/` sont purs et importables par s
 | Exécution web | [web/runner.ts](../frontend/web/runner.ts), [web/vault.ts](../frontend/web/vault.ts) | Même LiveEngine, coffre IndexedDB chiffré, lock d’onglet et contrôle au transport |
 | Moteur commun | [engine.ts](../shared/engine.ts), [policy.ts](../shared/policy.ts), [ledger.ts](../shared/ledger.ts) | État du pilote, revalidation, plan IOC, gestion de position et validation pure du ledger |
 | Risque | [lib.rs](../rust-core/src/lib.rs), [runtime-risk.ts](../runner/runtime-risk.ts) | Noyau Rust/WASM et chargement Node |
-| Styles | [interface.css](../frontend/interface.css), [layout.css](../frontend/layout.css), [obsidian.css](../frontend/obsidian.css), [studio.css](../frontend/studio.css) | Couches base/legacy puis direction Copper Studio ; tokens.css et polices locales pour toutes les vues |
+| Styles | [interface.css](../frontend/interface.css), [layout.css](../frontend/layout.css), [obsidian.css](../frontend/obsidian.css), [studio.css](../frontend/studio.css) | Couches base/legacy puis direction du cockpit ALPHA ; tokens.css et polices locales pour toutes les vues |
 
 `frontend/legacy/` n’est pas une archive : plusieurs fichiers y sont exécutés. `testnet-plan.ts` conserve un nom historique mais `exchangePlan` gère explicitement testnet **et** mainnet. Son wrapper `testnetPlan` reste limité au testnet.
 
@@ -89,7 +89,7 @@ Ces modules de compatibilité restent utilisés ; leur présence ne constitue pa
 
 ## Chargement et affichage
 
-- `main.ts` initialise l’adaptateur et les contrôles essentiels ; graphique/profondeur, Recherche et tableau de bord Bot arrivent à la visite de leur espace.
+- `main.ts` initialise l’adaptateur et les contrôles essentiels ; le cockpit, graphique/profondeur, Recherche et tableau de bord Bot arrivent à la visite de leur espace.
 - Le module de signature manuelle arrive à l’ouverture des outils manuels. L’autorisation d’un agent importe son propre SDK au clic.
 - Le proxy du graphique conserve le dernier rendu demandé avant l’arrivée de son module. `ChartBuffer` détecte les corrections de préfixe et recalcule les EMA à partir de la première modification.
 - Les modules différés en échec sont signalés dans un panneau persistant indépendant du marché. La relance partage les tentatives simultanées et recharge uniquement les modules concernés, sans rejouer les actions wallet ou exchange.

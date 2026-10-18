@@ -12,3 +12,7 @@ Other dependencies and exact versions are recorded in package-lock.json.
 ## IBM Plex typefaces
 
 The Bot view uses Latin subsets derived from IBM Plex Sans and IBM Plex Mono, distributed under SIL Open Font License 1.1. Modified font family names are OMEGA Sans and OMEGA Mono. Copyright and license notices are retained in the font files and in frontend/assets/fonts/IBM-Plex-sans-OFL.txt and frontend/assets/fonts/IBM-Plex-mono-OFL.txt. Sources: https://github.com/google/fonts/tree/main/ofl/ibmplexsans and https://github.com/google/fonts/tree/main/ofl/ibmplexmono.
+
+## ALPHA-inspired cockpit typefaces
+
+Bricolage Grotesque (variable) and Instrument Serif (regular) are distributed under SIL Open Font License 1.1. Font files and full copyright/license notices are in frontend/assets/fonts/ (Bricolage-Grotesque-OFL.txt and Instrument-Serif-OFL.txt). Sources: https://github.com/google/fonts/tree/main/ofl/bricolagegrotesque and https://github.com/google/fonts/tree/main/ofl/instrumentserif.

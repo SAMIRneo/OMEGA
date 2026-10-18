@@ -85,7 +85,9 @@ Lire STRATEGY.md, modifier la règle canonique et ses tests. Rechercher les copi
 
 ### Modifier un style
 
-`interface.css` importe les [tokens de présentation](../tokens.css), la structure `layout.css` en couche `base`, les composants existants `obsidian.css` en couche `legacy`, puis `studio.css`, qui porte la direction Copper Studio actuelle. Modifier le fichier propriétaire au lieu d’ajouter une nouvelle cascade. Les variables cuivre `--accent` / `--action` portent les actions et sélections ; `--violet`, `--green` et `--red` distinguent réseau de test et données directionnelles. Les réseaux se distinguent aussi par leur libellé ; le point coloré ne confirme pas la santé de la connexion.
+`interface.css` importe les [tokens de présentation](../tokens.css), la structure `layout.css` en couche `base`, les composants existants `obsidian.css` en couche `legacy`, puis `studio.css`, qui porte la direction ALPHA actuelle. Modifier le fichier propriétaire au lieu d’ajouter une nouvelle cascade. Les variables or `--accent` / `--action` portent les actions et sélections ; `--violet`, `--green` et `--red` distinguent réseau de test et données directionnelles. Les réseaux se distinguent aussi par leur libellé ; le point coloré ne confirme pas la santé de la connexion. `theme.ts` mémorise uniquement le thème clair/sombre, sans effet sur le réseau ou le bot. Les polices Bricolage Grotesque et Instrument Serif sont hébergées localement avec leurs licences.
+
+Le cockpit est un consommateur des stores existants : `core/cockpit.ts` calcule la présentation du capital, `cockpit.ts` rend les widgets. Le compte et la simulation ne se mélangent pas. Le bouton d’arrêt délègue seulement un clic utilisateur au contrôle existant du service ; aucun démarrage, ordre ou autorisation n’est ajouté.
 
 Les erreurs des modules différés sont gérées par `frontend/shared/feature-loader.ts`, dans un panneau distinct de l’alerte du marché. Ses callbacks de relance ne doivent effectuer que des chargements de présentation : jamais connexion wallet, signature, armement ou ordre. Les actions utilisateur restent explicites.
 

@@ -1,6 +1,6 @@
 # OMEGA — ETH Intelligence
 
-Un terminal ETH/Hyperliquid, une stratégie Daily et un pilote à signature déléguée utilisable depuis le lien. Interface Copper Studio graphite/cuivre, graphique financier, profondeur cumulée, recherche historique et suivi du compte.
+Un terminal ETH/Hyperliquid, une stratégie Daily et un pilote à signature déléguée utilisable depuis le lien. Cockpit inspiré de la référence ALPHA, thèmes sable et or/noir, graphique financier, profondeur cumulée, recherche historique et suivi du compte.
 
 **[Ouvrir OMEGA](https://omega.kairos-labspro.chatgpt.site) · [Dépôt GitHub](https://github.com/SAMIRneo/OMEGA)**
 
@@ -43,10 +43,11 @@ Les fonds testnet, le solde mainnet et le capital paper sont distincts. Fermer o
 
 ## Interface
 
+- **Cockpit** : capital simulé ou compte perpétuel consulté, courbe locale par période, état confirmé du bot, position ETH, diagnostic Daily, jauges de risque et dernières décisions. Le choix du capital affiché ne change jamais le mode d’exécution.
 - **Marché** : graphique TradingView Lightweight Charts, EMA, volume, carnet L2, profondeur cumulée et horizons.
 - **Bot** : connexion regroupée en trois étapes visibles (Compte → Autorisation → Démarrage), choix Testnet/Mainnet et une action principale adaptée à l’état confirmé. Suivi, Réglages et Activité ; les commandes utilisent le runtime web ou Node selon l’origine.
 - **Compte** : positions, ordres et exécutions ; journal de simulation, export CSV et panneau Données avec export JSON vérifiable.
-- **Recherche** : replay récent 7/14 jours dans un Worker, coûts standard/renforcés, courbe et motifs de refus.
+- **Lab / Recherche** : replay récent 7/14 jours dans un Worker, coûts standard/renforcés, courbe et motifs de refus.
 
 La courbe de profondeur cumule les douze premiers niveaux visibles de chaque côté. Elle décrit le carnet, sans prédiction de prix.
 
