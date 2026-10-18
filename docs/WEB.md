@@ -72,3 +72,12 @@ Une lecture secondaire indisponible n’empêche plus d’afficher le propriéta
 Tests du véritable code AES-GCM avec IndexedDB simulé : non-extraction de la clé, réouverture, corruption, mauvais réseau, écritures concurrentes/périmées et transaction échouée. Tests du moteur web avec transports simulés : isolation, consentement Mainnet, absence d’entrée à l’armement, checkpoint avant envoi, interruption tardive, cycle de page et compte modifié. Signatures et noms d’agents validés hors ligne avec le SDK réel sur les deux réseaux.
 
 Aucune permission MetaMask réelle, autorisation d’agent financé ou exécution sur compte financé n’a servi à ces tests. La QA graphique du parcours sans wallet a été réalisée ; le parcours signé avec l’extension reste à réaliser ; les tests de logique ne les remplacent pas. Voir [STATUS.md](STATUS.md).
+
+
+## Demandes MetaMask sans répétition
+
+Après connexion mobile réussie, OMEGA relit les comptes autorisés sans redemander les permissions. L'autorisation d'agent réutilise également `eth_accounts` et n'appelle `eth_requestAccounts` que si l'accès manque. Une nouvelle connexion injectée explicite reste une demande de permission.
+
+Les signatures passent par un client commun sans relance automatique du transport wallet (`retryCount: 0`). Juste avant `eth_signTypedData_v4`, le compte demandé doit être le propriétaire sélectionné. Pour `ApproveAgent`, la chaîne active doit toujours correspondre au domaine préparé et `hyperliquidChain` au réseau ciblé. Un changement bloque la signature ; aucun changement de chaîne ni repli vers `personal_sign` n'est imposé.
+
+Les refus distinguent la connexion du compte et la signature structurée, avec le code 4001. Un refus ou une alerte de sécurité MetaMask n'est jamais contourné. Les codes de méthode non supportée sont signalés, notamment pour vérifier la compatibilité des comptes matériels. Les messages ne journalisent ni signature, ni QR, ni clés.

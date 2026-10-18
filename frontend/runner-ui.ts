@@ -2,7 +2,7 @@ import {AUTHORIZATION_DAYS,agentAuthorizationName} from '../shared/authorization
 import {rememberWallet} from './shared/wallet-memory';
 import {assertEnvironment,networkConfig} from './core/networks.js';
 import {publishRunner} from './shared/runner-store';
-import {walletProvider,walletError,requestWalletAccount,signingChainId} from './shared/wallet-provider';
+import {walletProvider,walletError,authorizedWalletAccount,signingChainId} from './shared/wallet-provider';
 const $=(id:string)=>document.getElementById(id)!;
 const local=location.origin==='http://127.0.0.1:8766';
 const network:Network=assertEnvironment(window.BrowserAtelier.environment).id;
@@ -66,7 +66,7 @@ $('runner-setup-networks').addEventListener('click',()=>{const button=$('runner-
 async function authorizeNetworks(targets:Network[]){return run(async()=>{
  actionError='';
  const provider=walletProvider();if(!provider)throw Error('Ouvre cette page dans un navigateur avec MetaMask ou Rabby.');
- const rawAddress=await requestWalletAccount(provider);
+ const rawAddress=await authorizedWalletAccount(provider);
  const address=rawAddress?.toLowerCase();if(!/^0x[0-9a-fA-F]{40}$/.test(address??'')||/^0x0{40}$/.test(address))throw Error('Aucun compte wallet autorisé.');
  if(!navigator.locks)throw Error('Verrouillage entre onglets requis pour autoriser un agent.');
  for(const target of targets)await navigator.locks.request('omega-'+target+'-agent-setup',()=>navigator.locks.request('omega-'+target+'-sign-'+address,async()=>{
@@ -77,9 +77,9 @@ async function authorizeNetworks(targets:Network[]){return run(async()=>{
   if(state.approved)return;
   if(!/^0x[0-9a-fA-F]{40}$/.test(state.agent)||state.agent.toLowerCase()===address)throw Error('Agent du service incohérent.');
   const expectedAgent=state.agent;
-  const {createWalletClient,custom}=await import('viem');
+  const {sessionWallet}=await import('./shared/wallet-client');
   const {ExchangeClient,HttpTransport}=await import('@nktkas/hyperliquid');
-  const signer=new ExchangeClient({wallet:createWalletClient({account:address as `0x${string}`,transport:custom(provider)}),transport:new HttpTransport(networkConfig(target)),signatureChainId:()=>signingChainId(provider)});
+  const signer=new ExchangeClient({wallet:sessionWallet(provider,address as `0x${string}`,target),transport:new HttpTransport(networkConfig(target)),signatureChainId:()=>signingChainId(provider)});
   const selected=await provider.request({method:'eth_accounts'});if(selected[0]?.toLowerCase()!==address)throw Error('Compte actif modifié avant autorisation.');
   message('Signature '+target.toUpperCase()+' : autoriser OMEGA pour '+AUTHORIZATION_DAYS+' jours. Aucun démarrage du bot.');
   await signer.approveAgent({agentAddress:expectedAgent,agentName:agentAuthorizationName(local?'local':'web',target)});

@@ -4,7 +4,8 @@ import {rememberedWallet,rememberWallet,forgetWallet} from './shared/wallet-memo
 import {publishWallet} from './shared/wallet-store';
 import {walletProvider,walletError,requestWalletAccount,signingChainId} from './shared/wallet-provider';
 import {ExchangeClient,HttpTransport,InfoClient} from '@nktkas/hyperliquid';
-import {createWalletClient,custom,type Address} from 'viem';
+import type {Address} from 'viem';
+import {sessionWallet} from './shared/wallet-client';
 import {formatPrice,formatSize} from '@nktkas/hyperliquid/utils';
 import {exchangePlan,exchangeStatus,exchangeDay} from './core/testnet-plan';
 import type {Snapshot} from './core/types';
@@ -96,7 +97,7 @@ async function attachWallet(p:NonNullable<ReturnType<typeof walletProvider>>,raw
  if(version!==revision)throw Error('Session wallet modifiée pendant la connexion.');
  if(!/^0x[0-9a-fA-F]{40}$/.test(rawAddress??'')||/^0x0{40}$/.test(rawAddress))throw Error('Aucun compte autorisé.');
  detachProvider();activeProvider=p;address=rawAddress.toLowerCase() as Address;account=null;readAt=0;orders=[];fills=[];
- const wallet=createWalletClient({account:address,transport:custom(p)});
+ const wallet=sessionWallet(p,address,network);
  exchange=new ExchangeClient({wallet,transport,signatureChainId:()=>signingChainId(p),defaultExpiresAfter:()=>Date.now()+60000});
  p.on?.('accountsChanged',accountsChanged);
  p.on?.('disconnect',providerDisconnected);

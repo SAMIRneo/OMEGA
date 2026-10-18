@@ -10,7 +10,9 @@ it('loads and connects only on explicit action without signing, then exposes an 
  expect(fake.create).not.toHaveBeenCalled();await connectMobileWallet();
  expect(fake.create.mock.calls[0][0].analytics.enabled).toBe(false);
  expect(await walletProvider()!.request({method:'eth_accounts'})).toEqual([owner]);
- expect(fake.provider.request.mock.calls.map(c=>c[0].method)).toEqual(['eth_accounts']);
+ expect(await walletProvider()!.request({method:'eth_requestAccounts'})).toEqual([owner]);
+ expect(fake.provider.request.mock.calls.map(c=>c[0].method)).toEqual(['eth_accounts','eth_accounts']);
+ expect(fake.connect.mock.calls[0][0].forceRequest).toBeUndefined();
 });
 it('rejects ambiguous accounts and invalidates a session when multiple accounts are announced',async()=>{
  const {connectMobileWallet}=await import('./mobile-wallet');const {walletProvider}=await import('./wallet-provider');

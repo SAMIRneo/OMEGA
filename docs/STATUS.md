@@ -86,3 +86,10 @@ La vérification du build publié a détecté un échec d’initialisation des s
 - QA navigateur du build de production : ouverture du QR et annulation sans wallet personnel ; deux thèmes, boutons du compte et autorisations séparées, contrôles à 390 et 320 px sans débordement horizontal. Le SDK peut journaliser un timeout de révocation d'une session QR jamais appairée après annulation ; la fenêtre et les boutons OMEGA sont libérés immédiatement. Les contrôles automatisés ne constituent pas un appairage téléphone ou un trade financé de bout en bout.
 
 Validation : 209 tests Vitest et 23 tests navigateur/VM, compilation web/Node, import du bundle réel sans requête extérieure et contrôle du service isolé. Aucun ordre réel envoyé. L'audit npm signale six avis modérés transitifs du SDK MetaMask autour de uuid ; aucun avis élevé/critique, aucun correctif forcé incompatible appliqué.
+
+
+## Revue du refus MetaMask — 18 octobre 2026
+
+Suppression des demandes de permission redondantes après appairage mobile et avant autorisation d'agent. Le client wallet commun désactive les relances automatiques de requêtes, contrôle le propriétaire immédiatement avant signature et revalide le domaine EVM / réseau Hyperliquid des approbations. Les erreurs MetaMask distinguent connexion et signature, avec code de rejet, sans contourner de protection du wallet. Les deux réseaux restent indépendants et aucun ordre n'est envoyé à l'armement.
+
+Validation : 216 tests Vitest + 23 tests navigateur/VM (239), builds et contrôle du service isolé. Les nouveaux tests utilisent le SDK Hyperliquid réel et un fournisseur EIP-1193 simulé : approbations Testnet/Mainnet, zéro envoi exchange après rejet 4001 ou erreur RPC, une seule demande de signature par action, blocage sur changement de compte/chaîne et réutilisation des permissions. Ces vérifications corrigent des défauts constatés dans le code ; elles ne prouvent pas la cause exacte d'un rejet sur le wallet personnel, ni une approbation réelle réussie.

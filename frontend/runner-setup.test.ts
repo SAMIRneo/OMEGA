@@ -29,7 +29,7 @@ it('configures both networks once, then reuses verified agents without rotating 
  await import('./runner-ui');await settle();(el('runner-authorize') as any).click();await settle();
  expect(fake.signatures.map(x=>x.network)).toEqual(['testnet','mainnet']);expect(calls.filter(x=>x.path.includes('/configure'))).toHaveLength(2);
  expect(fake.signatures.every(x=>Number(x.agentName.split('valid_until ')[1])>Date.now()+179*86400000)).toBe(true);
- expect(permission.mock.calls[0][0].method).toBe('eth_requestAccounts');expect(calls.some(x=>x.path.includes('/arm'))).toBe(false);
+ expect(permission.mock.calls.every(c=>c[0].method==='eth_accounts')).toBe(true);expect(calls.some(x=>x.path.includes('/arm'))).toBe(false);
  (el('runner-authorize') as any).click();await settle();expect(fake.signatures).toHaveLength(2);expect(calls.filter(x=>x.path.includes('/configure'))).toHaveLength(2);
  expect(el('runner-network-mainnet').textContent).toContain('autorisé jusqu’au');
 });

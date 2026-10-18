@@ -95,7 +95,7 @@ it('explains a rejected MetaMask connection and allows a retry without signing',
  (dom as any).BrowserAtelier={environment:{id:'testnet'},setAddress:vi.fn()};
  (dom as any).ethereum={request:vi.fn().mockRejectedValueOnce({code:4001}).mockResolvedValue(fake.accounts),on:vi.fn()};
  const module=await import('./exchange');await module.connectWallet();
- expect(el('testnet-action-status').textContent).toContain('Demande refusée dans MetaMask');
+ expect(el('testnet-action-status').textContent).toContain('Connexion du compte refusée par MetaMask (4001)');
  await module.connectWallet();expect(el('testnet-wallet').textContent).toBe(fake.accounts[0]);
  expect(fake.calls.some(x=>x[0]==='order'||x[0]==='leverage')).toBe(false);
 });
