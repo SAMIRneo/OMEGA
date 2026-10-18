@@ -1,12 +1,12 @@
 # État actuel d’OMEGA
 
-Revue du 17 octobre 2026, version `1.2.0`. Cette page décrit le checkout courant ; les [jalons successifs](archive/PROGRESS_2026-10-17.md) conservent les anciennes preuves et les parcours remplacés.
+Revue du 18 octobre 2026, version `1.2.0`. Cette page décrit le checkout courant ; les [jalons successifs](archive/PROGRESS_2026-10-17.md) conservent les anciennes preuves et les parcours remplacés.
 
 ## Capacités livrées
 
 | Domaine | Comportement actuel | Référence |
 |---|---|---|
-| Interface | Terminal DOM TypeScript/JS, thème graphite/ambre, graphique ETH et profondeur SVG ; aucune figure 3D | [Architecture](ARCHITECTURE.md) |
+| Interface | Terminal DOM TypeScript/JS, direction Copper Studio graphite/cuivre, navigation latérale et cinq vues, graphique ETH et profondeur SVG ; aucune figure 3D | [Architecture](ARCHITECTURE.md) |
 | Bot web | Connexion MetaMask, configuration des deux réseaux, réglages et démarrage depuis le lien ; onglet visible et appareil éveillé requis | [Mode web](WEB.md) |
 | Service Node optionnel | Même LiveEngine, HTTP local sur 127.0.0.1:8766, indépendant de l’onglet tant que le processus fonctionne | [Exploitation](OPERATIONS.md) |
 | Simulation / manuel | Capital fictif séparé ; ordres manuels signés par le wallet, distincts du bot délégué | [README](../README.md) |
@@ -45,3 +45,9 @@ Les 18 tests Python ont passé lors de l’audit antérieur ; ils ne sont pas in
 - Ponts globaux et JavaScript historique encore actifs : réduction progressive, sans suppression incidente.
 
 Pour reprendre : lire [AGENTS](../AGENTS.md), [ARCHITECTURE](ARCHITECTURE.md) et [DEVELOPMENT](DEVELOPMENT.md), puis lancer les contrôles appropriés. Les preuves sont celles du checkout testé, pas une certification des futurs changements.
+
+## Refonte visuelle du 18 octobre
+
+Copper Studio recompose le terminal : rail de navigation sur ordinateur, barre inférieure à cinq destinations sur mobile, graphique dominant et parcours du bot séparé de ses commandes. La palette cuivre, les graphiques et les vues Compte/Historique/Recherche utilisent le même système. Les sources historiques de présentation restent dans des couches CSS de priorité inférieure ; `frontend/studio.css` porte la direction actuelle. Les IDs, règles de trading, permissions et données conservées ne changent pas.
+
+Validation locale : 185 tests Vitest, 23 tests navigateur/VM, builds web/Node et test HTTP isolé avec redémarrage réussis. Vérification des cinq vues à 320, 390, 768 et 1440 pixels sans débordement horizontal ; revue visuelle du marché, bot et recherche. Aucun compte financé ni ordre réel testé. La publication de cette refonte est une étape distincte.

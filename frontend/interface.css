@@ -1,3 +1,4 @@
 @import '../tokens.css';
 @import './layout.css' layer(base);
-@import './obsidian.css';
+@import './obsidian.css' layer(legacy);
+@import './studio.css';
