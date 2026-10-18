@@ -2,12 +2,14 @@ import './interface.css';
 import './workspace';
 import './legacy/risk-core.js';
 import {lazyModule} from './shared/lazy';
+import {createFeatureLoader} from './shared/feature-loader';
 import type {Candle,Timeframe} from './core/types';
-const report=(label:string,error:unknown)=>{const alert=document.getElementById('global-alert');if(alert){alert.hidden=false;alert.textContent=label+' : '+String(error);}};
+const features=createFeatureLoader(document);
+const report=features.report;
 // The UI can render before the financial chart module has arrived.
 let queued:[Candle[],Timeframe,'candles'|'line',number]|null=null;
 const chart=lazyModule(()=>import('./charts/market-chart'));
-const loadChart=()=>chart().then(()=>{if(queued){const args=queued;queued=null;window.TradingChart.render(...args);}}).catch(e=>report('Graphique indisponible',e));
+const loadChart=()=>features.load('Graphique indisponible',()=>chart().then(()=>{if(queued){const args=queued;queued=null;window.TradingChart.render(...args);}}));
 window.TradingChart={render(...args){queued=args;void loadChart();},resize(){}};
 async function start(){
  if(document.documentElement.dataset.runtime==='local')await import('./legacy/local-adapter.js');else await import('./legacy/browser-engine.js');
@@ -27,14 +29,14 @@ async function start(){
  const manual=document.querySelector<HTMLDetailsElement>('.execution-details')!;
  const connect=document.getElementById('testnet-connect') as HTMLButtonElement;
  connect.disabled=true;
- const loadExchange=()=>{if(!manual.open||!window.BrowserAtelier.environment)return;manual.setAttribute('aria-busy','true');void exchange().then(()=>{connect.disabled=false;manual.removeAttribute('aria-busy');}).catch(e=>{manual.removeAttribute('aria-busy');report('Signature wallet indisponible',e);});};
+ const loadExchange=()=>{if(!manual.open||!window.BrowserAtelier.environment)return;manual.setAttribute('aria-busy','true');void features.load('Outils manuels indisponibles',()=>exchange().then(()=>{connect.disabled=false;})).finally(()=>manual.removeAttribute('aria-busy'));};
  const route=()=>{
   const view=location.hash.slice(1)||'terminal';
-  if(view==='terminal'){void loadChart();void depth().catch(e=>report('Vue de liquidité indisponible',e));}
-  if(view==='wallet'||view==='journal')void dataSettings().catch(e=>report('Sauvegardes indisponibles',e));
-  if(view==='pilot'||view==='wallet')void connection().catch(e=>report('Connexion wallet indisponible',e));
-  if(view==='research')void research().catch(e=>report('Recherche indisponible',e));
-  if(view==='pilot'){void dashboard().catch(e=>report('Vue du bot indisponible',e));void runner().catch(e=>report('Pilotage indisponible',e));loadExchange();}
+  if(view==='terminal'){void loadChart();void features.load('Vue de liquidité indisponible',depth);}
+  if(view==='wallet'||view==='journal')void features.load('Sauvegardes indisponibles',dataSettings);
+  if(view==='pilot'||view==='wallet')void features.load('Connexion wallet indisponible',connection);
+  if(view==='research')void features.load('Recherche indisponible',research);
+  if(view==='pilot'){void features.load('Vue du bot indisponible',dashboard);void features.load('Pilotage indisponible',runner);loadExchange();}
  };
  manual.addEventListener('toggle',loadExchange);
  window.addEventListener('hashchange',route);

@@ -85,7 +85,9 @@ Lire STRATEGY.md, modifier la règle canonique et ses tests. Rechercher les copi
 
 ### Modifier un style
 
-`interface.css` est le point d’entrée et importe les [tokens de présentation](../tokens.css). La première passe Hallmark concernait `#view-pilot` ; les tokens et polices locales servent maintenant aussi à unifier les autres vues. Les choix et limites de contrôle sont conservés dans `.hallmark/`. `layout.css` est la base structurelle en couche ; `obsidian.css` porte le thème et les priorités visuelles. Éviter d’ajouter une troisième cascade de corrections successives. Garder des classes sémantiques réutilisables et des règles responsive groupées. Les tokens `--accent` (cyan), `--action` (ambre), `--violet`, `--green` et `--red` distinguent navigation, action, recherche et données directionnelles. Les réseaux se distinguent aussi par leur libellé ; le point coloré du sélecteur ne confirme pas la santé de la connexion.
+`interface.css` importe les [tokens de présentation](../tokens.css), la structure `layout.css` en couche `base`, les composants existants `obsidian.css` en couche `legacy`, puis `studio.css`, qui porte la direction Copper Studio actuelle. Modifier le fichier propriétaire au lieu d’ajouter une nouvelle cascade. Les variables cuivre `--accent` / `--action` portent les actions et sélections ; `--violet`, `--green` et `--red` distinguent réseau de test et données directionnelles. Les réseaux se distinguent aussi par leur libellé ; le point coloré ne confirme pas la santé de la connexion.
+
+Les erreurs des modules différés sont gérées par `frontend/shared/feature-loader.ts`, dans un panneau distinct de l’alerte du marché. Ses callbacks de relance ne doivent effectuer que des chargements de présentation : jamais connexion wallet, signature, armement ou ordre. Les actions utilisateur restent explicites.
 
 ## Toolchains optionnelles
 

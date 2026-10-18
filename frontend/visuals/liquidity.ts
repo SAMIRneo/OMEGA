@@ -7,7 +7,7 @@ const off=subscribeMarket(snapshot=>{
  const rows=depthModel(snapshot.market.book),bid=rows.filter(x=>x.side==='bid'),ask=rows.filter(x=>x.side==='ask');
  const key=JSON.stringify([snapshot.market.fresh,rows]);if(key===previous)return;previous=key;
  const valid=snapshot.market.fresh&&bid.length>0&&ask.length>0;
- $('liquidity-status').textContent=valid?'12 NIVEAUX / CÔTÉ':'DONNÉES À VÉRIFIER';
+ $('liquidity-status').textContent=valid?(bid.length===ask.length?bid.length+' NIVEAU'+(bid.length>1?'X':'')+' / CÔTÉ':bid.length+' ACHAT'+(bid.length>1?'S':'')+' / '+ask.length+' VENTE'+(ask.length>1?'S':'')):'DONNÉES À VÉRIFIER';
  const buy=bid.at(-1)?.cumulative??0,sell=ask.at(-1)?.cumulative??0,max=Math.max(buy,sell,1e-12);
  $('liquidity-buy').textContent=valid?formatNumber(buy,2)+' ETH':'—';$('liquidity-sell').textContent=valid?formatNumber(sell,2)+' ETH':'—';
  $('liquidity-mid').textContent=valid&&snapshot.market.mid?formatNumber(snapshot.market.mid)+' USDC':'—';

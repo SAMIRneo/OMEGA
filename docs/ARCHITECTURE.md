@@ -57,7 +57,7 @@ Les calculs Daily et réseaux de `frontend/core/` sont purs et importables par s
 | Exécution web | [web/runner.ts](../frontend/web/runner.ts), [web/vault.ts](../frontend/web/vault.ts) | Même LiveEngine, coffre IndexedDB chiffré, lock d’onglet et contrôle au transport |
 | Moteur commun | [engine.ts](../shared/engine.ts), [policy.ts](../shared/policy.ts), [ledger.ts](../shared/ledger.ts) | État du pilote, revalidation, plan IOC, gestion de position et validation pure du ledger |
 | Risque | [lib.rs](../rust-core/src/lib.rs), [runtime-risk.ts](../runner/runtime-risk.ts) | Noyau Rust/WASM et chargement Node |
-| Styles | [interface.css](../frontend/interface.css), [layout.css](../frontend/layout.css), [obsidian.css](../frontend/obsidian.css) | Point d’import, base en couche CSS et thème/priorités visuelles ; tokens.css et polices locales pour toutes les vues |
+| Styles | [interface.css](../frontend/interface.css), [layout.css](../frontend/layout.css), [obsidian.css](../frontend/obsidian.css), [studio.css](../frontend/studio.css) | Couches base/legacy puis direction Copper Studio ; tokens.css et polices locales pour toutes les vues |
 
 `frontend/legacy/` n’est pas une archive : plusieurs fichiers y sont exécutés. `testnet-plan.ts` conserve un nom historique mais `exchangePlan` gère explicitement testnet **et** mainnet. Son wrapper `testnetPlan` reste limité au testnet.
 
@@ -92,8 +92,9 @@ Ces modules de compatibilité restent utilisés ; leur présence ne constitue pa
 - `main.ts` initialise l’adaptateur et les contrôles essentiels ; graphique/profondeur, Recherche et tableau de bord Bot arrivent à la visite de leur espace.
 - Le module de signature manuelle arrive à l’ouverture des outils manuels. L’autorisation d’un agent importe son propre SDK au clic.
 - Le proxy du graphique conserve le dernier rendu demandé avant l’arrivée de son module. `ChartBuffer` détecte les corrections de préfixe et recalcule les EMA à partir de la première modification.
+- Les modules différés en échec sont signalés dans un panneau persistant indépendant du marché. La relance partage les tentatives simultanées et recharge uniquement les modules concernés, sans rejouer les actions wallet ou exchange.
 - Les lignes du carnet sont réutilisées. Les clés de rendu limitent les reconstructions des horizons, événements et positions.
-- La profondeur est une courbe SVG statique mise à jour depuis market-store. Aucun contrôle de caméra ni boucle d’animation. Les douze niveaux de chaque côté sont cumulés séparément et affichés sur une échelle commune.
+- La profondeur est une courbe SVG statique mise à jour depuis market-store. Aucun contrôle de caméra ni boucle d’animation. Jusqu’à douze niveaux de chaque côté sont cumulés séparément ; le libellé affiche le nombre réellement disponible et affichés sur une échelle commune.
 
 ## Chemin d’une entrée déléguée web/Node
 

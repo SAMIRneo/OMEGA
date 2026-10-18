@@ -51,3 +51,11 @@ Pour reprendre : lire [AGENTS](../AGENTS.md), [ARCHITECTURE](ARCHITECTURE.md) et
 Copper Studio recompose le terminal : rail de navigation sur ordinateur, barre inférieure à cinq destinations sur mobile, graphique dominant et parcours du bot séparé de ses commandes. La palette cuivre, les graphiques et les vues Compte/Historique/Recherche utilisent le même système. Les sources historiques de présentation restent dans des couches CSS de priorité inférieure ; `frontend/studio.css` porte la direction actuelle. Les IDs, règles de trading, permissions et données conservées ne changent pas.
 
 Validation locale : 185 tests Vitest, 23 tests navigateur/VM, builds web/Node et test HTTP isolé avec redémarrage réussis. Vérification des cinq vues à 320, 390, 768 et 1440 pixels sans débordement horizontal ; revue visuelle du marché, bot et recherche. Aucun compte financé ni ordre réel testé. La source de référence est `main`, avec un seul checkout local maintenu dans `C:\Users\samir\Desktop\bot`.
+
+## Fiabilité de l’interface — 18 octobre
+
+Les erreurs de chargement ne sont plus effacées par un rafraîchissement du marché : un panneau indépendant permet de relancer les seuls modules en échec, sans rechargement du bot ni répétition d’une action wallet. Les tentatives simultanées sont regroupées. Le panneau est annoncé et utilisable au clavier. La liquidité affiche le nombre réel de niveaux observés, avec suppression des courbes et valeurs lorsque le carnet devient ancien. La documentation des couches CSS décrit maintenant Copper Studio.
+
+Les tests de non-régression vérifient erreurs multiples, reprise partielle, concurrence et exclusion des signatures du mécanisme de relance, ainsi que les carnets incomplets et anciens.
+
+Validation de cette passe : **188 tests Vitest et 23 tests navigateur/VM** (211 au total), builds web/Node et contrôle HTTP isolé avec redémarrage réussis. Les cinq vues ont été contrôlées à 320, 768 et 1440 pixels sans débordement, sans erreur console observée. Les scénarios d’échec/reprise sont simulés dans les tests ; aucune signature ni aucun ordre réel testé.
