@@ -118,7 +118,7 @@ Le rapprochement Node refuse d’adopter une position inversée ou supérieure a
 
 ## Connexion mémorisée du service Node
 
-Pour utiliser le service Node optionnel, commencer directement dans `http://127.0.0.1:8766/#pilot`. Les permissions MetaMask et le stockage du site public sont distincts de ceux de cette origine locale. Les changements en cours sont sur la branche `codex/modern-ui-2026-10-17` de la [PR #2](https://github.com/SAMIRneo/OMEGA/pull/2) tant qu’elle n’est pas fusionnée ; choisir cette branche pour une installation de cette version.
+Pour utiliser le service Node optionnel, commencer directement dans `http://127.0.0.1:8766/#pilot`. Les permissions MetaMask et le stockage du site public sont distincts de ceux de cette origine locale. Cette version correspond à la branche `main` du [dépôt GitHub](https://github.com/SAMIRneo/OMEGA) ; c’est la source de référence pour une installation.
 
 Le navigateur mémorise uniquement l’adresse publique et la préférence de reconnexion. À la prochaine visite de Bot/Compte, `eth_accounts` vérifie passivement le compte primaire déjà autorisé. Aucun popup d’accès, signature, approbation d’agent ou armement n’est déclenché par cette reprise. Si MetaMask est verrouillé, le compte reste mémorisé : au déverrouillage ou au retour sur la page, le même compte est repris passivement quand il est exposé par MetaMask. Un changement de chaîne EVM ne délie pas le compte. Si le compte change réellement, la préférence est effacée et une connexion explicite est requise. Déconnecter oublie la préférence ; cela ne révoque pas les agents ni les ordres exchange.
 
