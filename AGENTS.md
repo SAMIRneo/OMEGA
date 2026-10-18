@@ -11,7 +11,7 @@ OMEGA is an ETH/Hyperliquid research terminal with browser paper trading, manual
 5. For network/signing/account changes, read [docs/NETWORKS.md](docs/NETWORKS.md). Use `frontend/core/networks.js` as the only endpoint/signing-network configuration. Preserve session revision guards, explicit network response validation and per-network ledger identities.
 6. Read [docs/OPERATIONS.md](docs/OPERATIONS.md) for lifecycle/API changes, or [docs/STRATEGY.md](docs/STRATEGY.md) for rules/risk changes.
 
-`docs/archive/` is historical context only. Source code and the lockfile establish implemented behavior; update documentation when it disagrees. Do not change code to match an obsolete document.
+Only `main` is the maintained version. Source code and the lockfile establish implemented behavior; update documentation when it disagrees. Do not reintroduce superseded versions.
 
 ## Orientation
 
@@ -21,7 +21,7 @@ OMEGA is an ETH/Hyperliquid research terminal with browser paper trading, manual
 - `frontend/web/`: browser delegated execution, encrypted IndexedDB vault and per-network execution locks; read docs/WEB.md before changes.
 - `rust-core/`: risk math; its generated WASM is embedded in `frontend/legacy/risk-core.js`.
 - Root Python modules: retained paper/MCP compatibility implementation. They do not execute live exchange orders.
-- `docs/`: current documentation; `docs/archive/`: superseded notes.
+- `docs/`: current documentation only.
 - `dist/` and `runner-dist/`: generated output. Edit their sources instead.
 
 The frontend is TypeScript + JavaScript + CSS, not React/Next.js. Do not introduce a framework or migrate the trading engines as incidental work.

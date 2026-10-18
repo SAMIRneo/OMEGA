@@ -1,6 +1,6 @@
 # État actuel d’OMEGA
 
-Revue du 18 octobre 2026, version `1.2.0`. Cette page décrit le checkout courant ; les [jalons successifs](archive/PROGRESS_2026-10-17.md) conservent les anciennes preuves et les parcours remplacés.
+Revue du 18 octobre 2026, version `1.2.0`. Cette page décrit la version de référence sur `main`. Les anciennes variantes ne sont plus maintenues.
 
 ## Capacités livrées
 
@@ -23,20 +23,20 @@ Revue du 18 octobre 2026, version `1.2.0`. Cette page décrit le checkout couran
 
 Le parcours conserve la préférence wallet lors du verrouillage et des changements de chaîne EVM ; le même compte est repris passivement, un autre compte l’invalide. Les agents valides gardent leur expiration réelle, les nouvelles demandes affichent 180 jours maximum. Les préparations récentes inutilisées survivent au refus/rechargement, et les états des deux réseaux sont vérifiés séparément. Une activité Node confirmée reste affichée sans exiger une reconnexion MetaMask.
 
-README et index orientent vers un guide par sujet. Les anciens jalons sont archivés ; leurs nombres de tests et leur parcours local obligatoire ne décrivent pas l’état actuel.
+README et index orientent vers un guide par sujet. Les documents obsolètes ont été supprimés ; les procédures ci-dessus décrivent la version actuelle.
 
 ## Vérifications
 
 La passe de connexion du 17 octobre a validé `npm run check` : **185 tests Vitest sur 26 fichiers et 23 tests navigateur/VM**, builds typés web/Node et contrôle HTTP réel temporaire avec redémarrage. Les tests couvrent aussi la reprise après verrouillage, le compte inchangé/modifié, la déconnexion explicite, les autorisations 180 jours des agents web/Node via le vrai SDK, la préparation idempotente, la confirmation persistée, la révocation, l’interruption et la panne isolée de l’autre réseau. Les transports sont simulés ; aucune permission personnelle ni aucun ordre exchange n’est utilisé.
 
-Le contrôle documentaire passe sur 25 fichiers Markdown et 187 liens locaux. Le nouveau contrôle de structure vérifie 49 modules et leurs imports littéraux ; trois sondes temporaires ont confirmé le refus d’un import frontend → Node, shared → adaptateur web et shared → API Node. Il ne vérifie pas les globals dynamiques ou l’intérieur des dépendances tierces.
+Le contrôle documentaire est relancé après le retrait des documents obsolètes. Le nouveau contrôle de structure vérifie 49 modules et leurs imports littéraux ; trois sondes temporaires ont confirmé le refus d’un import frontend → Node, shared → adaptateur web et shared → API Node. Il ne vérifie pas les globals dynamiques ou l’intérieur des dépendances tierces.
 
 Les 18 tests Python ont passé lors de l’audit antérieur ; ils ne sont pas inclus dans `npm run check`. Cargo était absent : aucun test Rust ni régénération WASM n’est revendiqué. Les lectures publiques et signatures SDK hors ligne antérieures ne prouvent pas un parcours MetaMask réel.
 
 ## Limites et travail restant
 
 - Aucun parcours MetaMask/ordre financé de bout en bout validé pour cette version ; validation testnet dédiée à réaliser par l’exploitant.
-- QA graphique desktop/Safari/iPhone physique non réalisée dans cet environnement.
+- QA graphique desktop et responsive réalisée dans le navigateur ; Safari et iPhone physique non vérifiés.
 - Aucun serveur cloud de trading permanent. Le bot web dépend de l’onglet ; Node dépend du processus et de l’ordinateur.
 - Aucune rentabilité, calibration probabiliste ou validation économique hors échantillon démontrée.
 - Pas de sauvegarde cloud personnelle, d’export des clés du coffre web ou de restauration automatique des états d’exécution.
@@ -50,4 +50,4 @@ Pour reprendre : lire [AGENTS](../AGENTS.md), [ARCHITECTURE](ARCHITECTURE.md) et
 
 Copper Studio recompose le terminal : rail de navigation sur ordinateur, barre inférieure à cinq destinations sur mobile, graphique dominant et parcours du bot séparé de ses commandes. La palette cuivre, les graphiques et les vues Compte/Historique/Recherche utilisent le même système. Les sources historiques de présentation restent dans des couches CSS de priorité inférieure ; `frontend/studio.css` porte la direction actuelle. Les IDs, règles de trading, permissions et données conservées ne changent pas.
 
-Validation locale : 185 tests Vitest, 23 tests navigateur/VM, builds web/Node et test HTTP isolé avec redémarrage réussis. Vérification des cinq vues à 320, 390, 768 et 1440 pixels sans débordement horizontal ; revue visuelle du marché, bot et recherche. Aucun compte financé ni ordre réel testé. La publication de cette refonte est une étape distincte.
+Validation locale : 185 tests Vitest, 23 tests navigateur/VM, builds web/Node et test HTTP isolé avec redémarrage réussis. Vérification des cinq vues à 320, 390, 768 et 1440 pixels sans débordement horizontal ; revue visuelle du marché, bot et recherche. Aucun compte financé ni ordre réel testé. La source de référence est `main`, avec un seul checkout local maintenu dans `C:\Users\samir\Desktop\bot`.

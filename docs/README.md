@@ -1,6 +1,6 @@
 # Documentation active
 
-Documentation de la version logicielle `1.2.0`, revue le 17 octobre 2026. Elle vise un développeur ou un agent n’ayant aucun historique du projet.
+Documentation de la version logicielle `1.2.0`, revue le 18 octobre 2026. Elle vise un développeur ou un agent n’ayant aucun historique du projet.
 
 ## Parcours de lecture
 
@@ -29,9 +29,9 @@ Documentation de la version logicielle `1.2.0`, revue le 17 octobre 2026. Elle v
 
 Éviter de recopier les mêmes détails dans plusieurs fichiers. Les chemins ci-dessus sont la documentation courante. Le code et le lockfile établissent le comportement implémenté ; une divergence documentaire doit être signalée et corrigée.
 
-## Documents historiques
+## Version de référence
 
-[archive/README.md](archive/README.md) indexe les notes antérieures. Leur vocabulaire, anciens capitaux/leviers, chemins `public/` ou `web/`, noms Atelier et conclusions de tests appartiennent à leur version. Ils ne doivent pas servir de procédure de lancement ou d’instructions à un agent actuel.
+La branche `main` contient la seule version maintenue. Les anciennes variantes et leurs documents ont été retirés.
 
 L’archive de documentation externe produite par `python sync_docs.py` va dans `docs/official/`, ignoré par Git. Elle contient des captures de sources, pas des spécifications internes ni une preuve de revue à jour.
 
