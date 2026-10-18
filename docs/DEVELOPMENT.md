@@ -118,3 +118,7 @@ La présence des dépendances Node ne prouve pas celle de TA-Lib/NumPy. Si une t
 - GitHub et le dépôt source de l’hébergement sont deux remotes distincts. Synchroniser les sources attendues ; une écriture dans l’un ne prouve pas une publication dans l’autre.
 - Pour la documentation seule, synchroniser les sources sans refaire un déploiement du site inchangé.
 - Remettre un bilan factuel : modification, tests effectués, tests non effectués et éventuelles limites. Mettre à jour STATUS.md si les capacités/preuves changent.
+
+## Régression du build web
+
+Après `npm run build`, `npm run test:bundle` importe le module différé du moteur dans sa forme compilée, avec un navigateur et un coffre isolés, sans requête extérieure. Ce contrôle complète les tests source : il détecte les échecs d’initialisation entre chunks qui n’apparaissent pas sous Vite dev. Conserver `strictExecutionOrder` dans `vite.config.ts` ; voir la [documentation Rolldown](https://rolldown.rs/reference/OutputOptions.strictExecutionOrder). Le contrôle est inclus dans `npm run check`. Ouvrir aussi le build via `npm run preview` pour vérifier le parcours Bot et l’ouverture des outils manuels ; ne jamais utiliser d’agent financé pour cette QA.

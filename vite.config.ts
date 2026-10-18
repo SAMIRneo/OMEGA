@@ -1,2 +1,3 @@
 import { defineConfig } from 'vite';
-export default defineConfig({ root: 'frontend', base: './', publicDir: false, build: { outDir: '../dist', emptyOutDir: true, target: 'es2020', sourcemap: false } });
+// SDK schemas must initialize before their dependent lazy chunks execute.
+export default defineConfig({ root: 'frontend', base: './', publicDir: false, build: { outDir: '../dist', emptyOutDir: true, target: 'es2020', sourcemap: false, rolldownOptions: {output: {strictExecutionOrder:true}} } });

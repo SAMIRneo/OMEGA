@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:browser": "node --test tests/browser.test.cjs",
+    "test:bundle": "node scripts/check-web-bundle.mjs",
     "build:bot": "tsc --project tsconfig.runner.json && vite build --config vite.runner.config.ts",
     "bot": "npm run build:bot && node runner-dist/server.mjs",
     "preview": "vite preview --host 127.0.0.1",
@@ -17,7 +18,7 @@
     "start:bot": "node runner-dist/server.mjs",
     "check:docs": "node scripts/check-docs.mjs",
     "test:service": "npm run build:bot && node scripts/check-runner.mjs",
-    "check": "npm run check:docs && npm run check:structure && npm test && npm run test:browser && npm run build && npm run test:service",
+    "check": "npm run check:docs && npm run check:structure && npm test && npm run test:browser && npm run build && npm run test:bundle && npm run test:service",
     "check:structure": "node scripts/check-structure.mjs"
   },
   "dependencies": {
