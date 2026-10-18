@@ -42,7 +42,7 @@ function render(){
  publishRunner({...state,busy:busy||!!state?.busy,connected:!!state&&reachable});
  const complete=!!state?.owner&&(['testnet','mainnet'] as const).every(n=>connected[n]&&states[n]?.approved&&states[n]?.owner?.toLowerCase()===state.owner.toLowerCase());
  $('runner-setup').hidden=false;
- for(const n of ['testnet','mainnet'] as const){const item=states[n],same=!!item?.owner&&(!state?.owner||item.owner.toLowerCase()===state.owner.toLowerCase());const el=$('runner-network-'+n);el.textContent=(n==='testnet'?'Testnet':'Mainnet')+' · '+(!connected[n]||!item?'à vérifier':!same?'compte à relier':item.approved?'autorisé'+(item.approvedUntil?' jusqu’au '+new Date(item.approvedUntil).toLocaleDateString('fr-FR'):''):'à autoriser');el.dataset.ready=String(connected[n]&&same&&!!item?.approved);}
+ for(const n of ['testnet','mainnet'] as const){const item=states[n],same=!!item?.owner&&(!state?.owner||item.owner.toLowerCase()===state.owner.toLowerCase());const el=$('runner-network-'+n);el.textContent=(n==='testnet'?'Testnet':'Mainnet')+' · '+(!connected[n]||!item?'à vérifier':!item.owner?'à configurer':!same?'compte à relier':item.approved?'autorisé'+(item.approvedUntil?' jusqu’au '+new Date(item.approvedUntil).toLocaleDateString('fr-FR'):''):'à autoriser');el.dataset.ready=String(connected[n]&&same&&!!item?.approved);}
  const both=$('runner-both-networks') as HTMLInputElement;both.disabled=busy||!!state?.busy;both.closest('label')!.hidden=complete;
  const setup=$('runner-setup-networks') as HTMLButtonElement;setup.hidden=complete||!state?.approved;setup.disabled=($('runner-authorize') as HTMLButtonElement).disabled;
  const log=$('runner-log');log.replaceChildren(...(state?.events??[]).slice(-15).reverse().map((event:any)=>{const row=document.createElement('p');row.textContent=new Date(event.at).toLocaleString('fr-FR')+' · '+event.message;return row;}));
@@ -86,9 +86,9 @@ $('runner-authorize').addEventListener('click',()=>run(async()=>{
   state=await request('verify',{},target);record(target,state);verifiedAt[target]=Date.now();
   const confirmed=await provider.request({method:'eth_accounts'});if(state.agent!==expectedAgent||state.owner?.toLowerCase()!==address||confirmed[0]?.toLowerCase()!==address)throw Error('Compte ou agent modifié pendant autorisation.');if(!state.approved)throw Error('Autorisation non retrouvée sur '+target.toUpperCase()+'. Les réseaux déjà autorisés sont conservés.');
  }));
- rememberWallet(address);
+ const remembered=rememberWallet(address);
  await window.BrowserAtelier.setAddress(address,false);
- message(targets.length===2?'Testnet et Mainnet configurés. Les autorisations valides seront reprises sans signature. Choisis ton réseau, puis démarre explicitement le bot.':'Agent autorisé sur '+network.toUpperCase()+'. Le bot reste à l’arrêt.');
+ message(!remembered?'Agents configurés, mais mémorisation du compte indisponible sur ce navigateur. Le bot reste à l’arrêt.':targets.length===2?'Testnet et Mainnet configurés. Les autorisations valides seront reprises sans signature. Choisis ton réseau, puis démarre explicitement le bot.':'Agent autorisé sur '+network.toUpperCase()+'. Le bot reste à l’arrêt.');
 }));
 $('runner-start').addEventListener('click',()=>run(async()=>{
  const settings={dailyTarget:Number(($('daily-target') as HTMLSelectElement).value),profile:($('strategy-profile') as HTMLSelectElement).value,leverage:Number(($('leverage-cap') as HTMLSelectElement).value)};

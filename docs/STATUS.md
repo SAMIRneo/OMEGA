@@ -6,7 +6,7 @@ Revue du 18 octobre 2026, version `1.2.0`. Cette page décrit la version de réf
 
 | Domaine | Comportement actuel | Référence |
 |---|---|---|
-| Interface | Terminal DOM TypeScript/JS, direction ALPHA sable/or et noir/or, navigation latérale et six vues, graphique ETH et profondeur SVG ; aucune figure 3D | [Architecture](ARCHITECTURE.md) |
+| Interface | Terminal DOM TypeScript/JS, direction ALPHA sable/or et nuit/bleu ardoise, navigation latérale et six vues, graphique ETH et profondeur SVG ; aucune figure 3D | [Architecture](ARCHITECTURE.md) |
 | Bot web | Connexion MetaMask, configuration des deux réseaux, réglages et démarrage depuis le lien ; onglet visible et appareil éveillé requis | [Mode web](WEB.md) |
 | Service Node optionnel | Même LiveEngine, HTTP local sur 127.0.0.1:8766, indépendant de l’onglet tant que le processus fonctionne | [Exploitation](OPERATIONS.md) |
 | Simulation / manuel | Capital fictif séparé ; ordres manuels signés par le wallet, distincts du bot délégué | [README](../README.md) |
@@ -48,7 +48,7 @@ Pour reprendre : lire [AGENTS](../AGENTS.md), [ARCHITECTURE](ARCHITECTURE.md) et
 
 ## Interface actuelle — cockpit ALPHA
 
-La référence ALPHA est intégrée dans la présentation OMEGA : polices locales Bricolage Grotesque et Instrument Serif, thèmes clair sable/crème et sombre noir/or, grande carte de capital et widgets asymétriques. `frontend/studio.css` porte cette direction unique. Le cockpit est la page d’accueil, avec six destinations : Cockpit, Marché, Bot, Compte, Historique et Lab.
+La référence ALPHA est intégrée dans la présentation OMEGA : polices locales Bricolage Grotesque et Instrument Serif, thèmes clair brume et sombre nuit/bleu ardoise, grande carte de capital et widgets asymétriques. `frontend/studio.css` porte cette direction unique. Le cockpit est la page d’accueil, avec six destinations : Cockpit, Marché, Bot, Compte, Historique et Lab.
 
 Le capital affiché est soit la simulation, soit le compte perpétuel récemment consulté (75 secondes maximum). Le sélecteur ne change pas le mode d’exécution. Les périodes 1/7/30 jours ou tout filtrent les clôtures enregistrées sur cet appareil ; aucun historique exchange n’est inventé. La courbe inclut le capital valorisé actuellement, et signale les périodes sans clôture. Les widgets affichent le bot confirmé sur le réseau courant, la position ETH, le diagnostic sur bougies clôturées, la marge et la perte simulée du jour, puis les décisions réellement enregistrées. Aucun faux chat IA, stratégie multi-actifs ou résultat de la maquette n’est présenté comme implémenté.
 
@@ -63,3 +63,13 @@ Les tests de non-régression vérifient erreurs multiples, reprise partielle, co
 Validation de cette passe : **188 tests Vitest et 23 tests navigateur/VM** (211 au total), builds web/Node et contrôle HTTP isolé avec redémarrage réussis. Les cinq vues ont été contrôlées à 320, 768 et 1440 pixels sans débordement, sans erreur console observée. Les scénarios d’échec/reprise sont simulés dans les tests ; aucune signature ni aucun ordre réel testé.
 
 Validation du cockpit ALPHA : **191 tests Vitest et 23 tests navigateur/VM**, soit 214 tests, builds web/Node et contrôle HTTP isolé avec redémarrage réussis. Les tests couvrent la séparation compte/simulation, les lectures anciennes, les périodes de capital et la délégation explicite de l’arrêt. Contrôle visuel des six vues dans les deux thèmes à 320, 390, 768 et 1440 pixels : 48 vérifications sans débordement horizontal, aucune erreur console observée. Les grandes valeurs sont dimensionnées sans coupure au petit format. Aucun ordre réel ni permission wallet utilisée pour ces validations.
+
+## Palette et préparation wallet — 18 octobre 2026
+
+- Accent bleu ardoise à la place de l’or, fonds neutres brume/nuit, favicon et graphiques cohérents. Retrait du bloc historique de couleurs minérales qui imposait encore des accents différents par vue.
+- Contrôle navigateur visible avant connexion : HTTPS, wallet compatible, Web Crypto, transaction IndexedDB, localStorage, Web Locks et statut de persistance. Aucun agent ni permission créé par cette sonde.
+- Déconnexion du fournisseur : session de lecture invalidée, préférence conservée, arrêt des nouvelles entrées web via le store wallet. Échec de mémorisation du compte signalé au lieu d’annoncer une sauvegarde.
+- Revue de l’API officielle Hyperliquid / MetaMask et lectures publiques Mainnet + Testnet détaillées dans NETWORKS.md. Réutilisation des accords valides et refus partiel entre réseaux couverts par les tests d’orchestration.
+- Le parcours signé avec le portefeuille personnel et une exécution exchange de bout en bout restent à réaliser par l’utilisateur. Aucun bot cloud permanent ni connaissance hors des flux reçus n’est ajouté.
+
+Validation de cette passe : **198 tests Vitest + 23 tests navigateur/VM (221)**, typage et builds web/Node, contrôle HTTP isolé et redémarrage réussis. Revue des textes DOM visibles dans les six vues et les deux thèmes, y compris panneaux Bot ouverts / réglages / activité : seuil 4,5:1 pour le texte courant, 3:1 pour le grand texte ; corrections des anciennes couleurs cyan/sable et des textes pâles. Cette mesure des styles calculés ne constitue pas un audit WCAG complet (canvas, états non affichés et aides natives du wallet exclus). Contrôle du parcours à 320 px sans débordement horizontal. Le diagnostic réel du navigateur de QA confirme la transaction IndexedDB et signale l’absence de fournisseur MetaMask ; aucune permission personnelle n’est utilisée.

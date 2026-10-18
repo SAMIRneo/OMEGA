@@ -14,6 +14,8 @@ export class BrowserVault {
   const db=await this.db();return new Promise<T>((resolve,reject)=>{let value:T,error:unknown;const tx=db.transaction('vault',mode,{durability:'strict'});const fail=(e:unknown)=>{error=e;try{tx.abort();}catch{reject(e);}};tx.oncomplete=()=>resolve(value);tx.onabort=tx.onerror=()=>reject(error??Error('Sauvegarde du coffre non confirmée.'));try{action(tx.objectStore('vault'),v=>{value=v;},fail);}catch(e){fail(e);}});
  }
  private get(key:string){return this.transaction<any>('readonly',(s,set)=>{const r=s.get(key);r.onsuccess=()=>set(r.result);});}
+ /** Probe a real transaction without opening or changing any agent record. */
+ async checkStorage(){await this.transaction<void>('readwrite',(s,set)=>{s.put(true,'storage-check');s.delete('storage-check');set(undefined);});}
  private async master(create:boolean):Promise<CryptoKey>{
   let key=await this.get('wrapping-key');if(!key){if(!create)throw Error('Clé de chiffrement absente. Conserve le coffre et vérifie le compte Hyperliquid.');const candidate=await this.crypt.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);key=await this.transaction<CryptoKey>('readwrite',(s,set)=>{const r=s.get('wrapping-key');r.onsuccess=()=>{if(r.result)set(r.result);else{s.put(candidate,'wrapping-key');set(candidate);}};});}
   if(key.type!=='secret'||key.extractable!==false||key.algorithm?.name!=='AES-GCM')throw Error('Clé de chiffrement invalide.');return key;

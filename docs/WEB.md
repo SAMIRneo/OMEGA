@@ -2,6 +2,14 @@
 
 Le site publié permet la connexion MetaMask, la configuration de Testnet et Mainnet, les réglages, l’armement du bot, l’arrêt des entrées et la réconciliation. Aucun terminal ou service local n’est nécessaire pour ce mode. Ouvrir [OMEGA](https://omega.kairos-labspro.chatgpt.site/#pilot) dans un navigateur avec MetaMask, Web Locks, Web Crypto et IndexedDB disponibles, sur une origine sécurisée.
 
+## Vérifier cet appareil avant la connexion
+
+Dans Bot, ouvrir **Préparation de cet appareil**. Le contrôle ne demande aucun accès au wallet, ne crée aucun agent et ne signe rien : il vérifie HTTPS, le fournisseur EIP-1193, Web Crypto, Web Locks, une transaction réelle IndexedDB et un aller-retour de la préférence localStorage. La sonde du coffre n’accède à aucun enregistrement d’agent ; sa valeur temporaire est supprimée dans la même transaction. Une erreur de stockage est affichée. Le statut de stockage persistant est lu sans demander de permission.
+
+Une écriture de préférence échouée n’est plus annoncée comme « compte mémorisé ». Une déconnexion du fournisseur MetaMask invalide la session en conservant la préférence publique ; elle est publiée aux moteurs web afin d’arrêter leurs nouvelles entrées. Elle ne révoque pas les agents sur Hyperliquid.
+
+Les deux comptes Hyperliquid doivent disposer de leurs propres fonds sur le réseau choisi. OMEGA ne dépose pas de fonds : consulter l’[onboarding officiel](https://hyperliquid.gitbook.io/hyperliquid-docs/onboarding/how-to-start-trading). Une lecture publique réussie n’établit pas qu’un compte est financé ou autorisé. Le contrôle avant armement vérifie les fonds, l’exposition et l’agent.
+
 ## Parcours
 
 1. Dans **Bot**, connecter MetaMask et vérifier le compte ainsi que le réseau affichés. L’accès à l’adresse ne signe aucun ordre.
@@ -59,4 +67,4 @@ Le service Node reste une option pour une exécution indépendante de l’onglet
 
 Tests du véritable code AES-GCM avec IndexedDB simulé : non-extraction de la clé, réouverture, corruption, mauvais réseau, écritures concurrentes/périmées et transaction échouée. Tests du moteur web avec transports simulés : isolation, consentement Mainnet, absence d’entrée à l’armement, checkpoint avant envoi, interruption tardive, cycle de page et compte modifié. Signatures et noms d’agents validés hors ligne avec le SDK réel sur les deux réseaux.
 
-Aucune permission MetaMask réelle, autorisation d’agent financé ou exécution sur compte financé n’a servi à ces tests. La QA graphique et le parcours avec l’extension restent à réaliser ; les tests de logique ne les remplacent pas. Voir [STATUS.md](STATUS.md).
+Aucune permission MetaMask réelle, autorisation d’agent financé ou exécution sur compte financé n’a servi à ces tests. La QA graphique du parcours sans wallet a été réalisée ; le parcours signé avec l’extension reste à réaliser ; les tests de logique ne les remplacent pas. Voir [STATUS.md](STATUS.md).

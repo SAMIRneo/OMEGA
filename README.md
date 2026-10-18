@@ -1,6 +1,6 @@
 # OMEGA — ETH Intelligence
 
-Un terminal ETH/Hyperliquid, une stratégie Daily et un pilote à signature déléguée utilisable depuis le lien. Cockpit inspiré de la référence ALPHA, thèmes sable et or/noir, graphique financier, profondeur cumulée, recherche historique et suivi du compte.
+Un terminal ETH/Hyperliquid, une stratégie Daily et un pilote à signature déléguée utilisable depuis le lien. Cockpit inspiré de la référence ALPHA, thèmes brume et bleu ardoise, graphique financier, profondeur cumulée, recherche historique et suivi du compte.
 
 **[Ouvrir OMEGA](https://omega.kairos-labspro.chatgpt.site) · [Dépôt GitHub](https://github.com/SAMIRneo/OMEGA)**
 

@@ -48,3 +48,9 @@ Chaque réseau est interrogé et validé indépendamment ; une approbation n’e
 La préférence de reconnexion ne contient qu’une adresse publique, commune aux sélections mainnet/testnet de la même origine. Elle ne transporte aucune clé, session HTTP ou autorisation exchange entre origines. La restauration utilise seulement `eth_accounts` puis des lectures publiques du compte.
 
 En mode web, les agents `OMEGAweb-mainnet` et `OMEGAweb-testnet` sont distincts de Node. Le coffre chiffre le ledger complet et lie l’identité/réseau/révision via AES-GCM. Le transport bloque une entrée si l’onglet a perdu son lock, est masqué ou si le moteur a été arrêté pendant les opérations asynchrones. Voir [WEB.md](WEB.md).
+
+## Revue officielle du 18 octobre 2026
+
+Les champs `hyperliquidChain`, `signatureChainId`, l’expiration `valid_until` (180 jours maximum), les nonces propres aux agents et la rotation après révocation concordent avec les documents officiels cités ci-dessus. La connexion injectée suit `eth_accounts` et les événements `accountsChanged` / `disconnect`, selon l’[API MetaMask](https://docs.metamask.io/metamask-connect/evm/reference/provider-api/). OMEGA utilise le fournisseur injecté/EIP-6963 ; il n’intègre pas de session MetaMask Connect mobile distante.
+
+Lectures publiques effectuées sur chaque endpoint : `meta` et `l2Book` ETH, HTTP 200, vingt niveaux par côté ; index ETH 4 sur Testnet et 1 sur Mainnet à cette date. Aucune adresse personnelle interrogée, signature, autorisation ou transaction réelle effectuée. Une validation logicielle reste distincte d’un premier parcours signé et d’un ordre Testnet confirmé par l’utilisateur.

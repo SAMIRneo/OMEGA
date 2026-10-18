@@ -159,3 +159,13 @@ it('forgets a genuinely changed account and never reconnects after explicit disc
  const module=await import('./exchange');await module.connectWallet();module.disconnectWallet();dom.dispatchEvent(new dom.Event('focus'));handler(fake.accounts);await settle();
  expect(el('testnet-wallet').textContent).toBe('Aucun wallet connecté');expect(dom.localStorage.getItem('omega-wallet-session-v1')).toBeNull();
 });
+
+it('invalidates account reads on provider disconnect while retaining the remembered owner',async()=>{
+ await start();const {rememberedWallet}=await import('./shared/wallet-memory');const owner=rememberedWallet();
+ const handlers=(dom as any).ethereum.on.mock.calls;const disconnected=handlers.find((x:any[])=>x[0]==='disconnect')?.[1];expect(disconnected).toBeTypeOf('function');disconnected({code:4900});
+ const {subscribeWallet}=await import('./shared/wallet-store');let state:any;const off=subscribeWallet(s=>state=s);expect(state.address).toBeNull();expect(state.readAt).toBe(0);expect(state.equity).toBeNull();expect(state.error).toBe(true);expect(rememberedWallet()).toBe(owner);expect(fake.calls.some(x=>x[0]==='order')).toBe(false);off();
+});
+it('reports an unsaved account preference rather than claiming successful persistence',async()=>{
+ vi.spyOn(dom.localStorage,'setItem').mockImplementation(()=>{throw Error('blocked')});await start();
+ expect(el('testnet-action-status').textContent).toContain('mémorisation indisponible');expect(fake.calls.some(x=>x[0]==='order')).toBe(false);
+});

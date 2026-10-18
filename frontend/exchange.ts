@@ -73,7 +73,9 @@ async function run(action:()=>Promise<void>){if(busy)return;setBusy(true);try{if
 function clearSession(forget:boolean){
  if(forget)forgetWallet();revision++;consent.checked=false;exchange=null;address=null;account=null;orders=[];fills=[];dayFills=[];readAt=0;meta=null;
 }
-function disconnect(){clearSession(true);activeProvider?.removeListener?.('accountsChanged',accountsChanged);activeProvider=undefined;status('Compte oublié sur ce navigateur. Les autorisations des agents et les ordres Hyperliquid ne sont pas révoqués.');render();}
+function detachProvider(){activeProvider?.removeListener?.('accountsChanged',accountsChanged);activeProvider?.removeListener?.('disconnect',providerDisconnected);}
+function providerDisconnected(){clearSession(false);status('MetaMask déconnecté : nouvelles entrées web arrêtées. Compte et agents conservés. Recharge la page pour reprendre la connexion.',true);render();}
+function disconnect(){clearSession(true);detachProvider();activeProvider=undefined;status('Compte oublié sur ce navigateur. Les autorisations des agents et les ordres Hyperliquid ne sont pas révoqués.');render();}
 function accountsChanged(accounts:unknown){
  const selected=Array.isArray(accounts)&&typeof accounts[0]==='string'?accounts[0].toLowerCase():undefined;
  if(selected&&selected===address)return;
@@ -85,15 +87,16 @@ function accountsChanged(accounts:unknown){
 async function attachWallet(p:NonNullable<ReturnType<typeof walletProvider>>,rawAddress:string,version:number){
  if(version!==revision)throw Error('Session wallet modifiée pendant la connexion.');
  if(!/^0x[0-9a-fA-F]{40}$/.test(rawAddress??'')||/^0x0{40}$/.test(rawAddress))throw Error('Aucun compte autorisé.');
- activeProvider?.removeListener?.('accountsChanged',accountsChanged);activeProvider=p;address=rawAddress.toLowerCase() as Address;account=null;readAt=0;orders=[];fills=[];
+ detachProvider();activeProvider=p;address=rawAddress.toLowerCase() as Address;account=null;readAt=0;orders=[];fills=[];
  const wallet=createWalletClient({account:address,transport:custom(p)});
  exchange=new ExchangeClient({wallet,transport,defaultExpiresAfter:()=>Date.now()+60000});
  p.on?.('accountsChanged',accountsChanged);
+ p.on?.('disconnect',providerDisconnected);
  // Hyperliquid's network is selected by its signed transport, not the wallet EVM chain.
  rememberWallet(address);
  await read();if(version!==revision)throw Error('Session wallet modifiée.');await window.BrowserAtelier.setAddress(address,false);
- if(version!==revision||!address)throw Error('Session wallet modifiée.');rememberWallet(address);
- status(pending()?'Un envoi précédent doit être vérifié avant une nouvelle entrée.':'Compte mémorisé sur ce navigateur. Les autorisations du bot restent distinctes pour Testnet et Mainnet.');
+ if(version!==revision||!address)throw Error('Session wallet modifiée.');const remembered=rememberWallet(address);
+ status(pending()?'Un envoi précédent doit être vérifié avant une nouvelle entrée.':remembered?'Compte mémorisé sur ce navigateur. Les autorisations du bot restent distinctes pour Testnet et Mainnet.':'Compte connecté, mais mémorisation indisponible. Autorise le stockage du site pour retrouver automatiquement ce compte.');
 }
 export async function connectWallet(){return run(async()=>{
  const version=++revision;
@@ -109,7 +112,7 @@ export async function restoreWallet(){
  return run(async()=>{
   const version=++revision,p=provider();if(!p){status('Installe ou ouvre MetaMask, puis reconnecte ton compte mémorisé.');return;}
   const accounts=await p.request({method:'eth_accounts'});
-  if(!accounts.length){activeProvider?.removeListener?.('accountsChanged',accountsChanged);activeProvider=p;p.on?.('accountsChanged',accountsChanged);status('Déverrouille MetaMask pour reprendre ton compte mémorisé. Aucune nouvelle autorisation du bot.');return;}
+  if(!accounts.length){detachProvider();activeProvider=p;p.on?.('accountsChanged',accountsChanged);p.on?.('disconnect',providerDisconnected);status('Déverrouille MetaMask pour reprendre ton compte mémorisé. Aucune nouvelle autorisation du bot.');return;}
   if(accounts[0].toLowerCase()!==expected){forgetWallet();throw Error('Le compte actif de MetaMask a changé. Connecte le compte souhaité.');}
   await attachWallet(p,accounts[0],version);
  });

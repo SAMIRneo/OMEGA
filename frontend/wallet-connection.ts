@@ -5,6 +5,7 @@ import {walletProvider,walletError} from './shared/wallet-provider';
 import {rememberedWallet} from './shared/wallet-memory';
 import {lazyModule} from './shared/lazy';
 import {formatNumber} from './shared/format';
+import {browserReadiness,type Readiness} from './web/readiness';
 const $=(id:string)=>document.getElementById(id)!;
 const exchange=lazyModule(()=>import('./exchange'));
 const local=location.origin==='http://127.0.0.1:8766';
@@ -12,7 +13,20 @@ const accountDisclosure=$('account-disclosure') as HTMLDetailsElement;
 accountDisclosure.open=false;
 const network=window.BrowserAtelier.environment?.id??'',label=network==='testnet'?'Testnet':'Mainnet';
 let wallet:WalletView|null=null,runner:RunnerView={connected:false},loading=false,loadError='';
+let readiness:Readiness|null=null,checking=false;
+async function checkDevice(){
+ if(checking)return;checking=true;($('connect-device-check') as HTMLButtonElement).disabled=true;
+ $('connect-device-status').textContent='Vérification du navigateur et du coffre…';
+ try{readiness=await browserReadiness();render();}finally{checking=false;($('connect-device-check') as HTMLButtonElement).disabled=false;}
+}
 function render(){
+ if(readiness){
+  const rows:[string,boolean,string][]=[['secure',readiness.secure,'Connexion sécurisée'],['wallet',!!walletProvider(),'MetaMask / wallet compatible'],['vault',readiness.vault&&readiness.crypto,'Coffre chiffré · écriture vérifiée'],['memory',readiness.memory,'Mémorisation du compte'],['locks',readiness.locks,'Exclusivité entre onglets']];
+  for(const [id,ok,label] of rows){const el=$('connect-check-'+id);el.textContent=(ok?'✓ ':'À vérifier · ')+label;el.dataset.ready=String(ok);}
+  const ready=readiness.secure&&readiness.vault&&readiness.crypto&&readiness.locks;
+  $('connect-device-status').textContent=ready?(walletProvider()?'Cet appareil est compatible avec le bot web.':'Stockage prêt · ouvre OMEGA avec MetaMask pour continuer.'):'Le bot web reste bloqué tant que les contrôles requis ne passent pas.';
+  $('connect-storage-note').textContent=readiness.error||(!readiness.vault?'Le coffre n’a pas pu être vérifié.':readiness.retained===true?'Stockage persistant accordé par le navigateur.':'Le navigateur peut effacer son stockage. Garde le même profil et n’efface pas les données du site pour retrouver tes agents.');
+ }
  const known=wallet?.network===network?wallet:null,read=!!known?.readAt,connected=!!known?.address,busy=loading||!!known?.busy||!!(runner.connected&&runner.network===network&&runner.busy),service=runner.connected&&runner.network===network,mismatch=!!(service&&known?.address&&runner.owner&&known.address.toLowerCase()!==runner.owner.toLowerCase());
  $('connect-network-name').textContent=label+(network==='testnet'?' · fonds de test':' · fonds réels');
  for(const button of document.querySelectorAll<HTMLButtonElement>('[data-connect-network]')){button.setAttribute('aria-pressed',String(button.dataset.connectNetwork===network));button.disabled=busy||!network;}
@@ -70,6 +84,9 @@ export async function connect(){
  finally{loading=false;render();}
 }
 $('runner-mainnet').addEventListener('change',render);
+$('connect-device-check').addEventListener('click',()=>void checkDevice());
+window.addEventListener('eip6963:announceProvider',()=>{queueMicrotask(render);});
+void checkDevice();
 const offWallet=subscribeWallet(state=>{wallet=state;render();}),offRunner=subscribeRunner(state=>{runner=state;render();});
 for(const button of document.querySelectorAll<HTMLButtonElement>('[data-connect-network]'))button.addEventListener('click',()=>{
  if(button.dataset.connectNetwork===network)return;
