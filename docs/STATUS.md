@@ -93,3 +93,16 @@ Validation : 209 tests Vitest et 23 tests navigateur/VM, compilation web/Node, i
 Suppression des demandes de permission redondantes après appairage mobile et avant autorisation d'agent. Le client wallet commun désactive les relances automatiques de requêtes, contrôle le propriétaire immédiatement avant signature et revalide le domaine EVM / réseau Hyperliquid des approbations. Les erreurs MetaMask distinguent connexion et signature, avec code de rejet, sans contourner de protection du wallet. Les deux réseaux restent indépendants et aucun ordre n'est envoyé à l'armement.
 
 Validation : 216 tests Vitest + 23 tests navigateur/VM (239), builds et contrôle du service isolé. Les nouveaux tests utilisent le SDK Hyperliquid réel et un fournisseur EIP-1193 simulé : approbations Testnet/Mainnet, zéro envoi exchange après rejet 4001 ou erreur RPC, une seule demande de signature par action, blocage sur changement de compte/chaîne et réutilisation des permissions. Ces vérifications corrigent des défauts constatés dans le code ; elles ne prouvent pas la cause exacte d'un rejet sur le wallet personnel, ni une approbation réelle réussie.
+
+
+## Refonte du parcours wallet/Bot — 19 octobre 2026
+
+- Une seule session wallet pour le Bot, les autorisations et l'exchange manuel. Le code de connexion/restauration et les événements fournisseurs ont été retirés de l'adaptateur manuel ; le helper d'autorisation de compte parallèle a été supprimé.
+- La connexion ne dépend plus des historiques d'ordres, du formulaire manuel, de Web Locks ou de la création d'un agent. Une lecture de solde indisponible reste distincte d'une permission MetaMask refusée et se réessaie sans redemander l'accès au compte.
+- Réinitialisation de la connexion proposée même après échec : préférence publique et session locale du fournisseur uniquement. Les agents chiffrés, protections, compteurs et incertitudes ne sont pas purgés.
+- Contrôles de session sur les réponses asynchrones, exclusion d'une opération manuelle pendant le démarrage web, absence d'armement à la connexion et consentement Mainnet maintenus.
+
+Validation : 233 tests Vitest + 23 tests navigateur/VM (256), typage, builds web/Node et service isolé. Le test d'intégration traverse le véritable onglet Bot et la session commune, avec fournisseur, réponses Hyperliquid et moteur simulés : une seule permission de compte, deux autorisations distinctes, puis démarrage explicite du réseau choisi. Le contrôle du bundle importe aussi la session réellement compilée et intercepte la lecture de compte en mémoire ; aucun appel extérieur, agent créé ou ordre signé/envoyé. Aucun appairage ou ordre financé personnel validé.
+
+
+Le contrôle navigateur a reproduit des timeouts du relais mobile avant affichage du QR. La refonte retire donc `@metamask/connect-evm`, les sessions distantes et leurs dépendances. Le fournisseur natif EIP-1193/EIP-6963 est la voie unique : extension sur ordinateur ou navigateur de l'application MetaMask sur téléphone. L'aide mobile affiche un QR de lien public et explique que le bot s'exécute sur l'appareil où la connexion est ouverte. Les anciennes données SDK ne sont plus lues ; le coffre OMEGA reste conservé. Aucun appairage ou ordre personnel financé n'a été validé.

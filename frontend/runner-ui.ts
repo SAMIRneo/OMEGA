@@ -2,7 +2,7 @@ import {AUTHORIZATION_DAYS,agentAuthorizationName} from '../shared/authorization
 import {rememberWallet} from './shared/wallet-memory';
 import {assertEnvironment,networkConfig} from './core/networks.js';
 import {publishRunner} from './shared/runner-store';
-import {walletProvider,walletError,authorizedWalletAccount,signingChainId} from './shared/wallet-provider';
+import {walletError,signingChainId} from './shared/wallet-provider';
 const $=(id:string)=>document.getElementById(id)!;
 const local=location.origin==='http://127.0.0.1:8766';
 const network:Network=assertEnvironment(window.BrowserAtelier.environment).id;
@@ -65,8 +65,7 @@ $('runner-mainnet').addEventListener('change',render);
 $('runner-setup-networks').addEventListener('click',()=>{const button=$('runner-authorize') as HTMLButtonElement;if(!button.disabled)button.click();});
 async function authorizeNetworks(targets:Network[]){return run(async()=>{
  actionError='';
- const provider=walletProvider();if(!provider)throw Error('Ouvre cette page dans un navigateur avec MetaMask ou Rabby.');
- const rawAddress=await authorizedWalletAccount(provider);
+ const {provider,owner:rawAddress}=await (await import('./shared/wallet-session')).requireWallet();
  const address=rawAddress?.toLowerCase();if(!/^0x[0-9a-fA-F]{40}$/.test(address??'')||/^0x0{40}$/.test(address))throw Error('Aucun compte wallet autorisé.');
  if(!navigator.locks)throw Error('Verrouillage entre onglets requis pour autoriser un agent.');
  for(const target of targets)await navigator.locks.request('omega-'+target+'-agent-setup',()=>navigator.locks.request('omega-'+target+'-sign-'+address,async()=>{

@@ -2,8 +2,7 @@ import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {Window} from 'happy-dom';
 import {readFileSync} from 'node:fs';
 const fake=vi.hoisted(()=>({connect:vi.fn(),refresh:vi.fn(),disconnect:vi.fn(),restore:vi.fn()}));
-vi.mock('./exchange',()=>({connectWallet:fake.connect,refreshWallet:fake.refresh,disconnectWallet:fake.disconnect,restoreWallet:fake.restore}));
-vi.mock('./shared/mobile-wallet',()=>({connectMobileWallet:vi.fn(async()=>{})}));
+vi.mock('./shared/wallet-session',()=>({connectWallet:fake.connect,refreshWallet:fake.refresh,resetWalletConnection:fake.disconnect,restoreWallet:fake.restore}));
 let dom:Window;
 const el=(id:string)=>dom.document.getElementById(id)! as unknown as HTMLElement;
 beforeEach(()=>{
@@ -18,6 +17,12 @@ it('offers a visible wallet entry without probing localhost or requesting wallet
  expect(el('connect-wallet-state').textContent).toBe('Wallet non connecté');expect(el('connect-wallet-help').hidden).toBe(false);
  expect(el('connect-service-state').textContent).toContain('Mode web');expect(el('connect-service-help').hidden).toBe(true);
  expect(el('wallet-short')).not.toBeNull();expect(dom.document.querySelector('[data-connect-network="testnet"]')?.getAttribute('aria-pressed')).toBe('true');
+});
+it('retries the Hyperliquid read independently of wallet permission after a core read failure',async()=>{
+ await import('./wallet-connection');const {publishWallet}=await import('./shared/wallet-store');
+ publishWallet({network:'testnet',address:'0x1111111111111111111111111111111111111111',busy:false,readAt:0,equity:null,withdrawable:null,position:null,openOrders:0,message:'Account unavailable',error:true});
+ expect(el('next-step-action').dataset.target).toBe('account');(el('next-step-action') as HTMLButtonElement).click();await vi.dynamicImportSettled();
+ expect(fake.refresh).toHaveBeenCalledOnce();expect(fake.connect).not.toHaveBeenCalled();expect((el('connect-disconnect') as HTMLButtonElement).disabled).toBe(false);
 });
 it('does not present an unfunded perpetual account as ready to start',async()=>{
  await import('./wallet-connection');const {publishWallet}=await import('./shared/wallet-store');const {publishRunner}=await import('./shared/runner-store');

@@ -5,7 +5,7 @@ import {networkConfig,type Network} from '../../shared/policy';
 import {walletProvider} from '../shared/wallet-provider';
 import {subscribeWallet} from '../shared/wallet-store';
 import {BrowserVault} from './vault';
-let epoch=0,walletRevision=0,walletAddress:string|null=null;
+let epoch=0,walletRevision=0,walletAddress:string|null=null,walletBusy=false;
 const vault=new BrowserVault(),engines=new Map<Network,LiveEngine>(),opening=new Map<Network,Promise<LiveEngine|null>>(),held=new Set<Network>(),releases=new Map<Network,()=>void>();
 async function claim(network:Network,generation=epoch){
  if(held.has(network))return true;if(!navigator.locks)throw Error('Web Locks requis pour trader dans le navigateur.');
@@ -51,12 +51,12 @@ export async function browserRequest(path:string,body:any,network:Network){
   const agent=privateKeyToAccount(ledger.key).address,result=await vault.save(ledger,agent,network,old?.ledger.revision??null,()=>held.has(network)&&generation===epoch);Object.assign(ledger,result);engine=await create(network,ledger,agent,generation);
  }else{
   if(!engine)throw Error('Configure d’abord l’agent avec MetaMask.');
-  if(path==='verify')await engine.verifyApproval();else if(path==='arm'){const revision=walletRevision,provider=walletProvider(),accounts=await provider?.request({method:'eth_accounts'});if(revision!==walletRevision||generation!==epoch||engines.get(network)!==engine)throw Error('Session wallet modifiée : démarrage interrompu.');if(accounts?.[0]?.toLowerCase()!==engine.ledger.owner?.toLowerCase())throw Error('Reconnecte le compte MetaMask propriétaire avant le démarrage.');if(document.hidden)throw Error('Garde cet onglet visible pour démarrer.');await engine.arm(body?.settings,body?.consent);}else if(path==='stop')await engine.stop();else if(path==='reconcile')await engine.reconcile();else throw Error('Commande web inconnue.');
+  if(path==='verify')await engine.verifyApproval();else if(path==='arm'){if(walletBusy)throw Error('Une opération wallet est en cours. Attends sa fin avant de démarrer.');const revision=walletRevision,provider=walletProvider(),accounts=await provider?.request({method:'eth_accounts'});if(walletBusy||revision!==walletRevision||generation!==epoch||engines.get(network)!==engine)throw Error('Session wallet modifiée : démarrage interrompu.');if(accounts?.[0]?.toLowerCase()!==engine.ledger.owner?.toLowerCase())throw Error('Reconnecte le compte MetaMask propriétaire avant le démarrage.');if(document.hidden)throw Error('Garde cet onglet visible pour démarrer.');if(window.localStorage.getItem('omega-'+network+'-exchange-pending-'+engine.ledger.owner?.toLowerCase()))throw Error('Un envoi manuel reste à vérifier avant de démarrer le bot.');await engine.arm(body?.settings,body?.consent);}else if(path==='stop')await engine.stop();else if(path==='reconcile')await engine.reconcile();else throw Error('Commande web inconnue.');
  }
  return {...engine.status(),mode:'web'};
 }
 async function poll(){for(const engine of engines.values()){if(document.hidden&&engine.active)await engine.stop();await engine.tick();}}
 setInterval(()=>{void poll().catch(()=>{/* Engine preserves pending and exposes its durable-write failure reason. */});},10000);
-subscribeWallet(state=>{const address=state.address?.toLowerCase()??null;if(address!==walletAddress){walletAddress=address;walletRevision++;for(const engine of engines.values())if((engine.active||engine.busy)&&address!==engine.ledger.owner?.toLowerCase())void engine.stop();}});
+subscribeWallet(state=>{walletBusy=state.busy;const address=state.address?.toLowerCase()??null;if(address!==walletAddress){walletAddress=address;walletRevision++;for(const engine of engines.values())if((engine.active||engine.busy)&&address!==engine.ledger.owner?.toLowerCase())void engine.stop();}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)for(const engine of engines.values())if(engine.active||engine.busy)void engine.stop();});
 window.addEventListener('pagehide',()=>{epoch++;for(const engine of engines.values())if(engine.active||engine.busy)void engine.stop();engines.clear();for(const release of releases.values())release();releases.clear();held.clear();});

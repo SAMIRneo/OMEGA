@@ -14,9 +14,3 @@ it('uses the wallet chain for signing and rejects malformed chain responses',asy
  expect(await signingChainId({request:vi.fn(async()=>'0xa4b1') as any})).toBe('0xa4b1');
  await expect(signingChainId({request:vi.fn(async()=>'mainnet') as any})).rejects.toThrow('illisible');
 });
-it('reuses permission for an authorized owner and requests it only when missing',async()=>{
- const {authorizedWalletAccount}=await import('./wallet-provider');const owner='0x1111111111111111111111111111111111111111';
- const request=vi.fn(async()=>[owner]);expect(await authorizedWalletAccount({request:request as any})).toBe(owner);expect(request).toHaveBeenCalledExactlyOnceWith({method:'eth_accounts'});
- request.mockImplementationOnce(async()=>[]);await authorizedWalletAccount({request:request as any});expect(request.mock.calls.at(-1)).toEqual([{method:'eth_requestAccounts'}]);
- request.mockImplementationOnce(async()=>{throw {code:4100};});await authorizedWalletAccount({request:request as any});expect(request.mock.calls.at(-1)).toEqual([{method:'eth_requestAccounts'}]);
-});

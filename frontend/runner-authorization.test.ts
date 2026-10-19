@@ -1,3 +1,4 @@
+vi.mock('./shared/wallet-session',()=>({requireWallet:async()=>({provider:(window as any).ethereum,owner:'0x1111111111111111111111111111111111111111'})}));
 import {it,expect,vi,beforeEach,afterEach} from 'vitest';
 import {Window} from 'happy-dom';
 import {readFileSync} from 'node:fs';

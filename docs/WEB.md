@@ -28,7 +28,7 @@ Une signature refusée sur le second réseau conserve le premier. Une préparati
 | Retour sur la même adresse du site et le même navigateur | Restauration passive via eth_accounts, puis vérification indépendante des agents auprès d’Hyperliquid ; aucune signature si valides |
 | Changement du réseau EVM affiché dans MetaMask | Le compte mémorisé est conservé ; le sélecteur OMEGA et le transport signé choisissent Hyperliquid mainnet/testnet |
 | MetaMask verrouillé ou accès aux comptes suspendu | Le compte et les agents restent mémorisés ; nouvelles entrées web arrêtées. Déverrouiller reprend la lecture sans nouvelle permission si MetaMask expose le même compte |
-| Véritable changement de compte ou clic Déconnecter | Session oubliée, nouvelles entrées web arrêtées ; aucune substitution silencieuse du propriétaire |
+| Véritable changement de compte ou réinitialisation de connexion | Session oubliée, nouvelles entrées web arrêtées ; aucune substitution silencieuse du propriétaire |
 | Agent expiré/révoqué, coffre effacé ou autre appareil/origine | Nouvelle configuration pour le réseau concerné ; les autres autorisations valides restent conservées |
 
 Les agents existants gardent leur expiration réelle, y compris ceux précédemment autorisés pour 30 jours. Ils ne sont ni prolongés ni remplacés automatiquement. La date relue sur chaque réseau fait autorité. Le focus de la page et le déverrouillage ne demandent jamais eth_requestAccounts, de signature ou d’armement.
@@ -65,7 +65,7 @@ Le service Node reste une option pour une exécution indépendante de l’onglet
 
 ## Validation
 
-La connexion mobile utilise le SDK MetaMask Connect officiel chargé seulement après une action utilisateur. La fenêtre QR native OMEGA est annulable au clavier et ne déclenche aucune signature. Le mode web ne devient actif qu’après autorisation du réseau puis démarrage explicite. L’action principale autorise le réseau sélectionné par défaut ; la configuration des deux réseaux ensemble est optionnelle. Chaque réseau dispose de son bouton d’autorisation ; un réseau indisponible n’impose pas de reconfigurer l’autre. Une erreur de lancement reste visible pendant les rafraîchissements.
+La connexion utilise directement le fournisseur MetaMask de l’extension ou du navigateur mobile intégré. La fenêtre d’aide mobile affiche un QR de navigation public et ne déclenche aucune signature. Le mode web ne devient actif qu’après autorisation du réseau puis démarrage explicite. L’action principale autorise le réseau sélectionné par défaut ; la configuration des deux réseaux ensemble est optionnelle. Chaque réseau dispose de son bouton d’autorisation ; un réseau indisponible n’impose pas de reconfigurer l’autre. Une erreur de lancement reste visible pendant les rafraîchissements.
 
 Une lecture secondaire indisponible n’empêche plus d’afficher le propriétaire et le solde perpétuel si la lecture principale réussit. Les ordres et historiques sont alors signalés indisponibles et les opérations manuelles exigent une lecture complète avant envoi. Un solde nul n’est pas présenté comme un bot prêt à démarrer.
 
@@ -76,11 +76,22 @@ Aucune permission MetaMask réelle, autorisation d’agent financé ou exécutio
 
 ## Demandes MetaMask sans répétition
 
-Après connexion mobile réussie, OMEGA relit les comptes autorisés sans redemander les permissions. L'autorisation d'agent réutilise également `eth_accounts` et n'appelle `eth_requestAccounts` que si l'accès manque. Une nouvelle connexion injectée explicite reste une demande de permission.
+Une seule session partage le compte autorisé entre l'interface et les autorisations. L'accès utilise `eth_requestAccounts` après un clic explicite ; la restauration et les contrôles utilisent `eth_accounts`.
 
 Les signatures passent par un client commun sans relance automatique du transport wallet (`retryCount: 0`). Juste avant `eth_signTypedData_v4`, le compte demandé doit être le propriétaire sélectionné. Pour `ApproveAgent`, la chaîne active doit toujours correspondre au domaine préparé et `hyperliquidChain` au réseau ciblé. Un changement bloque la signature ; aucun changement de chaîne ni repli vers `personal_sign` n'est imposé.
 
 Les refus distinguent la connexion du compte et la signature structurée, avec le code 4001. Un refus ou une alerte de sécurité MetaMask n'est jamais contourné. Les codes de méthode non supportée sont signalés, notamment pour vérifier la compatibilité des comptes matériels. Les messages ne journalisent ni signature, ni QR, ni clés.
 
 
-Le bouton téléphone/QR déclenche explicitement `connect({forceRequest:true})` pour ne pas rester bloqué sur la reprise d'une ancienne session SDK expirée. Cette demande explicite est unique ; le raccordement au compte et la préparation de l'agent ne redemandent pas les permissions déjà obtenues.
+## Session unifiée et réinitialisation — 19 octobre 2026
+
+La session commune `frontend/shared/wallet-session.ts` possède désormais l'accès au fournisseur, le propriétaire, la lecture du solde perpétuel, la restauration et la déconnexion. L'onglet Bot n'importe plus le module d'ordres manuels pour se connecter. L'autorisation des deux agents et les outils manuels utilisent cette même session ; aucun second parcours de connexion ne subsiste dans `exchange.ts` ou `runner-ui.ts`.
+
+Connecter un compte est une opération de permission et de lecture ; Web Locks, IndexedDB et le coffre ne sont requis que pour l'exécution déléguée, pas pour afficher un compte. Un refus de lecture Hyperliquid conserve l'adresse autorisée et propose **Réessayer la lecture**, sans nouvelle permission wallet. Les autorisations Testnet et Mainnet restent indépendantes ; un échec de lecture du réseau sélectionné n'empêche pas de prouver le propriétaire pour autoriser l'autre réseau.
+
+**Mon compte → Réinitialiser la connexion** efface la préférence de reconnexion et détache la session locale du fournisseur. Cela arrête les nouvelles entrées web via le store partagé. Le coffre chiffré, les compteurs, les protections exchange et les envois à vérifier sont conservés. Les agents ne sont pas révoqués sur Hyperliquid et un service Node indépendant n'est pas arrêté par cette opération. Une demande wallet en cours doit d'abord être terminée ou annulée.
+
+La session refuse les résultats de lectures devenus périmés après un changement de compte ou une déconnexion. Les clics de connexion concurrents partagent une seule demande. Une opération manuelle bloque le démarrage web et la préparation d'une autorisation concurrente.
+
+
+Sur téléphone, **Ouvrir dans MetaMask** ouvre le site dans le navigateur de l'application officielle. Le QR contient uniquement ce lien public, sans compte, clé ni jeton de session. Le bot tourne sur l'appareil où le site est ouvert avec le wallet ; cette aide ne permet pas de piloter cet onglet depuis un téléphone. Sur ordinateur, utiliser une extension MetaMask compatible. Le SDK de relais, ses dépendances et ses restaurations de session ont été supprimés ; les anciennes données SDK éventuellement conservées par le navigateur ne sont plus chargées par OMEGA.

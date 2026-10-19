@@ -1,8 +1,8 @@
 import {assertEnvironment,networkConfig} from './core/networks.js';
 import {sessionBlock} from './core/session.js';
-import {rememberedWallet,rememberWallet,forgetWallet} from './shared/wallet-memory';
-import {publishWallet} from './shared/wallet-store';
-import {walletProvider,walletError,requestWalletAccount,signingChainId} from './shared/wallet-provider';
+import {subscribeWallet} from './shared/wallet-store';
+import * as session from './shared/wallet-session';
+import {walletError,signingChainId} from './shared/wallet-provider';
 import {ExchangeClient,HttpTransport,InfoClient} from '@nktkas/hyperliquid';
 import type {Address} from 'viem';
 import {sessionWallet} from './shared/wallet-client';
@@ -34,17 +34,14 @@ let detailsReady=false;
 let meta:{asset:number;szDecimals:number;maxLeverage:number}|null=null;
 const form=$('testnet-order-form') as HTMLFormElement;
 form.addEventListener('change',event=>{if(event.target!==consent)consent.checked=false;});
-let sessionMessage='',sessionError=false,activeProvider:ReturnType<typeof walletProvider>;
-const status=(message:string,error=false)=>{sessionMessage=message;sessionError=error;$('testnet-action-status').textContent=message;publishSession();};
+const status=(message:string,error=false)=>{$('testnet-action-status').textContent=message;};
 const number=(n:unknown)=>Number(n).toLocaleString('fr-FR',{maximumFractionDigits:4});
-const provider=()=>activeProvider??walletProvider();
-function publishSession(){const position=account?.assetPositions.find(x=>x.position.coin==='ETH'&&Number(x.position.szi)!==0)?.position;publishWallet({network,address,busy,readAt,equity:account?Number(account.marginSummary.accountValue):null,withdrawable:account?Number(account.withdrawable):null,position:position?{size:Number(position.szi),entry:Number(position.entryPx)}:null,openOrders:orders.filter(x=>x.coin==='ETH').length,message:sessionMessage,error:sessionError});}
+const provider=()=>session.sessionProvider();
 function guard(){assertEnvironment(window.BrowserAtelier.environment);if(window.BrowserAtelier.environment?.id!==network||transport.isTestnet!==isTestnet)throw Error('Réseau de signature incohérent.');if(!address||!exchange)throw Error('Connecte le wallet Hyperliquid.');}
 const pendingKey=()=> 'omega-'+network+'-exchange-pending-'+address?.toLowerCase();
 function pending():{cloid:`0x${string}`;at:number}|null{const raw=localStorage.getItem(pendingKey());if(!raw)return null;try{const value=JSON.parse(raw);if(!/^0x[0-9a-fA-F]{32}$/.test(value.cloid)||!Number.isFinite(value.at)||value.at<=0||value.at>Date.now()+5000)throw Error('Invalid pending');return value;}catch{throw Error('Journal d’envoi illisible : vérifie le compte Hyperliquid avant de poursuivre.');}}
-function setBusy(value:boolean){busy=value;publishSession();(document.getElementById('network-select') as HTMLSelectElement).disabled=value;for(const b of panel.querySelectorAll<HTMLButtonElement>('button'))b.disabled=value;for(const el of form.querySelectorAll<HTMLInputElement|HTMLSelectElement>('input,select'))el.disabled=value;}
+function setBusy(value:boolean){busy=value;session.setWalletActivity(value);(document.getElementById('network-select') as HTMLSelectElement).disabled=value;for(const b of panel.querySelectorAll<HTMLButtonElement>('button'))b.disabled=value;for(const el of form.querySelectorAll<HTMLInputElement|HTMLSelectElement>('input,select'))el.disabled=value;}
 function render(){
- publishSession();
  $('testnet-wallet').textContent=address??'Aucun wallet connecté';
  $('testnet-balance').textContent=account?number(account.marginSummary.accountValue)+' USDC / '+networkLabel:'—';
  $('testnet-available').textContent=account?number(account.withdrawable)+' USDC retirables':'Solde lu directement sur Hyperliquid';
@@ -79,56 +76,22 @@ async function read(strict=true){
 }
 async function verifySigner(){guard();const accounts=await provider()!.request({method:'eth_accounts'});if(accounts[0]?.toLowerCase()!==address!.toLowerCase())throw Error('Le compte actif du wallet a changé. Reconnecte-le.');}
 async function run(action:()=>Promise<void>){if(busy)return;setBusy(true);try{if(!navigator.locks)throw Error('Verrouillage entre onglets indisponible : utilise un navigateur compatible.');await navigator.locks.request('omega-'+network+'-sign-'+(address?.toLowerCase()??'connect'),action);}catch(error){status(walletError(error),true);}finally{setBusy(false);render();}}
-function clearSession(forget:boolean){
- if(forget)forgetWallet();revision++;consent.checked=false;exchange=null;address=null;account=null;orders=[];fills=[];dayFills=[];readAt=0;meta=null;detailsReady=false;
-}
-function detachProvider(){activeProvider?.removeListener?.('accountsChanged',accountsChanged);activeProvider?.removeListener?.('disconnect',providerDisconnected);}
-function providerDisconnected(){clearSession(false);status('MetaMask déconnecté : nouvelles entrées web arrêtées. Compte et agents conservés. Recharge la page pour reprendre la connexion.',true);render();}
-function disconnect(){clearSession(true);detachProvider();activeProvider=undefined;status('Compte oublié sur ce navigateur. Les autorisations des agents et les ordres Hyperliquid ne sont pas révoqués.');render();}
-function accountsChanged(accounts:unknown){
- const selected=Array.isArray(accounts)&&typeof accounts[0]==='string'?accounts[0].toLowerCase():undefined;
- if(selected&&selected===address)return;
- const expected=rememberedWallet();
- if(selected&&expected&&selected===expected){if(!busy)void restoreWallet();return;}
- if(!selected){clearSession(false);status('MetaMask verrouillé ou accès suspendu. Le compte et les agents restent mémorisés. Déverrouille MetaMask pour reprendre.');render();return;}
- clearSession(true);status('Le compte actif de MetaMask a changé. Connecte le compte souhaité.',true);render();
-}
-async function attachWallet(p:NonNullable<ReturnType<typeof walletProvider>>,rawAddress:string,version:number){
- if(version!==revision)throw Error('Session wallet modifiée pendant la connexion.');
- if(!/^0x[0-9a-fA-F]{40}$/.test(rawAddress??'')||/^0x0{40}$/.test(rawAddress))throw Error('Aucun compte autorisé.');
- detachProvider();activeProvider=p;address=rawAddress.toLowerCase() as Address;account=null;readAt=0;orders=[];fills=[];
- const wallet=sessionWallet(p,address,network);
- exchange=new ExchangeClient({wallet,transport,signatureChainId:()=>signingChainId(p),defaultExpiresAfter:()=>Date.now()+60000});
- p.on?.('accountsChanged',accountsChanged);
- p.on?.('disconnect',providerDisconnected);
- // Hyperliquid's network is selected by its signed transport, not the wallet EVM chain.
- rememberWallet(address);
- await read(false);if(version!==revision)throw Error('Session wallet modifiée.');await window.BrowserAtelier.setAddress(address,false);
- if(version!==revision||!address)throw Error('Session wallet modifiée.');const remembered=rememberWallet(address);
- status(!detailsReady?'Compte connecté. Les ordres ou historiques sont temporairement indisponibles : actualise le compte avant de continuer.':pending()?'Un envoi précédent doit être vérifié avant une nouvelle entrée.':remembered?'Compte mémorisé sur ce navigateur. Les autorisations du bot restent distinctes pour Testnet et Mainnet.':'Compte connecté, mais mémorisation indisponible. Autorise le stockage du site pour retrouver automatiquement ce compte.');
-}
-export async function connectWallet(){return run(async()=>{
- const version=++revision;
- status('Ouvre MetaMask et autorise l’accès à ton adresse. Aucune signature de trading.');
- if(window.BrowserAtelier.environment?.id!==network)throw Error('Réseau changé. Recharge la page.');
- const p=walletProvider();if(!p)throw Error('Aucun wallet Ethereum détecté. Ouvre OMEGA dans un navigateur avec MetaMask ou Rabby pour signer sur '+networkLabel+'.');
- await attachWallet(p,await requestWalletAccount(p),version);
-});}
-export async function restoreWallet(){
- const expected=rememberedWallet();if(!expected||address)return;
- return run(async()=>{
-  const version=++revision,p=provider();if(!p){status('Installe ou ouvre MetaMask, puis reconnecte ton compte mémorisé.');return;}
-  const accounts=await p.request({method:'eth_accounts'});
-  if(!accounts.length){detachProvider();activeProvider=p;p.on?.('accountsChanged',accountsChanged);p.on?.('disconnect',providerDisconnected);status('Déverrouille MetaMask pour reprendre ton compte mémorisé. Aucune nouvelle autorisation du bot.');return;}
-  if(accounts[0].toLowerCase()!==expected){forgetWallet();throw Error('Le compte actif de MetaMask a changé. Connecte le compte souhaité.');}
-  await attachWallet(p,accounts[0],version);
- });
-}
-window.addEventListener('focus',()=>{if(!busy&&!address&&rememberedWallet())void restoreWallet();});
-export const disconnectWallet=disconnect;
-export const refreshWallet=()=>run(async()=>{await read();status('Compte '+networkLabel+' actualisé.');});
+function clearSession(){revision++;consent.checked=false;exchange=null;address=null;account=null;orders=[];fills=[];dayFills=[];readAt=0;meta=null;detailsReady=false;}
+subscribeWallet(state=>{
+ if(state.network!==network)return;
+ if(!state.address){clearSession();status(state.message,state.error);render();return;}
+ if(state.busy||state.address===address)return;
+ const p=session.sessionProvider();if(!p)return;
+ clearSession();address=state.address as Address;
+ exchange=new ExchangeClient({wallet:sessionWallet(p,address,network),transport,signatureChainId:()=>signingChainId(p),defaultExpiresAfter:()=>Date.now()+60000});
+ status(state.message,state.error);void read(false).catch(error=>status(walletError(error),true));
+});
+export async function connectWallet(){await session.connectWallet();if(reading)await reading;const state=session.walletSession();status(state.message,state.error);}
+export async function restoreWallet(){await session.restoreWallet();if(reading)await reading;const state=session.walletSession();status(state.message,state.error);}
+export const disconnectWallet=session.disconnectWallet;
+export const refreshWallet=()=>run(async()=>{await read();await session.refreshWallet();status('Compte '+networkLabel+' actualisé.');});
 $('testnet-connect').addEventListener('click',()=>void connectWallet());
-$('testnet-disconnect').addEventListener('click',disconnect);
+$('testnet-disconnect').addEventListener('click',session.disconnectWallet);
 $('testnet-refresh').addEventListener('click',()=>run(async()=>{await read();status('Compte '+networkLabel+' actualisé.');}));
 // Disabled fields are intentionally locked during signing; FormData omits them.
 function values(){return Object.fromEntries(Array.from(form.querySelectorAll<HTMLInputElement|HTMLSelectElement>('[name]'),el=>[el.name,el.value])) as Record<string,string>;}

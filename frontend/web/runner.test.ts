@@ -32,6 +32,20 @@ it('requires mainnet consent and starts only after explicit arming without an im
  const {browserRequest}=await configured('mainnet');await expect(browserRequest('arm',{settings:{profile:'balanced',leverage:15}},'mainnet')).rejects.toThrow('MAINNET');
  expect((await browserRequest('arm',{settings:{profile:'balanced',leverage:15},consent:'MAINNET'},'mainnet')).active).toBe(true);expect(fake.sent).toHaveLength(0);
 });
+it('blocks arming while the shared wallet session has a manual operation in progress',async()=>{
+ const {browserRequest}=await configured();const {publishWallet}=await import('../shared/wallet-store');
+ publishWallet({network:'testnet',address:owner,busy:true,readAt:Date.now(),equity:10000,withdrawable:10000,position:null,openOrders:0,message:'Manual signature',error:false});
+ await expect(browserRequest('arm',{settings:{profile:'balanced',leverage:15}},'testnet')).rejects.toThrow('wallet');expect(fake.sent).toHaveLength(0);
+});
+it('blocks arming when an unresolved manual-send journal exists for the same owner and network',async()=>{
+ const {browserRequest}=await configured();dom.localStorage.setItem('omega-testnet-exchange-pending-'+owner,'pending-fixture');
+ await expect(browserRequest('arm',{settings:{profile:'balanced',leverage:15}},'testnet')).rejects.toThrow('envoi manuel');expect(fake.sent).toHaveLength(0);
+});
+it('rechecks wallet activity after the asynchronous owner check before arming',async()=>{
+ const {browserRequest}=await configured();const {publishWallet}=await import('../shared/wallet-store');
+ (dom as any).ethereum.request.mockImplementationOnce(async()=>{publishWallet({network:'testnet',address:owner,busy:true,readAt:Date.now(),equity:10000,withdrawable:10000,position:null,openOrders:0,message:'Manual signature',error:false});return [owner];});
+ await expect(browserRequest('arm',{settings:{profile:'balanced',leverage:15}},'testnet')).rejects.toThrow('interrompu');expect(fake.sent).toHaveLength(0);
+});
 it('commits pending, quota and nonce before the browser transport sends an entry',async()=>{
  const {browserRequest}=await configured();await browserRequest('arm',{settings:{profile:'balanced',leverage:15}},'testnet');nextBar();
  const {BrowserVault}=await import('./vault'),vault=new BrowserVault((dom as any).indexedDB,webcrypto as unknown as Crypto);let checkpoint:any;

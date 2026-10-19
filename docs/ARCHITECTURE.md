@@ -45,9 +45,9 @@ Les calculs Daily et réseaux de `frontend/core/` sont purs et importables par s
 | Simulation automatique | [controller.ts](../frontend/core/controller.ts) | Armement paper navigateur, nouvelles clôtures, Web Locks |
 | Stores | [market-store.ts](../frontend/shared/market-store.ts), [runner-store.ts](../frontend/shared/runner-store.ts) | Dernier snapshot observé ; état confirmé du service |
 | Réseaux | [networks.js](../frontend/core/networks.js) | Définitions REST/WS immuables, transport signé et refus des incohérences |
-| Connexion wallet | [wallet-connection.ts](../frontend/wallet-connection.ts), [wallet-store.ts](../frontend/shared/wallet-store.ts), [wallet-provider.ts](../frontend/shared/wallet-provider.ts), [wallet-memory.ts](../frontend/shared/wallet-memory.ts) | Parcours visible, prochaine étape et dépliage du compte, session de lecture/signature partagée, sélection MetaMask EIP-6963 ; aucun armement à la connexion |
+| Connexion wallet | [wallet-session.ts](../frontend/shared/wallet-session.ts), [wallet-connection.ts](../frontend/wallet-connection.ts), [wallet-store.ts](../frontend/shared/wallet-store.ts), [wallet-provider.ts](../frontend/shared/wallet-provider.ts), [wallet-memory.ts](../frontend/shared/wallet-memory.ts) | Parcours visible, prochaine étape et dépliage du compte, session de lecture/signature partagée, sélection MetaMask EIP-6963 ; aucun armement à la connexion |
 | Présentation | [cockpit.ts](../frontend/cockpit.ts), [cockpit.ts (modèle)](../frontend/core/cockpit.ts), [theme.ts](../frontend/theme.ts), [workspace.ts](../frontend/workspace.ts), [bot-dashboard.ts](../frontend/bot-dashboard.ts), [bot-view.ts](../frontend/core/bot-view.ts) | Cockpit de lecture, thèmes, diagnostic, journal, sous-onglets Bot et lectures des horizons |
-| Exchange manuel | [exchange.ts](../frontend/exchange.ts) | Connexion wallet, plan, signatures, lecture et rapprochement |
+| Exchange manuel | [exchange.ts](../frontend/exchange.ts) | Adaptateur manuel de la session commune, plan, signatures, lecture stricte et rapprochement |
 | Commande du service | [runner-ui.ts](../frontend/runner-ui.ts), [network.ts](../frontend/network.ts) | Session locale, approbation agent, armement, changement de réseau |
 | Graphique | [market-chart.ts](../frontend/charts/market-chart.ts), [data-buffer.ts](../frontend/charts/data-buffer.ts) | Lightweight Charts, données/EMA incrémentales, corrections historiques |
 | Visualisation | [depth-model.ts](../frontend/visuals/depth-model.ts), [liquidity.ts](../frontend/visuals/liquidity.ts) | Modèle L2 pur et profondeur cumulée SVG |
@@ -67,7 +67,7 @@ Les calculs Daily et réseaux de `frontend/core/` sont purs et importables par s
 2. `legacy/ui.js` demande `/api/state` à l’adaptateur, pilote la simulation et publie `axiom-state`.
 3. `workspace.ts` transmet le snapshot à `market-store`, puis construit les diagnostics et, si visible, le journal.
 4. Les consommateurs différés reçoivent immédiatement le dernier snapshot lorsqu’ils s’abonnent. Ils n’ouvrent pas chacun un flux Hyperliquid.
-5. `runner-store` est indépendant : son contenu vient du moteur web ou du service local, pas d’un score descriptif navigateur. Le store wallet publie uniquement la session de signature/lecture établie par `exchange.ts` ; il ne transforme ni une adresse consultée ni une lecture du compte en autorisation d’agent.
+5. `runner-store` est indépendant : son contenu vient du moteur web ou du service local, pas d’un score descriptif navigateur. Le store wallet publie uniquement la session de signature/lecture établie par `wallet-session.ts` ; il ne transforme ni une adresse consultée ni une lecture du compte en autorisation d’agent.
 
 `window.BrowserAtelier`, `window.PaperPilot`, `window.TradingChart` et les hooks `ExchangeSnapshot`/`OmegaRunnerGate` sont des ponts actifs typés dans [globals.d.ts](../frontend/globals.d.ts). Leur suppression demande une migration de leurs consommateurs.
 
